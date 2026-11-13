@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شبیه‌ساز مدار اصلاح ضریب توان (Active PFC)</title>
+    <style>
+        /* ================= استایل‌های پایه ================= */
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .btn-action {
+            background: rgba(46, 213, 115, 0.2);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+        
+        .btn-action.off {
+            background: rgba(255, 183, 3, 0.2);
+            border: 1px solid var(--accent-gold);
+            color: var(--accent-gold);
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 440px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-card h3.mixed::before {
+            content: '■';
+            color: var(--accent-blue);
+            font-size: 1.2rem;
+            line-height: 0;
+            margin-left: 2px;
+        }
+        .scope-card h3.mixed::after {
+            content: '■';
+            color: var(--accent-gold);
+            font-size: 1.2rem;
+            line-height: 0;
+        }
+
+        .scope-out h3::before { 
+            content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+            background: var(--accent-red); 
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.on {
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+
+        .status-dot.off {
+            background: var(--accent-gold);
+            box-shadow: 0 0 10px var(--accent-gold);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>شبیه‌ساز مدار اصلاح ضریب توان (Active PFC)</h1>
+        <p>بررسی اثر مدار Boost PFC در هم‌فاز سازی جریان ورودی با ولتاژ و حذف هارمونیک‌ها</p>
+    </header>
+
+    <div class="main-container">
+        <!-- پنل تنظیمات -->
+        <aside class="glass-panel controls-sidebar">
+            
+            <div class="control-group">
+                <label>وضعیت سیستم PFC:</label>
+                <button class="toggle-btn btn-action active" id="btn-pfc-toggle" onclick="togglePFC()">PFC روشن (Active Boost)</button>
+            </div>
+
+            <div class="control-group">
+                <label>نوع جریان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">قراردادی</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">الکترونی</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span>ولتاژ ورودی AC (RMS):</span> <span class="val" id="val-vac">220 V</span></label>
+                <input type="range" id="slider-vac" min="110" max="240" value="220" step="10">
+            </div>
+
+            <!-- اسلایدر جدید فرکانس -->
+            <div class="control-group">
+                <label><span>فرکانس ورودی AC:</span> <span class="val" id="val-freq">50 Hz</span></label>
+                <input type="range" id="slider-freq" min="40" max="100" value="50" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span>ولتاژ هدف DC (V_out):</span> <span class="val" id="val-vdc">380 V</span></label>
+                <input type="range" id="slider-vdc" min="350" max="450" value="380" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span>مقاومت بار (توان):</span> <span class="val" id="val-res">100 Ω</span></label>
+                <input type="range" id="slider-res" min="50" max="300" value="100" step="10">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot on" id="status-dot"></div>
+                <span id="status-text">حالت: جریان سینوسی (PF ~ 0.99)</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title">ضریب توان (Power Factor)</div>
+                    <div class="val" id="m-pf" style="color:var(--accent-green)">0.99</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">ولتاژ خروجی (DC)</div>
+                    <div class="val" id="m-vout">380 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">توان مصرفی (P_out)</div>
+                    <div class="val" id="m-pout">1444 W</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">جریان ورودی (RMS)</div>
+                    <div class="val" id="m-iin">6.6 A</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ناحیه شبیه‌سازی -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-in">
+                    <h3 class="mixed">ولتاژ ورودی AC (آبی) و جریان ورودی (زرد)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeIN"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-out">
+                    <h3>ولتاژ خروجی DC روی خازن (V_out)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeOUT"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ================= متغیرهای سیستم =================
+        let flowMode = 'conv';
+        let isPfcActive = true;
+        let V_ac_rms = 220;
+        let freqAC = 50; // متغیر جدید فرکانس
+        let V_dc_target = 380;
+        let R_load = 100;
+        const C_out = 470e-6; // 470uF
+
+        // بوم‌ها
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasIN = document.getElementById('scopeIN');
+        const ctxIN = canvasIN.getContext('2d');
+        const canvasOUT = document.getElementById('scopeOUT');
+        const ctxOUT = canvasOUT.getContext('2d');
+
+        // رویدادهای UI
+        function togglePFC() {
+            isPfcActive = !isPfcActive;
+            const btn = document.getElementById('btn-pfc-toggle');
+            if (isPfcActive) {
+                btn.className = 'toggle-btn btn-action active';
+                btn.innerText = 'PFC روشن (Active Boost)';
+            } else {
+                btn.className = 'toggle-btn btn-action off';
+                btn.innerText = 'PFC خاموش (یکسوکننده عادی)';
+            }
+        }
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        document.getElementById('slider-vac').addEventListener('input', (e) => {
+            V_ac_rms = parseFloat(e.target.value); document.getElementById('val-vac').innerText = V_ac_rms + ' V';
+        });
+        // لاین مربوط به اسلایدر فرکانس
+        document.getElementById('slider-freq').addEventListener('input', (e) => {
+            freqAC = parseFloat(e.target.value); document.getElementById('val-freq').innerText = freqAC + ' Hz';
+        });
+        document.getElementById('slider-vdc').addEventListener('input', (e) => {
+            V_dc_target = parseFloat(e.target.value); document.getElementById('val-vdc').innerText = V_dc_target + ' V';
+        });
+        document.getElementById('slider-res').addEventListener('input', (e) => {
+            R_load = parseFloat(e.target.value); document.getElementById('val-res').innerText = R_load + ' Ω';
+        });
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width; canvas.height = rect.height;
+            const rectIN = canvasIN.parentElement.getBoundingClientRect();
+            canvasIN.width = rectIN.width; canvasIN.height = rectIN.height;
+            const rectOUT = canvasOUT.parentElement.getBoundingClientRect();
+            canvasOUT.width = rectOUT.width; canvasOUT.height = rectOUT.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        // آرایه‌های اسیلوسکوپ
+        const vacHistory = [];
+        const iacHistory = [];
+        const vdcHistory = [];
+        const maxHistory = 400;
+
+        // ذرات (تقسیم به بخش AC و DC)
+        const particlesAC = [];
+        const particlesDC = [];
+        for (let i = 0; i < 25; i++) { particlesAC.push({ progress: Math.random() }); }
+        for (let i = 0; i < 35; i++) { particlesDC.push({ progress: Math.random(), branch: i%2===0?'cap':'load' }); }
+
+        let time = 0;
+        let V_dc_actual = 0; 
+        let mosfetPulse = 0; 
+
+        // ================= حلقه اصلی انیمیشن و ریاضیات =================
+        function animate() {
+            time += 0.02;
+
+            const V_peak = V_ac_rms * 1.414;
+            
+            // تبدیل فرکانس واقعی (مثلا 50) به مقیاس بصری (پایه 1)
+            const visualFreq = freqAC / 50; 
+            const wt = time * Math.PI * 2 * visualFreq;
+            
+            const V_ac_inst = V_peak * Math.sin(wt);
+            const V_ac_abs = Math.abs(V_ac_inst);
+
+            let I_ac_inst = 0;
+            let Power_out = (V_dc_actual * V_dc_actual) / R_load;
+            let I_in_rms = 0;
+            let PF = 0;
+
+            if (isPfcActive) {
+                // PFC روشن
+                V_dc_actual += (V_dc_target - V_dc_actual) * 0.05; 
+                Power_out = (V_dc_actual * V_dc_actual) / R_load;
+                
+                I_in_rms = Power_out / (V_ac_rms * 0.95); 
+                const I_peak = I_in_rms * 1.414;
+                
+                I_ac_inst = I_peak * Math.sin(wt); 
+                PF = 0.99;
+                
+                mosfetPulse = (mosfetPulse + 1) % 5; 
+            } else {
+                // PFC خاموش
+                mosfetPulse = 0; 
+
+                // دشارژ خازن
+                const dV_discharge = (V_dc_actual / R_load) * 0.02 / C_out; 
+                V_dc_actual -= dV_discharge * 0.0005; 
+
+                if (V_ac_abs > V_dc_actual) {
+                    V_dc_actual = V_ac_abs;
+                    const I_pulse_peak = ((V_ac_abs - V_dc_actual + 5) / 2) * 2.5; 
+                    I_ac_inst = I_pulse_peak * Math.sign(V_ac_inst);
+                } else {
+                    I_ac_inst = 0;
+                }
+
+                Power_out = (V_dc_actual * V_dc_actual) / R_load;
+                I_in_rms = (Power_out / V_ac_rms) * 1.8; 
+                PF = 0.55 + (Math.random() * 0.05); 
+            }
+
+            // بروزرسانی UI
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+
+            if (isPfcActive) {
+                dot.className = 'status-dot on';
+                txt.innerText = 'حالت: PFC روشن (جریان کاملاً سینوسی)';
+                document.getElementById('m-pf').style.color = 'var(--accent-green)';
+            } else {
+                dot.className = 'status-dot off';
+                txt.innerText = 'حالت: یکسوکننده عادی (جریان پالسی/هارمونیک دار)';
+                document.getElementById('m-pf').style.color = 'var(--accent-gold)';
+            }
+
+            document.getElementById('m-pf').innerText = PF.toFixed(2);
+            document.getElementById('m-vout').innerText = V_dc_actual.toFixed(0) + ' V';
+            document.getElementById('m-pout').innerText = Power_out.toFixed(0) + ' W';
+            document.getElementById('m-iin').innerText = I_in_rms.toFixed(1) + ' A';
+
+            // ذخیره هیستوری برای رسم
+            vacHistory.push(V_ac_inst);
+            iacHistory.push(I_ac_inst);
+            vdcHistory.push(V_dc_actual);
+            
+            if (vacHistory.length > maxHistory) {
+                vacHistory.shift(); iacHistory.shift(); vdcHistory.shift();
+            }
+
+            // رندر بوم‌ها
+            drawCircuit(V_ac_inst, I_ac_inst, isPfcActive);
+            drawScopeIN();
+            drawScopeOUT();
+
+            requestAnimationFrame(animate);
+        }
+
+        // ================= رسم مدار روی Canvas =================
+        function drawCircuit(vac, iac, isPfcOn) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+
+            const acX = w * 0.10;
+            const rectX = w * 0.25;
+            const indStartX = w * 0.35;
+            const indEndX = w * 0.50;
+            const mosfetX = w * 0.50;
+            const diodeX = w * 0.65;
+            const capX = w * 0.80;
+            const loadX = w * 0.92;
+
+            const topY = h * 0.30;
+            const midY = h * 0.50;
+            const botY = h * 0.75;
+
+            // 1. سیم‌کشی پایه
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#334155';
+            ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+            ctx.beginPath();
+            
+            ctx.moveTo(acX, topY); ctx.lineTo(rectX, topY);
+            ctx.moveTo(acX, botY); ctx.lineTo(rectX, botY);
+            ctx.moveTo(acX, topY); ctx.lineTo(acX, botY); 
+
+            ctx.moveTo(rectX, topY); ctx.lineTo(loadX, topY);
+            ctx.moveTo(rectX, botY); ctx.lineTo(loadX, botY);
+
+            ctx.moveTo(mosfetX, topY); ctx.lineTo(mosfetX, botY); 
+            ctx.moveTo(capX, topY); ctx.lineTo(capX, botY); 
+            ctx.moveTo(loadX, topY); ctx.lineTo(loadX, botY); 
+
+            ctx.stroke();
+
+            // 2. هایلایت سیم‌های فعال
+            ctx.lineWidth = 4;
+            const iac_abs = Math.abs(iac);
+
+            if (iac_abs > 0.5) {
+                let isForward = (vac > 0);
+                if (flowMode === 'elec') isForward = !isForward;
+                
+                const acColor = isForward ? 'rgba(0, 242, 254, 0.7)' : 'rgba(46, 213, 115, 0.7)';
+                ctx.strokeStyle = acColor;
+                ctx.shadowColor = isForward ? '#00f2fe' : '#2ed573';
+                ctx.shadowBlur = 10;
+                
+                ctx.beginPath();
+                ctx.moveTo(acX, botY); ctx.lineTo(acX, topY); ctx.lineTo(rectX, topY);
+                ctx.moveTo(acX, botY); ctx.lineTo(rectX, botY);
+                ctx.stroke();
+            }
+            
+            if (iac_abs > 0.5 || V_dc_actual > 10) {
+                ctx.strokeStyle = 'rgba(255, 183, 3, 0.7)';
+                ctx.shadowColor = '#ffb703';
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                
+                ctx.moveTo(rectX, topY); ctx.lineTo(indEndX, topY);
+                ctx.moveTo(rectX, botY); ctx.lineTo(loadX, botY);
+                
+                if (isPfcOn && mosfetPulse > 2) {
+                    ctx.lineTo(mosfetX, botY); ctx.moveTo(mosfetX, topY); ctx.lineTo(mosfetX, botY);
+                    ctx.strokeStyle = 'rgba(255, 71, 87, 0.7)'; 
+                    ctx.shadowColor = '#ff4757';
+                } else {
+                    ctx.lineTo(diodeX, topY); ctx.lineTo(loadX, topY);
+                    ctx.lineTo(loadX, botY);
+                    ctx.moveTo(capX, topY); ctx.lineTo(capX, botY);
+                }
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
+
+            // 3. رسم المان‌ها
+            drawACSource(acX, midY, vac);
+            drawRectifierBlock(rectX, midY, topY, botY);
+            
+            drawInductor(indStartX, indEndX, topY, isPfcOn && mosfetPulse > 2);
+            drawMOSFET(mosfetX, topY + (botY - topY)/2, isPfcOn);
+            drawDiodeSeries(diodeX, topY, iac_abs > 0.5 && (!isPfcOn || mosfetPulse <= 2));
+            drawCapacitor(capX, midY);
+            drawLoad(loadX, midY);
+
+            drawGround(acX, botY);
+            drawGround(mosfetX, botY);
+            drawGround(loadX, botY);
+
+            // 4. رسم ذرات
+            drawParticles(vac, iac, isPfcOn, acX, rectX, indEndX, mosfetX, capX, loadX, topY, botY);
+        }
+
+        // ================= توابع رسم المان‌ها =================
+        function drawACSource(x, y, vInst) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#4facfe'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(x, y, 26, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(x - 12, y); ctx.bezierCurveTo(x - 6, y - 15, x, y - 15, x, y);
+            ctx.bezierCurveTo(x, y + 15, x + 6, y + 15, x + 12, y); ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8'; ctx.font = '12px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('AC In', x - 45, y + 4);
+            ctx.restore();
+        }
+
+        function drawRectifierBlock(x, y, topY, botY) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            const w = 40; const h = (botY - topY) + 20;
+            
+            ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+            ctx.fillRect(-w/2, -h/2, w, h); ctx.strokeRect(-w/2, -h/2, w, h);
+            
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(0, -10); ctx.lineTo(10, 0); ctx.lineTo(0, 10); ctx.closePath(); ctx.stroke();
+            
+            ctx.fillStyle = '#e2e8f0'; ctx.font = '10px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('AC/DC', 0, 25);
+            ctx.fillText('Bridge', 0, 38);
+            ctx.restore();
+        }
+
+        function drawInductor(x1, x2, y, isCharging) {
+            ctx.save();
+            const coils = 4; const w = (x2 - x1) - 10; const step = w / coils;
+            
+            ctx.strokeStyle = isCharging ? '#ff4757' : '#ffb703';
+            if(isCharging) { ctx.shadowColor = '#ff4757'; ctx.shadowBlur = 10; }
+            ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+            
+            ctx.beginPath();
+            for(let i=0; i<coils; i++) {
+                ctx.arc(x1 + 5 + i*step + step/2, y, step/2, Math.PI, 0, false);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = '#94a3b8'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('Boost L', x1 + w/2, y - 15);
+            ctx.restore();
+        }
+
+        function drawMOSFET(x, y, isPfcOn) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const isSwitching = isPfcOn && mosfetPulse > 2;
+            ctx.fillStyle = isSwitching ? 'rgba(0, 242, 254, 0.2)' : '#1e293b';
+            ctx.strokeStyle = isSwitching ? '#00f2fe' : '#64748b';
+            ctx.lineWidth = 2;
+
+            if (isPfcOn) {
+                ctx.shadowColor = '#00f2fe'; ctx.shadowBlur = isSwitching ? 15 : 5;
+            }
+
+            ctx.beginPath(); ctx.rect(-15, -18, 30, 36); ctx.fill(); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            ctx.font = '10px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'left';
+            ctx.fillText('MOSFET', 20, 0);
+            
+            ctx.strokeStyle = isPfcOn ? '#2ed573' : '#475569';
+            ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-30, 0); ctx.stroke();
+            ctx.fillStyle = isPfcOn ? '#2ed573' : '#475569';
+            ctx.fillText('PWM', -55, 4);
+
+            ctx.restore();
+        }
+
+        function drawDiodeSeries(x, y, isOn) {
+            ctx.save();
+            ctx.translate(x, y);
+            const size = 10;
+            
+            ctx.fillStyle = isOn ? '#ffb703' : '#1e293b';
+            ctx.strokeStyle = isOn ? '#ffb703' : '#64748b';
+            if (isOn) { ctx.shadowColor = '#ffb703'; ctx.shadowBlur = 10; }
+            ctx.lineWidth = 2;
+
+            ctx.beginPath(); ctx.moveTo(-size, -size); ctx.lineTo(size, 0); ctx.lineTo(-size, size); ctx.closePath();
+            ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(size, -size); ctx.lineTo(size, size); ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#94a3b8'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('Boost D', 0, -18);
+            ctx.restore();
+        }
+
+        function drawCapacitor(x, y) {
+            ctx.save();
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x - 12, y - 8); ctx.lineTo(x + 12, y - 8);
+            ctx.moveTo(x - 12, y + 8); ctx.lineTo(x + 12, y + 8);
+            ctx.stroke();
+            ctx.fillStyle = '#94a3b8'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left';
+            ctx.fillText('C_bulk', x + 15, y + 4);
+            ctx.restore();
+        }
+
+        function drawLoad(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.strokeStyle = '#ffb703'; ctx.lineWidth = 2.5;
+            ctx.shadowColor = '#ffb703'; ctx.shadowBlur = 10;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, -25);
+            for(let i=0; i<5; i++) { ctx.lineTo(i%2===0 ? -8 : 8, -25 + i*10 + 5); }
+            ctx.lineTo(0, 25); ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#e2e8f0'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'right';
+            ctx.fillText('Load', -15, 0);
+            ctx.restore();
+        }
+
+        function drawGround(x, y) {
+            ctx.save();
+            ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x, y); ctx.lineTo(x, y + 15);
+            ctx.moveTo(x - 10, y + 15); ctx.lineTo(x + 10, y + 15);
+            ctx.moveTo(x - 5, y + 20); ctx.lineTo(x + 5, y + 20);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // ================= انیمیشن ذرات =================
+        function drawParticles(vac, iac, isPfcOn, acX, rectX, indX, mosfetX, capX, loadX, topY, botY) {
+            const speedAC = isPfcOn ? 0.015 : (Math.abs(iac) > 1 ? 0.03 : 0);
+            let isForwardAC = (vac > 0);
+            if (flowMode === 'elec') isForwardAC = !isForwardAC;
+
+            particlesAC.forEach(p => {
+                if (speedAC > 0) p.progress += speedAC;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = [
+                    {x: acX, y: botY}, {x: acX, y: topY}, {x: rectX, y: topY},
+                    {x: rectX, y: botY}, {x: acX, y: botY}
+                ];
+                if (!isForwardAC) path = [...path].reverse();
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt && speedAC > 0) {
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = isForwardAC ? '#00f2fe' : '#2ed573';
+                    ctx.fill();
+                }
+            });
+
+            const speedDC = (V_dc_actual > 10) ? 0.01 : 0;
+            particlesDC.forEach(p => {
+                p.progress += speedDC;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = [];
+                if (isPfcOn && mosfetPulse > 2 && p.progress < 0.5) {
+                    path = [
+                        {x: rectX, y: topY}, {x: mosfetX, y: topY},
+                        {x: mosfetX, y: botY}, {x: rectX, y: botY}
+                    ];
+                } else {
+                    const targetX = p.branch === 'cap' ? capX : loadX;
+                    path = [
+                        {x: rectX, y: topY}, {x: targetX, y: topY},
+                        {x: targetX, y: botY}, {x: rectX, y: botY}
+                    ];
+                }
+
+                if (flowMode === 'elec') path = [...path].reverse();
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ffb703'; ctx.fill();
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0; const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i + 1].x - points[i].x; const dy = points[i + 1].y - points[i].y;
+                const len = Math.sqrt(dx * dx + dy * dy); lengths.push(len); totalLen += len;
+            }
+            let targetLen = t * totalLen; let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segmentT = (targetLen - currentLen) / lengths[i];
+                    const p1 = points[i]; const p2 = points[i + 1];
+                    return { x: p1.x + (p2.x - p1.x) * segmentT, y: p1.y + (p2.y - p1.y) * segmentT };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        // ================= رسم اسیلوسکوپ‌ها =================
+        function drawScopeIN() {
+            const w = canvasIN.width; const h = canvasIN.height;
+            ctxIN.clearRect(0, 0, w, h);
+
+            ctxIN.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctxIN.lineWidth = 1; ctxIN.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxIN.moveTo(x, 0); ctxIN.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxIN.moveTo(0, y); ctxIN.lineTo(w, y); }
+            ctxIN.stroke();
+
+            const midY = h / 2;
+            ctxIN.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctxIN.beginPath();
+            ctxIN.moveTo(0, midY); ctxIN.lineTo(w, midY); ctxIN.stroke();
+
+            const step = w / maxHistory;
+            const maxV = 400; 
+            const maxI = 30;  
+
+            ctxIN.strokeStyle = 'rgba(255, 183, 3, 0.8)'; ctxIN.lineWidth = 2.5; ctxIN.beginPath();
+            for (let i = 0; i < iacHistory.length; i++) {
+                const x = i * step;
+                const y = midY - (iacHistory[i] / maxI) * (h / 2);
+                if (i === 0) ctxIN.moveTo(x, y); else ctxIN.lineTo(x, y);
+            }
+            ctxIN.stroke();
+
+            ctxIN.strokeStyle = '#00f2fe'; ctxIN.lineWidth = 2; ctxIN.beginPath();
+            for (let i = 0; i < vacHistory.length; i++) {
+                const x = i * step;
+                const y = midY - (vacHistory[i] / maxV) * (h / 2);
+                if (i === 0) ctxIN.moveTo(x, y); else ctxIN.lineTo(x, y);
+            }
+            ctxIN.stroke();
+        }
+
+        function drawScopeOUT() {
+            const w = canvasOUT.width; const h = canvasOUT.height;
+            ctxOUT.clearRect(0, 0, w, h);
+
+            ctxOUT.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctxOUT.lineWidth = 1; ctxOUT.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxOUT.moveTo(x, 0); ctxOUT.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxOUT.moveTo(0, y); ctxOUT.lineTo(w, y); }
+            ctxOUT.stroke();
+
+            const maxV = 500;
+            const yTarget = h - (V_dc_target / maxV) * h;
+            ctxOUT.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctxOUT.setLineDash([4, 4]);
+            ctxOUT.beginPath(); ctxOUT.moveTo(0, yTarget); ctxOUT.lineTo(w, yTarget); ctxOUT.stroke(); ctxOUT.setLineDash([]);
+
+            ctxOUT.strokeStyle = '#ff4757'; ctxOUT.lineWidth = 2.5; ctxOUT.beginPath();
+            const step = w / maxHistory;
+            for (let i = 0; i < vdcHistory.length; i++) {
+                const x = i * step;
+                const y = h - (vdcHistory[i] / maxV) * h;
+                if (i === 0) ctxOUT.moveTo(x, y); else ctxOUT.lineTo(x, y);
+            }
+            ctxOUT.stroke();
+        }
+
+        requestAnimationFrame(animate);
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Matrix Converter Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --accent-purple: #a855f7;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+            
+            /* Phase Colors */
+            --phase-a: #ff4757;
+            --phase-b: #ffb703;
+            --phase-c: #4facfe;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1350px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 460px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-wave h3::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-cyan); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--accent-green);
+        }
+
+        .legend-grid {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-top: 10px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-color { width: 10px; height: 10px; border-radius: 50%; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="txt-title">Matrix Converter Simulator</h1>
+        <p id="txt-subtitle">Direct 3-Phase to 3-Phase AC-AC conversion with flexible frequency and voltage without DC link</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Control Sidebar -->
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group" style="display: none;">
+                <label id="lbl-lang">Language / زبان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی (FA)</button>
+                    <button class="toggle-btn active" id="btn-lang-en" onclick="setLanguage('en')">English (EN)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-freq-in">Grid Input Frequency (f_in):</span> <span class="val" id="val-freq-in">50 Hz</span></label>
+                <input type="range" id="slider-freq-in" min="40" max="60" value="50" step="5">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-freq-out">Load Output Frequency (f_out):</span> <span class="val" id="val-freq-out">25 Hz</span></label>
+                <input type="range" id="slider-freq-out" min="5" max="100" value="25" step="5">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-mod-index">Voltage Modulation Index (m):</span> <span class="val" id="val-mod-index">0.8</span></label>
+                <input type="range" id="slider-mod-index" min="0.1" max="1.0" value="0.8" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-res">3-Phase Load Resistance (R_load):</span> <span class="val" id="val-res">50 Ω</span></label>
+                <input type="range" id="slider-res" min="10" max="150" value="50" step="10">
+            </div>
+
+            <div class="state-indicator">
+                <span id="status-text">Status: Matrix Switching Active</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title" id="lbl-mout-fout">Output Frequency (f_out)</div>
+                    <div class="val" style="color:var(--accent-purple)" id="m-fout">25.0 Hz</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-mout-vrms">Output RMS Voltage (V_out)</div>
+                    <div class="val" id="m-vrms">176 V</div>
+                </div>
+            </div>
+
+            <div class="legend-grid">
+                <div class="legend-item"><div class="legend-color" style="background: var(--phase-a);"></div>Input Phase A</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--phase-b);"></div>Input Phase B</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--phase-c);"></div>Input Phase C</div>
+            </div>
+        </aside>
+
+        <!-- Simulation Area -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-wave">
+                    <h3 id="lbl-scope-wave">Oscilloscope: 3-Phase Grid Input (Top) and Synthesized Phase A Output (Bottom)</h3>
+                    <div style="height: 180px; position: relative;">
+                        <canvas id="scopeWave"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const i18n = {
+            fa: {
+                title: "شبیه‌ساز مبدل ماتریسی (Matrix Converter)",
+                subtitle: "تبدیل مستقیم AC سه‌فاز به سه‌فاز با فرکانس و ولتاژ دلخواه بدون لینک DC",
+                langLabel: "زبان / Language:",
+                freqInLabel: "فرکانس ورودی شبکه (f_in):",
+                freqOutLabel: "فرکانس خروجی بار (f_out):",
+                modIndexLabel: "ضریب مدولاسیون ولتاژ (m):",
+                resLabel: "مقاومت بار سه‌فاز (R_load):",
+                statusOp: "حالت: کلیدزنی ماتریسی فعال است",
+                moutFout: "فرکانس خروجی (f_out)",
+                moutVrms: "ولتاژ مؤثر خروجی (V_out)",
+                scopeWave: "اسیلوسکوپ: ۳ فاز ورودی شبکه (بالا) و شکل‌موج بازسازی‌شده فاز A خروجی (پایین)",
+                inputSrc: "ورودی شبکه ۳ فاز",
+                outputLoad: "بار ۳ فاز (موتور AC / بار RL)",
+                matrixHeader: "آرایه ۳×۳ کلیدهای دوطرفه (Matrix Switches)",
+                phaseInA: "فاز A ورودی",
+                phaseInB: "فاز B ورودی",
+                phaseInC: "فاز C ورودی",
+                phaseOutA: "فاز A خروجی",
+                phaseOutB: "فاز B خروجی",
+                phaseOutC: "فاز C خروجی"
+            },
+            en: {
+                title: "Matrix Converter Simulator",
+                subtitle: "Direct 3-Phase to 3-Phase AC-AC conversion with flexible frequency and voltage without DC link",
+                langLabel: "Language / زبان:",
+                freqInLabel: "Grid Input Frequency (f_in):",
+                freqOutLabel: "Load Output Frequency (f_out):",
+                modIndexLabel: "Voltage Modulation Index (m):",
+                resLabel: "3-Phase Load Resistance (R_load):",
+                statusOp: "Status: Matrix Switching Active",
+                moutFout: "Output Frequency (f_out)",
+                moutVrms: "Output RMS Voltage (V_out)",
+                scopeWave: "Oscilloscope: 3-Phase Grid Input (Top) and Synthesized Phase A Output (Bottom)",
+                inputSrc: "3-Phase Grid Input",
+                outputLoad: "3-Phase Load (AC Motor / RL Load)",
+                matrixHeader: "3x3 Bidirectional Switch Array",
+                phaseInA: "Input Phase A",
+                phaseInB: "Input Phase B",
+                phaseInC: "Input Phase C",
+                phaseOutA: "Output Phase A",
+                phaseOutB: "Output Phase B",
+                phaseOutC: "Output Phase C"
+            }
+        };
+
+        let currentLang = 'en';
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+            document.getElementById('btn-lang-fa').classList.toggle('active', lang === 'fa');
+            document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+            
+            const t = i18n[lang];
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('lbl-lang').innerText = t.langLabel;
+            document.getElementById('lbl-freq-in').innerText = t.freqInLabel;
+            document.getElementById('lbl-freq-out').innerText = t.freqOutLabel;
+            document.getElementById('lbl-mod-index').innerText = t.modIndexLabel;
+            document.getElementById('lbl-res').innerText = t.resLabel;
+            document.getElementById('status-text').innerText = t.statusOp;
+            document.getElementById('lbl-mout-fout').innerText = t.moutFout;
+            document.getElementById('lbl-mout-vrms').innerText = t.moutVrms;
+            document.getElementById('lbl-scope-wave').innerText = t.scopeWave;
+        }
+
+        // Simulation Parameters
+        let f_in = 50;
+        let f_out = 25;
+        let m_index = 0.8;
+        let R_load = 50;
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasWave = document.getElementById('scopeWave');
+        const ctxWave = canvasWave.getContext('2d');
+
+        // Event Listeners
+        document.getElementById('slider-freq-in').addEventListener('input', e => { f_in = parseFloat(e.target.value); document.getElementById('val-freq-in').innerText = f_in + ' Hz'; });
+        document.getElementById('slider-freq-out').addEventListener('input', e => { f_out = parseFloat(e.target.value); document.getElementById('val-freq-out').innerText = f_out + ' Hz'; });
+        document.getElementById('slider-mod-index').addEventListener('input', e => { m_index = parseFloat(e.target.value); document.getElementById('val-mod-index').innerText = m_index; });
+        document.getElementById('slider-res').addEventListener('input', e => { R_load = parseFloat(e.target.value); document.getElementById('val-res').innerText = R_load + ' Ω'; });
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height;
+            const rw = canvasWave.parentElement.getBoundingClientRect(); canvasWave.width = rw.width; canvasWave.height = rw.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        // Data History for Scopes
+        const hist_InA = [], hist_InB = [], hist_InC = [];
+        const hist_OutA_target = [], hist_OutA_actual = [];
+        const maxHistory = 400;
+
+        let particles = [];
+        let time = 0;
+
+        // Visual Coordinates for 3x3 Matrix
+        let yInA, yInB, yInC;
+        let xOutA, xOutB, xOutC;
+
+        function getBestPhase(target, vA, vB, vC) {
+            const dA = Math.abs(target - vA);
+            const dB = Math.abs(target - vB);
+            const dC = Math.abs(target - vC);
+            const min = Math.min(dA, dB, dC);
+            if(min === dA) return { val: vA, phase: 'A', color: '#ff4757' };
+            if(min === dB) return { val: vB, phase: 'B', color: '#ffb703' };
+            return { val: vC, phase: 'C', color: '#4facfe' };
+        }
+
+        function animate() {
+            time += 0.003; 
+            
+            const w_in = 2 * Math.PI * f_in * 0.05;
+            const w_out = 2 * Math.PI * f_out * 0.05;
+
+            // 3-Phase Input Waveforms
+            const vInA = Math.sin(time * w_in);
+            const vInB = Math.sin(time * w_in - (2*Math.PI/3));
+            const vInC = Math.sin(time * w_in + (2*Math.PI/3));
+
+            // Target Synthesized 3-Phase Output Waveforms
+            const targetOutA = m_index * Math.sin(time * w_out);
+            const targetOutB = m_index * Math.sin(time * w_out - (2*Math.PI/3));
+            const targetOutC = m_index * Math.sin(time * w_out + (2*Math.PI/3));
+
+            // Matrix Switching Logic (Select best input phase for each output)
+            const activeOutA = getBestPhase(targetOutA, vInA, vInB, vInC);
+            const activeOutB = getBestPhase(targetOutB, vInA, vInB, vInC);
+            const activeOutC = getBestPhase(targetOutC, vInA, vInB, vInC);
+
+            // Metrics Update
+            const vRmsEst = (220 * m_index).toFixed(0);
+            document.getElementById('m-fout').innerText = f_out.toFixed(1) + ' Hz';
+            document.getElementById('m-vrms').innerText = vRmsEst + ' V';
+
+            // Record History
+            hist_InA.push(vInA); hist_InB.push(vInB); hist_InC.push(vInC);
+            hist_OutA_target.push(targetOutA); hist_OutA_actual.push(activeOutA.val);
+            
+            if (hist_InA.length > maxHistory) {
+                hist_InA.shift(); hist_InB.shift(); hist_InC.shift();
+                hist_OutA_target.shift(); hist_OutA_actual.shift();
+            }
+
+            drawMatrixCircuit(activeOutA, activeOutB, activeOutC);
+            drawWaveScope();
+
+            // Spawn Particles along current paths
+            if(Math.random() > 0.4) spawnParticle('OutA', activeOutA.phase, activeOutA.color);
+            if(Math.random() > 0.4) spawnParticle('OutB', activeOutB.phase, activeOutB.color);
+            if(Math.random() > 0.4) spawnParticle('OutC', activeOutC.phase, activeOutC.color);
+
+            updateParticles();
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawMatrixCircuit(actA, actB, actC) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+            const t = i18n[currentLang];
+
+            // Define grid coordinates
+            yInA = h * 0.22; yInB = h * 0.38; yInC = h * 0.54;
+            xOutA = w * 0.40; xOutB = w * 0.56; xOutC = w * 0.72;
+
+            const startX = w * 0.18;
+            const endX = w * 0.82;
+            const loadY = h * 0.78;
+
+            // Draw Section Header Title
+            ctx.font = 'bold 13px Segoe UI';
+            ctx.fillStyle = '#00f2fe';
+            ctx.textAlign = 'center';
+            ctx.fillText(t.matrixHeader, (xOutA + xOutC)/2, h * 0.08);
+
+            // Draw Input Labels & Lines
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'right';
+            
+            ctx.fillStyle = '#ff4757'; ctx.fillText(t.phaseInA, startX - 10, yInA + 4);
+            ctx.fillStyle = '#ffb703'; ctx.fillText(t.phaseInB, startX - 10, yInB + 4);
+            ctx.fillStyle = '#4facfe'; ctx.fillText(t.phaseInC, startX - 10, yInC + 4);
+            
+            ctx.fillStyle = '#94a3b8'; ctx.font = '11px Segoe UI';
+            ctx.fillText(t.inputSrc, startX - 10, yInA - 18);
+
+            // Draw Horizontal Input Bus Wires
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#ff4757'; ctx.beginPath(); ctx.moveTo(startX, yInA); ctx.lineTo(endX, yInA); ctx.stroke();
+            ctx.strokeStyle = '#ffb703'; ctx.beginPath(); ctx.moveTo(startX, yInB); ctx.lineTo(endX, yInB); ctx.stroke();
+            ctx.strokeStyle = '#4facfe'; ctx.beginPath(); ctx.moveTo(startX, yInC); ctx.lineTo(endX, yInC); ctx.stroke();
+
+            // Draw Vertical Output Wires
+            ctx.strokeStyle = '#334155'; ctx.lineWidth = 3;
+            [xOutA, xOutB, xOutC].forEach(x => {
+                ctx.beginPath(); ctx.moveTo(x, yInA - 15); ctx.lineTo(x, loadY); ctx.stroke();
+            });
+
+            // Draw Output Phase Labels
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#00f2fe'; ctx.fillText(t.phaseOutA, xOutA, yInA - 22);
+            ctx.fillStyle = '#a855f7'; ctx.fillText(t.phaseOutB, xOutB, yInA - 22);
+            ctx.fillStyle = '#2ed573'; ctx.fillText(t.phaseOutC, xOutC, yInA - 22);
+
+            // Highlight Active Conducting Lines (Vertical Path down to load)
+            ctx.lineWidth = 4;
+            // Phase Out A
+            ctx.strokeStyle = actA.color; ctx.beginPath(); 
+            ctx.moveTo(xOutA, (actA.phase==='A'?yInA:(actA.phase==='B'?yInB:yInC))); ctx.lineTo(xOutA, loadY); ctx.stroke();
+            // Phase Out B
+            ctx.strokeStyle = actB.color; ctx.beginPath(); 
+            ctx.moveTo(xOutB, (actB.phase==='A'?yInA:(actB.phase==='B'?yInB:yInC))); ctx.lineTo(xOutB, loadY); ctx.stroke();
+            // Phase Out C
+            ctx.strokeStyle = actC.color; ctx.beginPath(); 
+            ctx.moveTo(xOutC, (actC.phase==='A'?yInA:(actC.phase==='B'?yInB:yInC))); ctx.lineTo(xOutC, loadY); ctx.stroke();
+
+            // Draw 3x3 Switches Array
+            const inputs = [
+                { y: yInA, name: 'A' }, { y: yInB, name: 'B' }, { y: yInC, name: 'C' }
+            ];
+            const outputs = [
+                { x: xOutA, act: actA }, { x: xOutB, act: actB }, { x: xOutC, act: actC }
+            ];
+
+            inputs.forEach(inp => {
+                outputs.forEach(outp => {
+                    const isActive = (outp.act.phase === inp.name);
+                    drawBidirectionalSwitch(outp.x, inp.y, isActive, outp.act.color);
+                });
+            });
+
+            // Draw Clear 3-Phase Connected Load (Wye/Star Load Box)
+            draw3PhaseLoad(xOutA, xOutB, xOutC, loadY, t.outputLoad);
+        }
+
+        function drawBidirectionalSwitch(x, y, isActive, activeColor) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            if (isActive) {
+                ctx.shadowColor = activeColor;
+                ctx.shadowBlur = 12;
+                ctx.fillStyle = activeColor;
+            } else {
+                ctx.fillStyle = '#1e293b';
+            }
+
+            ctx.strokeStyle = isActive ? activeColor : '#475569';
+            ctx.lineWidth = 2;
+
+            // Draw Diamond Switch Symbol
+            ctx.beginPath();
+            ctx.moveTo(0, -9); ctx.lineTo(9, 0); ctx.lineTo(0, 9); ctx.lineTo(-9, 0);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+
+            if (isActive) {
+                ctx.font = 'bold 9px Segoe UI';
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.fillText('ON', 0, 3);
+            }
+
+            ctx.restore();
+        }
+
+        function draw3PhaseLoad(xA, xB, xC, y, labelText) {
+            ctx.save();
+            
+            // Outer Load Panel
+            const boxWidth = (xC - xA) + 80;
+            const boxHeight = 65;
+            const boxX = (xA + xC) / 2 - boxWidth / 2;
+            const boxY = y;
+
+            ctx.fillStyle = 'rgba(30, 41, 59, 0.9)';
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 2;
+            roundRect(ctx, boxX, boxY, boxWidth, boxHeight, 10, true, true);
+
+            // Coils / Load Resistors inside Panel
+            const loadYMid = boxY + 25;
+
+            [xA, xB, xC].forEach((x, idx) => {
+                // Connection dot
+                ctx.fillStyle = idx === 0 ? '#00f2fe' : (idx === 1 ? '#a855f7' : '#2ed573');
+                ctx.beginPath(); ctx.arc(x, boxY, 4, 0, Math.PI*2); ctx.fill();
+
+                // Draw Load Resistor/Inductor Symbol
+                ctx.strokeStyle = '#cbd5e1';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, boxY);
+                ctx.lineTo(x, loadYMid - 10);
+                // Simple zigzag / box for RL Load
+                ctx.strokeRect(x - 6, loadYMid - 10, 12, 20);
+                ctx.moveTo(x, loadYMid + 10);
+                ctx.lineTo(x, boxY + boxHeight - 15);
+                ctx.stroke();
+            });
+
+            // Common Neutral Line Connecting All 3 Phases at Bottom (Star Connection Y)
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(xA, boxY + boxHeight - 15);
+            ctx.lineTo(xC, boxY + boxHeight - 15);
+            ctx.stroke();
+
+            // Label
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(labelText, (xA + xC) / 2, boxY + boxHeight + 18);
+
+            ctx.restore();
+        }
+
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            if (fill) ctx.fill();
+            if (stroke) ctx.stroke();
+        }
+
+        function spawnParticle(outPhase, inPhase, color) {
+            const startX = canvas.width * 0.18;
+            let startY = (inPhase === 'A') ? yInA : ((inPhase === 'B') ? yInB : yInC);
+            let targetX = (outPhase === 'OutA') ? xOutA : ((outPhase === 'OutB') ? xOutB : xOutC);
+            const endY = canvas.height * 0.78;
+
+            particles.push({
+                x: startX, y: startY,
+                targetX: targetX, endY: endY,
+                state: 0, // 0: Right along bus, 1: Down to load
+                color: color,
+                speed: 3 + Math.random() * 2
+            });
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                
+                if (p.state === 0) {
+                    p.x += p.speed;
+                    if (p.x >= p.targetX) {
+                        p.x = p.targetX;
+                        p.state = 1;
+                    }
+                } else if (p.state === 1) {
+                    p.y += p.speed;
+                    if (p.y >= p.endY) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 8;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function drawWaveScope() {
+            const w = canvasWave.width;
+            const h = canvasWave.height;
+            const t = i18n[currentLang];
+            ctxWave.clearRect(0, 0, w, h);
+
+            // Grid Background
+            ctxWave.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxWave.lineWidth = 1;
+            ctxWave.beginPath();
+            for (let x = 0; x < w; x += 30) { ctxWave.moveTo(x, 0); ctxWave.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxWave.moveTo(0, y); ctxWave.lineTo(w, y); }
+            ctxWave.stroke();
+
+            // Zero Axis Lines
+            const hTop = h * 0.32;
+            const hBot = h * 0.76;
+            const amp = h * 0.20;
+
+            ctxWave.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctxWave.setLineDash([4, 4]);
+            ctxWave.beginPath(); 
+            ctxWave.moveTo(0, hTop); ctxWave.lineTo(w, hTop);
+            ctxWave.moveTo(0, hBot); ctxWave.lineTo(w, hBot);
+            ctxWave.stroke();
+            ctxWave.setLineDash([]);
+
+            const step = w / maxHistory;
+
+            function drawSignal(history, yCenter, color, isDashed = false, lw = 1.5) {
+                ctxWave.strokeStyle = color;
+                ctxWave.lineWidth = lw;
+                if(isDashed) ctxWave.setLineDash([3, 3]); else ctxWave.setLineDash([]);
+                ctxWave.beginPath();
+                for (let i = 0; i < history.length; i++) {
+                    const x = i * step;
+                    const y = yCenter - history[i] * amp;
+                    if (i === 0) ctxWave.moveTo(x, y); else ctxWave.lineTo(x, y);
+                }
+                ctxWave.stroke();
+                ctxWave.setLineDash([]);
+            }
+
+            // Top Plot: 3 Input Phases (A, B, C)
+            drawSignal(hist_InA, hTop, '#ff4757', false, 1.2);
+            drawSignal(hist_InB, hTop, '#ffb703', false, 1.2);
+            drawSignal(hist_InC, hTop, '#4facfe', false, 1.2);
+
+            // Bottom Plot: Reference Envelope + Actual Synthesized Output (Phase A)
+            drawSignal(hist_OutA_target, hBot, 'rgba(0, 242, 254, 0.4)', true, 2);
+            
+            ctxWave.lineWidth = 2.5;
+            for (let i = 1; i < hist_OutA_actual.length; i++) {
+                const x0 = (i - 1) * step;
+                const y0 = hBot - hist_OutA_actual[i - 1] * amp;
+                const x1 = i * step;
+                const y1 = hBot - hist_OutA_actual[i] * amp;
+                
+                ctxWave.beginPath();
+                ctxWave.moveTo(x0, y0);
+                
+                if (Math.abs(y1 - y0) > 10) ctxWave.lineTo(x1, y0); // Sharp switching edge
+                
+                ctxWave.lineTo(x1, y1);
+                
+                const val = hist_OutA_actual[i];
+                const vA = hist_InA[i], vB = hist_InB[i], vC = hist_InC[i];
+                if(Math.abs(val - vA) < 0.01) ctxWave.strokeStyle = '#ff4757';
+                else if(Math.abs(val - vB) < 0.01) ctxWave.strokeStyle = '#ffb703';
+                else ctxWave.strokeStyle = '#4facfe';
+
+                ctxWave.stroke();
+            }
+
+            // Labels
+            ctxWave.font = '10px Segoe UI';
+            ctxWave.textAlign = 'left';
+            ctxWave.fillStyle = '#cbd5e1'; ctxWave.fillText(t.inputSrc + ' (A, B, C)', 8, 14);
+            ctxWave.fillStyle = '#00f2fe'; ctxWave.fillText(t.phaseOutA + ' (Chopped & Synthesized)', 8, hBot - amp - 5);
+        }
+
+        setLanguage(currentLang);
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">شبیه‌ساز اینورتر چند سطحی (Multi-Level Inverter)</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --accent-purple: #a855f7;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1400px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-card h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .scope-staircase h3::before { background: var(--accent-cyan); }
+        .scope-sine h3::before { background: var(--accent-gold); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.positive {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .status-dot.negative {
+            background: var(--accent-red);
+            box-shadow: 0 0 10px var(--accent-red);
+        }
+
+        .status-dot.zero {
+            background: var(--accent-gold);
+            box-shadow: 0 0 10px var(--accent-gold);
+        }
+
+        .level-indicator {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            flex-wrap: wrap;
+        }
+
+        .level-block {
+            width: 28px;
+            height: 12px;
+            border-radius: 3px;
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.15s;
+        }
+
+        .level-block.active-pos {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 8px var(--accent-cyan);
+        }
+
+        .level-block.active-neg {
+            background: var(--accent-red);
+            box-shadow: 0 0 8px var(--accent-red);
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-align: center;
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            margin-bottom: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="txt-title">شبیه‌ساز اینورتر چند سطحی (Multi-Level Inverter)</h1>
+        <p id="txt-subtitle">تحلیل شکل موج پلکانی، کاهش THD و عملکرد سوئیچ‌ها در توپولوژی Cascaded H-Bridge</p>
+    </header>
+
+    <div class="main-container">
+        <aside class="glass-panel controls-sidebar">
+
+            <div class="control-group" style="display: none;">
+                <label id="lbl-lang">زبان / Language:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn lang-btn active" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی (FA)</button>
+                    <button class="toggle-btn lang-btn" id="btn-lang-en" onclick="setLanguage('en')">English (EN)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-flow">نوع جریان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">قراردادی (+ به -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">الکترونی (- به +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-levels">تعداد سطوح:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-3lvl" onclick="setLevels(3)">۳ سطحی</button>
+                    <button class="toggle-btn" id="btn-5lvl" onclick="setLevels(5)">۵ سطحی</button>
+                    <button class="toggle-btn" id="btn-7lvl" onclick="setLevels(7)">۷ سطحی</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-vdc">ولتاژ هر منبع DC (V_dc):</span> <span class="val" id="val-vdc">100 V</span></label>
+                <input type="range" id="slider-vdc" min="20" max="200" value="100" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-freq">فرکانس خروجی (f_out):</span> <span class="val" id="val-freq">50 Hz</span></label>
+                <input type="range" id="slider-freq" min="25" max="100" value="50" step="5">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-mod">شاخص مدولاسیون (m_a):</span> <span class="val" id="val-mod">0.90</span></label>
+                <input type="range" id="slider-mod" min="30" max="100" value="90" step="5">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-res">مقاومت بار (R_load):</span> <span class="val" id="val-res">50 Ω</span></label>
+                <input type="range" id="slider-res" min="5" max="200" value="50" step="5">
+            </div>
+
+            <div class="section-title" id="lbl-level-vis">نمایش سطوح فعال</div>
+            <div class="level-indicator" id="level-indicator"></div>
+
+            <div class="state-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">حالت: سطح +۲ (مثبت)</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title" id="lbl-vpeak">ولتاژ پیک خروجی (V_peak)</div>
+                    <div class="val" id="m-vpeak">200 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-vrms">ولتاژ مؤثر (V_rms)</div>
+                    <div class="val" id="m-vrms">141.4 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-iout">جریان بار (I_rms)</div>
+                    <div class="val" id="m-iout">2.83 A</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-pwr">توان خروجی (P_out)</div>
+                    <div class="val" id="m-pwr">400 W</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-thd">اعوجاج هارمونیکی (THD)</div>
+                    <div class="val" style="color:var(--accent-green)" id="m-thd">~ 31 %</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-bridges">تعداد پل H فعال</div>
+                    <div class="val" style="color:var(--accent-purple)" id="m-bridges">1</div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-staircase">
+                    <h3 id="lbl-scope-stair">شکل موج پلکانی خروجی (Staircase Waveform)</h3>
+                    <div style="height: 140px; position: relative;">
+                        <canvas id="scopeStair"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-sine">
+                    <h3 id="lbl-scope-comp">مقایسه با سینوسی ایده‌آل و هارمونیک‌ها</h3>
+                    <div style="height: 140px; position: relative;">
+                        <canvas id="scopeComp"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const i18n = {
+            fa: {
+                title: "شبیه‌ساز اینورتر چند سطحی (Multi-Level Inverter)",
+                subtitle: "تحلیل شکل موج پلکانی، کاهش THD و عملکرد سوئیچ‌ها در توپولوژی Cascaded H-Bridge",
+                langLabel: "زبان / Language:",
+                flowLabel: "نوع جریان:",
+                convFlow: "قراردادی (+ به -)",
+                elecFlow: "الکترونی (- به +)",
+                levelsLabel: "تعداد سطوح:",
+                lvl3: "۳ سطحی",
+                lvl5: "۵ سطحی",
+                lvl7: "۷ سطحی",
+                vdcLabel: "ولتاژ هر منبع DC (V_dc):",
+                freqLabel: "فرکانس خروجی (f_out):",
+                modLabel: "شاخص مدولاسیون (m_a):",
+                resLabel: "مقاومت بار (R_load):",
+                levelVis: "نمایش سطوح فعال",
+                statePos: "حالت: سطح +{n} (مثبت)",
+                stateNeg: "حالت: سطح -{n} (منفی)",
+                stateZero: "حالت: سطح صفر",
+                vpeakLabel: "ولتاژ پیک خروجی (V_peak)",
+                vrmsLabel: "ولتاژ مؤثر (V_rms)",
+                ioutLabel: "جریان بار (I_rms)",
+                pwrLabel: "توان خروجی (P_out)",
+                thdLabel: "اعوجاج هارمونیکی (THD)",
+                bridgesLabel: "تعداد پل H فعال",
+                scopeStair: "شکل موج پلکانی خروجی (Staircase Waveform)",
+                scopeComp: "مقایسه با سینوسی ایده‌آل و هارمونیک‌ها",
+                dcSource: "منبع DC",
+                hBridge: "پل H",
+                load: "بار R"
+            },
+            en: {
+                title: "Multi-Level Inverter Simulator",
+                subtitle: "Staircase waveform analysis, THD reduction & Cascaded H-Bridge topology",
+                langLabel: "Language / زبان:",
+                flowLabel: "Current Flow:",
+                convFlow: "Conventional (+ to -)",
+                elecFlow: "Electron (- to +)",
+                levelsLabel: "Number of Levels:",
+                lvl3: "3-Level",
+                lvl5: "5-Level",
+                lvl7: "7-Level",
+                vdcLabel: "DC Source Voltage (V_dc):",
+                freqLabel: "Output Frequency (f_out):",
+                modLabel: "Modulation Index (m_a):",
+                resLabel: "Load Resistance (R_load):",
+                levelVis: "Active Levels Display",
+                statePos: "State: Level +{n} (Positive)",
+                stateNeg: "State: Level -{n} (Negative)",
+                stateZero: "State: Zero Level",
+                vpeakLabel: "Peak Output Voltage (V_peak)",
+                vrmsLabel: "RMS Voltage (V_rms)",
+                ioutLabel: "Load Current (I_rms)",
+                pwrLabel: "Output Power (P_out)",
+                thdLabel: "Total Harmonic Distortion (THD)",
+                bridgesLabel: "Active H-Bridges",
+                scopeStair: "Staircase Output Waveform",
+                scopeComp: "Comparison with Ideal Sine & Harmonics",
+                dcSource: "DC Source",
+                hBridge: "H-Bridge",
+                load: "Load R"
+            }
+        };
+
+        let currentLang = 'fa';
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('lang') === 'en') currentLang = 'en';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+            document.getElementById('btn-lang-fa').classList.toggle('active', lang === 'fa');
+            document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+            const t = i18n[lang];
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('lbl-lang').innerText = t.langLabel;
+            document.getElementById('lbl-flow').innerText = t.flowLabel;
+            document.getElementById('btn-conv').innerText = t.convFlow;
+            document.getElementById('btn-elec').innerText = t.elecFlow;
+            document.getElementById('lbl-levels').innerText = t.levelsLabel;
+            document.getElementById('btn-3lvl').innerText = t.lvl3;
+            document.getElementById('btn-5lvl').innerText = t.lvl5;
+            document.getElementById('btn-7lvl').innerText = t.lvl7;
+            document.getElementById('lbl-vdc').innerText = t.vdcLabel;
+            document.getElementById('lbl-freq').innerText = t.freqLabel;
+            document.getElementById('lbl-mod').innerText = t.modLabel;
+            document.getElementById('lbl-res').innerText = t.resLabel;
+            document.getElementById('lbl-level-vis').innerText = t.levelVis;
+            document.getElementById('lbl-vpeak').innerText = t.vpeakLabel;
+            document.getElementById('lbl-vrms').innerText = t.vrmsLabel;
+            document.getElementById('lbl-iout').innerText = t.ioutLabel;
+            document.getElementById('lbl-pwr').innerText = t.pwrLabel;
+            document.getElementById('lbl-thd').innerText = t.thdLabel;
+            document.getElementById('lbl-bridges').innerText = t.bridgesLabel;
+            document.getElementById('lbl-scope-stair').innerText = t.scopeStair;
+            document.getElementById('lbl-scope-comp').innerText = t.scopeComp;
+        }
+
+        let flowMode = 'conv';
+        let numLevels = 3;
+        let Vdc = 100;
+        let freqOut = 50;
+        let modIndex = 0.90;
+        let R_load = 50;
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasStair = document.getElementById('scopeStair');
+        const ctxStair = canvasStair.getContext('2d');
+        const canvasComp = document.getElementById('scopeComp');
+        const ctxComp = canvasComp.getContext('2d');
+
+        document.getElementById('slider-vdc').addEventListener('input', e => {
+            Vdc = parseFloat(e.target.value);
+            document.getElementById('val-vdc').innerText = Vdc + ' V';
+        });
+        document.getElementById('slider-freq').addEventListener('input', e => {
+            freqOut = parseFloat(e.target.value);
+            document.getElementById('val-freq').innerText = freqOut + ' Hz';
+        });
+        document.getElementById('slider-mod').addEventListener('input', e => {
+            modIndex = parseFloat(e.target.value) / 100;
+            document.getElementById('val-mod').innerText = modIndex.toFixed(2);
+        });
+        document.getElementById('slider-res').addEventListener('input', e => {
+            R_load = parseFloat(e.target.value);
+            document.getElementById('val-res').innerText = R_load + ' Ω';
+        });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        function setLevels(n) {
+            numLevels = n;
+            document.getElementById('btn-3lvl').classList.toggle('active', n === 3);
+            document.getElementById('btn-5lvl').classList.toggle('active', n === 5);
+            document.getElementById('btn-7lvl').classList.toggle('active', n === 7);
+            buildLevelIndicator();
+        }
+
+        function buildLevelIndicator() {
+            const container = document.getElementById('level-indicator');
+            container.innerHTML = '';
+            for (let i = 0; i < numLevels; i++) {
+                const block = document.createElement('div');
+                block.className = 'level-block';
+                block.id = 'lvl-block-' + i;
+                container.appendChild(block);
+            }
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            const r1 = canvasStair.parentElement.getBoundingClientRect();
+            canvasStair.width = r1.width;
+            canvasStair.height = r1.height;
+            const r2 = canvasComp.parentElement.getBoundingClientRect();
+            canvasComp.width = r2.width;
+            canvasComp.height = r2.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        const stairHistory = [];
+        const maxHistory = 400;
+
+        const particles = [];
+        for (let i = 0; i < 50; i++) {
+            particles.push({ progress: Math.random(), speed: 0.004 + Math.random() * 0.004 });
+        }
+
+        let time = 0;
+
+        function getNumBridges() {
+            return (numLevels - 1) / 2;
+        }
+
+        function getStaircaseLevel(phase) {
+            const nBridges = getNumBridges();
+            const sineVal = Math.sin(phase) * modIndex;
+            const maxLevel = nBridges;
+            let level = Math.round(sineVal * maxLevel);
+            level = Math.max(-maxLevel, Math.min(maxLevel, level));
+            return level;
+        }
+
+        function getTHD() {
+            if (numLevels === 3) return 31.0;
+            if (numLevels === 5) return 15.2;
+            if (numLevels === 7) return 8.6;
+            return 30;
+        }
+
+        function animate() {
+            time += 0.015;
+            const phase = 2 * Math.PI * freqOut * time * 0.02;
+            const currentLevel = getStaircaseLevel(phase);
+            const nBridges = getNumBridges();
+            const Vout_inst = currentLevel * Vdc;
+            const Vpeak = nBridges * Vdc * modIndex;
+            const Vrms = Vpeak / Math.sqrt(2);
+            const Irms = Vrms / R_load;
+            const Pout = Vrms * Irms;
+            const thd = getTHD();
+
+            // بروزرسانی وضعیت
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const t = i18n[currentLang];
+
+            if (currentLevel > 0) {
+                dot.className = 'status-dot positive';
+                txt.innerText = t.statePos.replace('{n}', Math.abs(currentLevel));
+            } else if (currentLevel < 0) {
+                dot.className = 'status-dot negative';
+                txt.innerText = t.stateNeg.replace('{n}', Math.abs(currentLevel));
+            } else {
+                dot.className = 'status-dot zero';
+                txt.innerText = t.stateZero;
+            }
+
+            // بروزرسانی سطوح فعال
+            const totalLevels = numLevels;
+            const midIndex = Math.floor(totalLevels / 2);
+            for (let i = 0; i < totalLevels; i++) {
+                const block = document.getElementById('lvl-block-' + i);
+                if (!block) continue;
+                const levelVal = i - midIndex;
+                block.className = 'level-block';
+                if (currentLevel > 0 && levelVal > 0 && levelVal <= currentLevel) {
+                    block.className = 'level-block active-pos';
+                } else if (currentLevel < 0 && levelVal < 0 && levelVal >= currentLevel) {
+                    block.className = 'level-block active-neg';
+                } else if (levelVal === 0 && currentLevel === 0) {
+                    block.className = 'level-block';
+                }
+            }
+
+            // بروزرسانی متریک‌ها
+            document.getElementById('m-vpeak').innerText = Vpeak.toFixed(0) + ' V';
+            document.getElementById('m-vrms').innerText = Vrms.toFixed(1) + ' V';
+            document.getElementById('m-iout').innerText = Irms.toFixed(2) + ' A';
+            document.getElementById('m-pwr').innerText = Pout.toFixed(0) + ' W';
+            document.getElementById('m-thd').innerText = '~ ' + thd.toFixed(1) + ' %';
+            document.getElementById('m-bridges').innerText = nBridges;
+
+            stairHistory.push(Vout_inst);
+            if (stairHistory.length > maxHistory) stairHistory.shift();
+
+            drawCircuit(currentLevel, nBridges, phase);
+            drawStairScope(nBridges);
+            drawCompScope(phase, nBridges);
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawCircuit(currentLevel, nBridges, phase) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+
+            const bridgeSpacing = Math.min(140, (w * 0.55) / nBridges);
+            const startX = w * 0.08;
+            const bridgeY = h * 0.5;
+            const bridgeH = h * 0.32;
+            const bridgeW = bridgeSpacing * 0.7;
+
+            const loadX = w * 0.88;
+            const loadY = bridgeY;
+            const topWireY = bridgeY - bridgeH / 2 - 30;
+            const botWireY = bridgeY + bridgeH / 2 + 30;
+
+            // سیم خروجی بالا و پایین
+            const lastBridgeX = startX + (nBridges - 1) * bridgeSpacing + bridgeW;
+
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // سیم بالا از آخرین پل تا بار
+            ctx.beginPath();
+            ctx.moveTo(lastBridgeX, topWireY);
+            ctx.lineTo(loadX, topWireY);
+            ctx.lineTo(loadX, loadY - 30);
+            ctx.stroke();
+
+            // سیم پایین از اولین پل تا بار
+            ctx.beginPath();
+            ctx.moveTo(startX, botWireY);
+            ctx.lineTo(loadX, botWireY);
+            ctx.lineTo(loadX, loadY + 30);
+            ctx.stroke();
+
+            // اتصال سری پل‌ها
+            for (let i = 0; i < nBridges; i++) {
+                const bx = startX + i * bridgeSpacing;
+                const isActive = Math.abs(currentLevel) > i;
+                const isPositive = currentLevel > 0;
+
+                drawHBridge(bx, bridgeY, bridgeW, bridgeH, i + 1, isActive, isPositive);
+
+                // سیم اتصال بالا بین پل‌ها (سری)
+                if (i < nBridges - 1) {
+                    ctx.strokeStyle = isActive ? 'rgba(0, 242, 254, 0.5)' : '#334155';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(bx + bridgeW, topWireY);
+                    ctx.lineTo(bx + bridgeSpacing, topWireY);
+                    ctx.stroke();
+                }
+
+                // سیم خروجی بالا
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(bx + bridgeW / 2, bridgeY - bridgeH / 2);
+                ctx.lineTo(bx + bridgeW / 2, topWireY);
+                ctx.stroke();
+
+                // سیم پایین
+                if (i === 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(bx + bridgeW / 2, bridgeY + bridgeH / 2);
+                    ctx.lineTo(bx + bridgeW / 2, botWireY);
+                    ctx.lineTo(startX, botWireY);
+                    ctx.stroke();
+                }
+            }
+
+            // هایلایت مسیر فعال
+            if (currentLevel !== 0) {
+                ctx.strokeStyle = currentLevel > 0 ? 'rgba(0, 242, 254, 0.4)' : 'rgba(255, 71, 87, 0.4)';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(lastBridgeX, topWireY);
+                ctx.lineTo(loadX, topWireY);
+                ctx.lineTo(loadX, loadY + 30);
+                ctx.lineTo(loadX, botWireY);
+                ctx.lineTo(startX, botWireY);
+                ctx.stroke();
+            }
+
+            // رسم بار
+            drawLoad(loadX, loadY, currentLevel);
+
+            // رسم نمودار کوچک سینوسی (مرجع)
+            drawMiniSine(w * 0.5, h * 0.08, w * 0.2, 25, phase);
+
+            // ذرات جریان
+            if (currentLevel !== 0) {
+                drawFlowParticles(currentLevel, startX, lastBridgeX, loadX, topWireY, botWireY, loadY);
+            }
+        }
+
+        function drawHBridge(x, cy, bw, bh, index, isActive, isPositive) {
+            ctx.save();
+            const halfH = bh / 2;
+            const halfW = bw / 2;
+
+            // پس‌زمینه پل
+            ctx.fillStyle = isActive
+                ? (isPositive ? 'rgba(0, 242, 254, 0.08)' : 'rgba(255, 71, 87, 0.08)')
+                : 'rgba(30, 41, 59, 0.5)';
+            ctx.strokeStyle = isActive
+                ? (isPositive ? '#00f2fe' : '#ff4757')
+                : '#475569';
+            ctx.lineWidth = 2;
+
+            const rx = x;
+            const ry = cy - halfH;
+            const rw = bw;
+            const rh = bh;
+            const r = 10;
+
+            ctx.beginPath();
+            ctx.moveTo(rx + r, ry);
+            ctx.lineTo(rx + rw - r, ry);
+            ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + r);
+            ctx.lineTo(rx + rw, ry + rh - r);
+            ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - r, ry + rh);
+            ctx.lineTo(rx + r, ry + rh);
+            ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - r);
+            ctx.lineTo(rx, ry + r);
+            ctx.quadraticCurveTo(rx, ry, rx + r, ry);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // ۴ سوئیچ MOSFET در آرایش H
+            const switchSize = 14;
+            const sw_positions = [
+                { x: x + 8, y: cy - halfH * 0.5, label: 'S1' },
+                { x: x + bw - 22, y: cy - halfH * 0.5, label: 'S2' },
+                { x: x + 8, y: cy + halfH * 0.5 - switchSize, label: 'S3' },
+                { x: x + bw - 22, y: cy + halfH * 0.5 - switchSize, label: 'S4' }
+            ];
+
+            sw_positions.forEach((sw, si) => {
+                let swOn = false;
+                if (isActive && isPositive) swOn = (si === 0 || si === 3);
+                if (isActive && !isPositive) swOn = (si === 1 || si === 2);
+
+                ctx.fillStyle = swOn ? (isPositive ? 'rgba(0, 242, 254, 0.3)' : 'rgba(255, 71, 87, 0.3)') : '#1e293b';
+                ctx.strokeStyle = swOn ? (isPositive ? '#00f2fe' : '#ff4757') : '#475569';
+                ctx.lineWidth = 1.5;
+                ctx.fillRect(sw.x, sw.y, switchSize, switchSize);
+                ctx.strokeRect(sw.x, sw.y, switchSize, switchSize);
+
+                ctx.font = '8px Segoe UI';
+                ctx.fillStyle = swOn ? '#fff' : '#64748b';
+                ctx.textAlign = 'center';
+                ctx.fillText(sw.label, sw.x + switchSize / 2, sw.y + switchSize / 2 + 3);
+            });
+
+            // منبع DC
+            const dcY = cy + halfH * 0.15;
+            ctx.fillStyle = isActive ? '#ffb703' : '#475569';
+            ctx.font = 'bold 10px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('DC' + index, x + halfW, dcY - 2);
+            ctx.fillText(Vdc + 'V', x + halfW, dcY + 10);
+
+            // لیبل پل
+            ctx.font = '10px Segoe UI';
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText(i18n[currentLang].hBridge + ' ' + index, x + halfW, cy + halfH + 16);
+
+            ctx.restore();
+        }
+
+        function drawLoad(x, cy, level) {
+            ctx.save();
+            ctx.translate(x, cy);
+            const hw = 22;
+            const hh = 30;
+
+            ctx.fillStyle = '#1e293b';
+            const glowColor = level > 0 ? '#00f2fe' : (level < 0 ? '#ff4757' : '#64748b');
+            ctx.strokeStyle = glowColor;
+            ctx.lineWidth = 2.5;
+
+            if (level !== 0) {
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = Math.abs(level) * 8;
+            }
+
+            ctx.fillRect(-hw, -hh, hw * 2, hh * 2);
+            ctx.strokeRect(-hw, -hh, hw * 2, hh * 2);
+            ctx.shadowBlur = 0;
+
+            // نماد سینوسی روی بار
+            ctx.strokeStyle = glowColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = -15; i <= 15; i++) {
+                const sx = i;
+                const sy = Math.sin(i * 0.3) * 8;
+                if (i === -15) ctx.moveTo(sx, sy);
+                else ctx.lineTo(sx, sy);
+            }
+            ctx.stroke();
+
+            ctx.font = '11px Segoe UI';
+            ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].load, 0, -hh - 10);
+            ctx.fillText(R_load + ' Ω', 0, hh + 18);
+
+            ctx.restore();
+        }
+
+        function drawMiniSine(cx, cy, w, h, phase) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 183, 3, 0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (let i = 0; i < w; i++) {
+                const angle = (i / w) * Math.PI * 2 + phase;
+                const y = cy - Math.sin(angle) * h * modIndex;
+                if (i === 0) ctx.moveTo(cx - w / 2 + i, y);
+                else ctx.lineTo(cx - w / 2 + i, y);
+            }
+            ctx.stroke();
+
+            // نشانگر فاز فعلی
+            const markerX = cx - w / 2 + ((phase % (Math.PI * 2)) / (Math.PI * 2)) * w;
+            const markerY = cy - Math.sin(phase) * h * modIndex;
+            ctx.beginPath();
+            ctx.arc(markerX, markerY, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffb703';
+            ctx.fill();
+
+            ctx.font = '10px Segoe UI';
+            ctx.fillStyle = '#64748b';
+            ctx.textAlign = 'center';
+            ctx.fillText('Ref Sine', cx, cy + h + 14);
+            ctx.restore();
+        }
+
+        function drawFlowParticles(level, startX, lastBridgeX, loadX, topY, botY, loadY) {
+            const color = level > 0 ? '#00f2fe' : '#ff4757';
+            const path = [];
+
+            if (flowMode === 'conv') {
+                if (level > 0) {
+                    path.push({ x: startX, y: botY });
+                    path.push({ x: startX, y: topY });
+                    path.push({ x: lastBridgeX, y: topY });
+                    path.push({ x: loadX, y: topY });
+                    path.push({ x: loadX, y: loadY - 30 });
+                    path.push({ x: loadX, y: loadY + 30 });
+                    path.push({ x: loadX, y: botY });
+                    path.push({ x: startX, y: botY });
+                } else {
+                    path.push({ x: startX, y: topY });
+                    path.push({ x: lastBridgeX, y: topY });
+                    path.push({ x: loadX, y: topY });
+                    path.push({ x: loadX, y: loadY - 30 });
+                    path.push({ x: loadX, y: loadY + 30 });
+                    path.push({ x: loadX, y: botY });
+                    path.push({ x: startX, y: botY });
+                    path.push({ x: startX, y: topY });
+                }
+            } else {
+                if (level > 0) {
+                    path.push({ x: loadX, y: botY });
+                    path.push({ x: loadX, y: loadY + 30 });
+                    path.push({ x: loadX, y: loadY - 30 });
+                    path.push({ x: loadX, y: topY });
+                    path.push({ x: lastBridgeX, y: topY });
+                    path.push({ x: startX, y: topY });
+                    path.push({ x: startX, y: botY });
+                    path.push({ x: loadX, y: botY });
+                } else {
+                    path.push({ x: loadX, y: topY });
+                    path.push({ x: loadX, y: loadY - 30 });
+                    path.push({ x: loadX, y: loadY + 30 });
+                    path.push({ x: loadX, y: botY });
+                    path.push({ x: startX, y: botY });
+                    path.push({ x: startX, y: topY });
+                    path.push({ x: lastBridgeX, y: topY });
+                    path.push({ x: loadX, y: topY });
+                }
+            }
+
+            particles.forEach(p => {
+                p.progress += p.speed * (Math.abs(level) * 0.5 + 0.5);
+                if (p.progress >= 1) p.progress = 0;
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 8;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0;
+            const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i + 1].x - points[i].x;
+                const dy = points[i + 1].y - points[i].y;
+                lengths.push(Math.sqrt(dx * dx + dy * dy));
+                totalLen += lengths[i];
+            }
+            let targetLen = t * totalLen;
+            let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segT = (targetLen - currentLen) / lengths[i];
+                    return {
+                        x: points[i].x + (points[i + 1].x - points[i].x) * segT,
+                        y: points[i].y + (points[i + 1].y - points[i].y) * segT
+                    };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        function drawStairScope() {
+            const w = canvasStair.width;
+            const h = canvasStair.height;
+            ctxStair.clearRect(0, 0, w, h);
+
+            // گرید
+            ctxStair.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxStair.lineWidth = 1;
+            ctxStair.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxStair.moveTo(x, 0); ctxStair.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxStair.moveTo(0, y); ctxStair.lineTo(w, y); }
+            ctxStair.stroke();
+
+            // خط صفر
+            ctxStair.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctxStair.setLineDash([4, 4]);
+            ctxStair.beginPath();
+            ctxStair.moveTo(0, h / 2);
+            ctxStair.lineTo(w, h / 2);
+            ctxStair.stroke();
+            ctxStair.setLineDash([]);
+
+            // شکل موج پلکانی
+            const nBridges = getNumBridges();
+            const maxV = nBridges * Vdc;
+
+            const gradient = ctxStair.createLinearGradient(0, 0, w, 0);
+            gradient.addColorStop(0, '#00f2fe');
+            gradient.addColorStop(0.5, '#4facfe');
+            gradient.addColorStop(1, '#00f2fe');
+
+            ctxStair.strokeStyle = gradient;
+            ctxStair.lineWidth = 2.5;
+            ctxStair.beginPath();
+
+            const step = w / maxHistory;
+            for (let i = 0; i < stairHistory.length; i++) {
+                const x = i * step;
+                const normV = stairHistory[i] / (maxV || 1);
+                const y = h / 2 - normV * (h * 0.4);
+                if (i === 0) ctxStair.moveTo(x, y);
+                else {
+                    const prevNormV = stairHistory[i - 1] / (maxV || 1);
+                    const prevY = h / 2 - prevNormV * (h * 0.4);
+                    if (prevY !== y) ctxStair.lineTo(x, prevY);
+                    ctxStair.lineTo(x, y);
+                }
+            }
+            ctxStair.stroke();
+
+            // لیبل‌های سطح
+            ctxStair.font = '9px Segoe UI';
+            ctxStair.fillStyle = '#64748b';
+            ctxStair.textAlign = 'left';
+            for (let l = -nBridges; l <= nBridges; l++) {
+                const y = h / 2 - (l / nBridges) * (h * 0.4);
+                ctxStair.fillText((l > 0 ? '+' : '') + l + 'Vdc', 4, y - 3);
+            }
+        }
+
+        function drawCompScope(phase) {
+            const w = canvasComp.width;
+            const h = canvasComp.height;
+            ctxComp.clearRect(0, 0, w, h);
+
+            // گرید
+            ctxComp.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxComp.lineWidth = 1;
+            ctxComp.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxComp.moveTo(x, 0); ctxComp.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxComp.moveTo(0, y); ctxComp.lineTo(w, y); }
+            ctxComp.stroke();
+
+            // خط صفر
+            ctxComp.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctxComp.setLineDash([4, 4]);
+            ctxComp.beginPath();
+            ctxComp.moveTo(0, h / 2);
+            ctxComp.lineTo(w, h / 2);
+            ctxComp.stroke();
+            ctxComp.setLineDash([]);
+
+            const nBridges = getNumBridges();
+
+            // سینوسی ایده‌آل
+            ctxComp.strokeStyle = 'rgba(255, 183, 3, 0.6)';
+            ctxComp.lineWidth = 2;
+            ctxComp.beginPath();
+            for (let i = 0; i < w; i++) {
+                const angle = (i / w) * Math.PI * 4 + phase;
+                const y = h / 2 - Math.sin(angle) * modIndex * (h * 0.4);
+                if (i === 0) ctxComp.moveTo(i, y);
+                else ctxComp.lineTo(i, y);
+            }
+            ctxComp.stroke();
+
+            // پلکانی
+            ctxComp.strokeStyle = '#00f2fe';
+            ctxComp.lineWidth = 2;
+            ctxComp.beginPath();
+            let prevY2 = h / 2;
+            for (let i = 0; i < w; i++) {
+                const angle = (i / w) * Math.PI * 4 + phase;
+                const level = getStaircaseLevel(angle);
+                const normV = level / nBridges;
+                const y = h / 2 - normV * (h * 0.4);
+                if (i === 0) {
+                    ctxComp.moveTo(i, y);
+                } else {
+                    if (prevY2 !== y) ctxComp.lineTo(i, prevY2);
+                    ctxComp.lineTo(i, y);
+                }
+                prevY2 = y;
+            }
+            ctxComp.stroke();
+
+            // لژاند
+            ctxComp.font = '10px Segoe UI';
+            ctxComp.fillStyle = '#ffb703';
+            ctxComp.fillText('── Ideal Sine', w - 120, 15);
+            ctxComp.fillStyle = '#00f2fe';
+            ctxComp.fillText('── Staircase', w - 120, 30);
+        }
+
+        buildLevelIndicator();
+        setLanguage(currentLang);
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

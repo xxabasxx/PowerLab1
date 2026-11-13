@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>شبیه‌ساز یکسوکننده نیم‌موج</title>
+<style>
+:root{
+--bg-color:#0a0f1d;
+--panel-bg:rgba(18,26,47,.75);
+--accent-cyan:#00f2fe;
+--accent-blue:#4facfe;
+--accent-gold:#ffb703;
+--text-color:#e2e8f0;
+--border-color:rgba(255,255,255,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+body{background:var(--bg-color);color:var(--text-color);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px;overflow-x:hidden}
+header{text-align:center;margin-bottom:20px}
+header h1{font-size:1.8rem;color:var(--accent-cyan);margin-bottom:6px;text-shadow:0 0 12px rgba(0,242,254,.3)}
+header p{font-size:.95rem;color:#94a3b8}
+.main-container{display:grid;grid-template-columns:320px 1fr;gap:20px;width:100%;max-width:1300px}
+@media(max-width:950px){.main-container{grid-template-columns:1fr}}
+.glass-panel{background:var(--panel-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border-color);border-radius:16px;padding:20px;box-shadow:0 8px 32px 0 rgba(0,0,0,.37)}
+.controls-sidebar{display:flex;flex-direction:column;gap:18px}
+.control-group{display:flex;flex-direction:column;gap:8px}
+.control-group label{font-size:.88rem;display:flex;justify-content:space-between;color:#cbd5e1}
+.control-group label span.val{color:var(--accent-cyan);font-weight:bold;direction:ltr}
+input[type="range"]{appearance:none;width:100%;height:6px;background:#1e293b;border-radius:3px;outline:none}
+input[type="range"]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent-cyan);cursor:pointer;box-shadow:0 0 8px var(--accent-cyan);transition:transform .1s}
+input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.toggle-group{display:flex;background:#1e293b;border-radius:8px;padding:3px;gap:4px}
+.toggle-btn{flex:1;padding:8px;border:none;background:transparent;color:#94a3b8;font-size:.82rem;border-radius:6px;cursor:pointer;transition:all .3s}
+.toggle-btn.active{background:var(--accent-cyan);color:#0f172a;font-weight:bold}
+.simulation-area{display:flex;flex-direction:column;gap:20px}
+.canvas-container{position:relative;width:100%;height:440px;background:rgba(10,15,29,.6);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.05)}
+canvas{width:100%;height:100%;display:block}
+.scopes-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:650px){.scopes-grid{grid-template-columns:1fr}}
+.scope-card{background:rgba(15,23,42,.8);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,.08)}
+.scope-card h3{font-size:.85rem;margin-bottom:8px;color:#94a3b8;display:flex;align-items:center;gap:6px}
+.scope-card h3::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%}
+.scope-ac h3::before{background:#ff4757}
+.scope-dc h3::before{background:var(--accent-gold)}
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:5px}
+.metric-card{background:rgba(255,255,255,.03);border-radius:8px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,.05)}
+.metric-card .title{font-size:.75rem;color:#64748b;margin-bottom:4px}
+.metric-card .val{font-size:1.05rem;font-weight:bold;color:var(--accent-cyan);direction:ltr}
+.info-box{background:rgba(0,242,254,.05);border:1px solid rgba(0,242,254,.15);border-radius:10px;padding:12px;margin-top:8px;font-size:.8rem;color:#94a3b8;line-height:1.7}
+.info-box b{color:var(--accent-cyan)}
+</style>
+</head>
+<body>
+
+<header>
+<h1 id="hdr-title">یکسوکننده نیم‌موج با بار لامپ روشنایی</h1>
+<p id="hdr-sub">مشاهده زنده یکسوسازی نیم‌موج — فقط نیم‌سیکل مثبت عبور می‌کند</p>
+</header>
+
+<div class="main-container">
+<aside class="glass-panel controls-sidebar">
+
+<div class="control-group">
+<label id="lbl-flow">نوع نمایش جریان:</label>
+<div class="toggle-group">
+<button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">قراردادی (+ به −)</button>
+<button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">الکترونی (− به +)</button>
+</div>
+</div>
+
+<div class="control-group">
+<label id="lbl-vac">ولتاژ پیک ورودی (AC): <span class="val" id="val-vac">12 V</span></label>
+<input type="range" id="slider-vac" min="3" max="30" value="12" step="1">
+</div>
+
+<div class="control-group">
+<label id="lbl-freq">فرکانس ورودی (AC): <span class="val" id="val-freq">50 Hz</span></label>
+<input type="range" id="slider-freq" min="1" max="100" value="50" step="1">
+</div>
+
+<div class="control-group">
+<label id="lbl-cap">ظرفیت خازن صافی (C): <span class="val" id="val-cap">470 µF</span></label>
+<input type="range" id="slider-cap" min="0" max="4700" value="470" step="10">
+</div>
+
+<div class="control-group">
+<label id="lbl-res">مقاومت لامپ: <span class="val" id="val-res">100 Ω</span></label>
+<input type="range" id="slider-res" min="10" max="500" value="100" step="5">
+</div>
+
+<div class="metrics-grid">
+<div class="metric-card"><div class="title" id="mt1">پیک ورودی</div><div class="val" id="m-vpeak">12.0 V</div></div>
+<div class="metric-card"><div class="title" id="mt2">میانگین DC</div><div class="val" id="m-vdc">0.0 V</div></div>
+<div class="metric-card"><div class="title" id="mt3">ولتاژ ریپل</div><div class="val" id="m-vrip">0.0 V</div></div>
+<div class="metric-card"><div class="title" id="mt4">توان لامپ</div><div class="val" id="m-pwr">0.0 W</div></div>
+<div class="metric-card"><div class="title" id="mt5">شارژ خازن</div><div class="val" id="m-cap">0 %</div></div>
+<div class="metric-card"><div class="title" id="mt6">فرکانس ریپل</div><div class="val" id="m-frip">50 Hz</div></div>
+</div>
+
+<div class="info-box" id="info-box">
+<b>نکته:</b> در یکسوساز نیم‌موج فقط <b>یک دیود</b> وجود دارد. در نیم‌سیکل مثبت، دیود هدایت می‌کند و در نیم‌سیکل منفی قطع است — بنابراین نصف موج حذف می‌شود. فرکانس ریپل برابر فرکانس ورودی است.
+</div>
+</aside>
+
+<main class="simulation-area">
+<div class="glass-panel canvas-container">
+<canvas id="circuitCanvas"></canvas>
+</div>
+<div class="scopes-grid">
+<div class="glass-panel scope-card scope-ac">
+<h3 id="scope-ac-title">سیگنال ورودی متناوب (AC Source)</h3>
+<div style="height:120px;position:relative"><canvas id="scopeAC"></canvas></div>
+</div>
+<div class="glass-panel scope-card scope-dc">
+<h3 id="scope-dc-title">ولتاژ روی لامپ (DC Output)</h3>
+<div style="height:120px;position:relative"><canvas id="scopeDC"></canvas></div>
+</div>
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var params = new URLSearchParams(window.location.search);
+var lang = params.get('lang') || 'fa';
+var fa = (lang === 'fa');
+if(!fa){ document.documentElement.lang='en'; document.documentElement.dir='ltr'; }
+
+var TXT = {
+  fa:{
+    title:'یکسوکننده نیم‌موج با بار لامپ روشنایی',
+    sub:'مشاهده زنده یکسوسازی نیم‌موج — فقط نیم‌سیکل مثبت عبور می‌کند',
+    flow:'نوع نمایش جریان:', conv:'قراردادی (+ به −)', elec:'الکترونی (− به +)',
+    vac:'ولتاژ پیک ورودی (AC):', freq:'فرکانس ورودی (AC):',
+    cap:'ظرفیت خازن صافی (C):', res:'مقاومت لامپ:',
+    mt1:'پیک ورودی',mt2:'میانگین DC',mt3:'ولتاژ ریپل',
+    mt4:'توان لامپ',mt5:'شارژ خازن',mt6:'فرکانس ریپل',
+    scopeAC:'سیگنال ورودی متناوب (AC Source)',
+    scopeDC:'ولتاژ روی لامپ (DC Output)',
+    info:'<b>نکته:</b> در یکسوساز نیم‌موج فقط <b>یک دیود</b> وجود دارد. در نیم‌سیکل مثبت، دیود هدایت می‌کند و در نیم‌سیکل منفی قطع است — بنابراین نصف موج حذف می‌شود. فرکانس ریپل برابر فرکانس ورودی است.',
+    withCap:'With Cap', noCap:'No Cap'
+  },
+  en:{
+    title:'Half-Wave Rectifier with Lamp Load',
+    sub:'Live half-wave rectification — only the positive half-cycle passes',
+    flow:'Current display mode:', conv:'Conventional (+ to −)', elec:'Electronic (− to +)',
+    vac:'AC Peak Voltage:', freq:'AC Frequency:',
+    cap:'Filter Capacitor (C):', res:'Lamp Resistance:',
+    mt1:'Peak Input',mt2:'Avg DC',mt3:'Ripple Vpp',
+    mt4:'Lamp Power',mt5:'Cap Charge',mt6:'Ripple Freq',
+    scopeAC:'AC Input Signal', scopeDC:'Lamp Voltage (DC Output)',
+    info:'<b>Note:</b> A half-wave rectifier uses only <b>one diode</b>. It conducts during the positive half-cycle and blocks during the negative — so half the waveform is lost. Ripple frequency equals the input frequency.',
+    withCap:'With Cap', noCap:'No Cap'
+  }
+};
+var T = TXT[fa?'fa':'en'];
+
+function applyLang(){
+  T = TXT[fa?'fa':'en'];
+  document.getElementById('hdr-title').textContent=T.title;
+  document.getElementById('hdr-sub').textContent=T.sub;
+  document.getElementById('btn-conv').textContent=T.conv;
+  document.getElementById('btn-elec').textContent=T.elec;
+  document.getElementById('mt1').textContent=T.mt1;
+  document.getElementById('mt2').textContent=T.mt2;
+  document.getElementById('mt3').textContent=T.mt3;
+  document.getElementById('mt4').textContent=T.mt4;
+  document.getElementById('mt5').textContent=T.mt5;
+  document.getElementById('mt6').textContent=T.mt6;
+  document.getElementById('scope-ac-title').textContent=T.scopeAC;
+  document.getElementById('scope-dc-title').textContent=T.scopeDC;
+  document.getElementById('info-box').innerHTML=T.info;
+}
+applyLang();
+
+var flowMode='conv';
+var Vac=12, freq=50, capUf=470, Rload=100;
+var VD=0.7, Rch=5, Vcap=0, time=0;
+
+var canvas=document.getElementById('circuitCanvas');
+var ctx=canvas.getContext('2d');
+var canvasAC=document.getElementById('scopeAC');
+var ctxAC=canvasAC.getContext('2d');
+var canvasDC=document.getElementById('scopeDC');
+var ctxDC=canvasDC.getContext('2d');
+
+var acH=[], dcH=[], rcH=[], maxHist=300;
+
+var NP=40, particles=[];
+for(var i=0;i<NP;i++) particles.push({progress:Math.random()});
+
+document.getElementById('slider-vac').addEventListener('input',function(e){
+  Vac=parseFloat(e.target.value);
+  document.getElementById('val-vac').textContent=Vac+' V';
+});
+document.getElementById('slider-freq').addEventListener('input',function(e){
+  freq=parseFloat(e.target.value);
+  document.getElementById('val-freq').textContent=freq+' Hz';
+});
+document.getElementById('slider-cap').addEventListener('input',function(e){
+  capUf=parseFloat(e.target.value);
+  document.getElementById('val-cap').textContent=capUf+' µF';
+});
+document.getElementById('slider-res').addEventListener('input',function(e){
+  Rload=parseFloat(e.target.value);
+  document.getElementById('val-res').textContent=Rload+' Ω';
+});
+window.setFlowMode=function(m){
+  flowMode=m;
+  document.getElementById('btn-conv').classList.toggle('active',m==='conv');
+  document.getElementById('btn-elec').classList.toggle('active',m==='elec');
+};
+
+function resizeAll(){
+  var r=canvas.parentElement.getBoundingClientRect();
+  canvas.width=r.width; canvas.height=r.height;
+  var r2=canvasAC.parentElement.getBoundingClientRect();
+  canvasAC.width=r2.width; canvasAC.height=r2.height;
+  var r3=canvasDC.parentElement.getBoundingClientRect();
+  canvasDC.width=r3.width; canvasDC.height=r3.height;
+}
+window.addEventListener('resize',resizeAll);
+
+function getL(){
+  var w=canvas.width, h=canvas.height;
+  if(w<10)w=600; if(h<10)h=400;
+  return {
+    w:w, h:h,
+    acX:w*0.12, topY:h*0.25, botY:h*0.75, midY:h*0.5,
+    dX:w*0.34, capX:w*0.58, lampX:w*0.82
+  };
+}
+
+/* ───── تشخیص وضعیت مدار ───── */
+function getCircuitState(vac){
+  var diodeOn = vac > VD;
+  var capDischarging = !diodeOn && capUf>0 && Vcap>0.5;
+  var capCharging = diodeOn && capUf>0;
+  return {diodeOn:diodeOn, capDischarging:capDischarging, capCharging:capCharging};
+}
+
+/* ───── سیم‌کشی پایه + هایلایت مسیر فعال ───── */
+function drawWires(l, vac){
+  var st = getCircuitState(vac);
+
+  /* 1. سیم‌کشی پایه خاکستری */
+  ctx.save();
+  ctx.lineWidth=3;
+  ctx.strokeStyle='#334155';
+  ctx.lineJoin='round';
+  ctx.lineCap='round';
+
+  ctx.beginPath();
+  ctx.moveTo(l.acX, l.topY);
+  ctx.lineTo(l.lampX, l.topY);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(l.acX, l.botY);
+  ctx.lineTo(l.lampX, l.botY);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(l.acX, l.topY);
+  ctx.lineTo(l.acX, l.botY);
+  ctx.stroke();
+
+  if(capUf>0){
+    ctx.beginPath();
+    ctx.moveTo(l.capX, l.topY);
+    ctx.lineTo(l.capX, l.botY);
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(l.lampX, l.topY);
+  ctx.lineTo(l.lampX, l.botY);
+  ctx.stroke();
+  ctx.restore();
+
+  /* 2. هایلایت مسیر فعال */
+  ctx.save();
+  ctx.lineWidth=4;
+  ctx.lineJoin='round';
+  ctx.lineCap='round';
+
+  if(st.diodeOn){
+    ctx.strokeStyle='rgba(0, 242, 254, 0.6)';
+    ctx.beginPath();
+    ctx.moveTo(l.acX, l.botY);
+    ctx.lineTo(l.acX, l.topY);
+    ctx.lineTo(l.lampX, l.topY);
+    ctx.lineTo(l.lampX, l.botY);
+    ctx.lineTo(l.acX, l.botY);
+    ctx.stroke();
+
+    if(st.capCharging){
+      ctx.strokeStyle='rgba(0, 242, 254, 0.4)';
+      ctx.beginPath();
+      ctx.moveTo(l.capX, l.topY);
+      ctx.lineTo(l.capX, l.botY);
+      ctx.stroke();
+    }
+  } else if(st.capDischarging){
+    ctx.strokeStyle='rgba(255, 183, 3, 0.6)';
+    ctx.beginPath();
+    ctx.moveTo(l.capX, l.topY);
+    ctx.lineTo(l.lampX, l.topY);
+    ctx.lineTo(l.lampX, l.botY);
+    ctx.lineTo(l.capX, l.botY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(l.capX, l.topY);
+    ctx.lineTo(l.capX, l.botY);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ───── منبع AC ───── */
+function drawACSource(l, vac){
+  var x=l.acX, y=l.midY;
+  ctx.save();
+
+  ctx.fillStyle='#0f172a';
+  ctx.strokeStyle='#4facfe';
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.arc(x,y,28,0,Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  ctx.beginPath();
+  ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=2;
+  for(var i=-14;i<=14;i++){
+    var px=x+i, py=y+Math.sin((i/14)*Math.PI)*9;
+    if(i===-14)ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  ctx.font='bold 13px Segoe UI';
+  ctx.textAlign='center';
+  ctx.fillStyle=vac>=0?'#ff4757':'#2ed573';
+  ctx.fillText(vac>=0?'+':'−', x, l.topY-8);
+  ctx.fillStyle=vac>=0?'#2ed573':'#ff4757';
+  ctx.fillText(vac>=0?'−':'+', x, l.botY+16);
+
+  ctx.font='12px Segoe UI';
+  ctx.fillStyle='#94a3b8';
+  ctx.fillText('AC Source', x, y+45);
+  ctx.restore();
+}
+
+/* ───── دیود ───── */
+function drawDiode(l, vac){
+  var x=l.dX, y=l.topY;
+  var isOn = vac > VD;
+  var sz=16;
+
+  ctx.save();
+  ctx.translate(x,y);
+
+  ctx.fillStyle=isOn?'#00f2fe':'#1e293b';
+  ctx.strokeStyle=isOn?'#00f2fe':'#64748b';
+  ctx.lineWidth=2;
+
+  if(isOn){
+    ctx.shadowColor='#00f2fe';
+    ctx.shadowBlur=10;
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(sz,0);
+  ctx.lineTo(-sz,-sz);
+  ctx.lineTo(-sz,sz);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(sz,-sz); ctx.lineTo(sz,sz);
+  ctx.stroke();
+
+  ctx.shadowBlur=0;
+  ctx.restore();
+
+  ctx.save();
+  ctx.font='bold 11px Segoe UI';
+  ctx.fillStyle=isOn?'#00f2fe':'#94a3b8';
+  ctx.textAlign='center';
+  ctx.fillText('D1 Diode', x, y-sz-10);
+
+  ctx.font='10px Segoe UI';
+  ctx.fillStyle=isOn?'#10b981':'#ef4444';
+  ctx.fillText(isOn?'ON ✓':'OFF ✗', x, y+sz+16);
+  ctx.restore();
+}
+
+/* ───── خازن (با افکت دشارژ) ───── */
+function drawCapacitor(l, vac){
+  var x=l.capX, y=l.midY;
+  var st = getCircuitState(vac);
+
+  ctx.save();
+
+  if(st.capDischarging){
+    ctx.shadowColor='#ffb703';
+    ctx.shadowBlur=15;
+    ctx.strokeStyle='#ffb703';
+  } else if(st.capCharging){
+    ctx.shadowColor='#00f2fe';
+    ctx.shadowBlur=10;
+    ctx.strokeStyle='#00f2fe';
+  } else {
+    ctx.strokeStyle='#e2e8f0';
+  }
+
+  ctx.lineWidth=4;
+
+  ctx.beginPath();
+  ctx.moveTo(x-20,y-10); ctx.lineTo(x+20,y-10);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x-20,y+10); ctx.lineTo(x+20,y+10);
+  ctx.stroke();
+
+  ctx.shadowBlur=0;
+
+  ctx.font='bold 12px Segoe UI';
+  ctx.fillStyle='#ff4757'; ctx.textAlign='center';
+  ctx.fillText('+',x,y-18);
+
+  ctx.font='11px Segoe UI';
+
+  if(st.capDischarging){
+    ctx.fillStyle='#ffb703';
+    ctx.fillText('Discharging',x,y+30);
+  } else if(st.capCharging){
+    ctx.fillStyle='#00f2fe';
+    ctx.fillText('Charging',x,y+30);
+  } else {
+    ctx.fillStyle='#94a3b8';
+    ctx.fillText('Capacitor C',x,y+30);
+  }
+
+  ctx.fillStyle='#64748b';
+  ctx.fillText(capUf+' µF',x,y+44);
+  ctx.restore();
+}
+
+/* ───── لامپ ───── */
+function drawLamp(l, vLoad){
+  var x=l.lampX, y=l.midY;
+  var brightness=Math.min(1,Math.max(0,vLoad/Math.max(1,Vac)));
+
+  ctx.save();
+  if(brightness>0.05){
+    var gr=ctx.createRadialGradient(x,y,8,x,y,40+brightness*55);
+    gr.addColorStop(0,'rgba(255,230,120,'+brightness*0.9+')');
+    gr.addColorStop(0.4,'rgba(255,170,0,'+brightness*0.4+')');
+    gr.addColorStop(1,'rgba(255,150,0,0)');
+    ctx.fillStyle=gr;
+    ctx.beginPath(); ctx.arc(x,y,40+brightness*55,0,Math.PI*2); ctx.fill();
+  }
+
+  var R=28;
+  ctx.fillStyle='rgba(255,255,255,'+(0.05+brightness*0.2)+')';
+  ctx.strokeStyle=brightness>0.3?'#ffb703':'#64748b';
+  ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2); ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle='#475569';
+  ctx.fillRect(x-10,y+R-3,20,12);
+
+  ctx.beginPath();
+  ctx.strokeStyle=brightness>0.1?
+    'rgb(255,'+(200+brightness*55|0)+','+(150*brightness|0)+')':'#475569';
+  ctx.lineWidth=brightness>0.1?3:1.5;
+  ctx.moveTo(x-8,y+R-4);
+  ctx.lineTo(x-6,y-4); ctx.lineTo(x-2,y-12);
+  ctx.lineTo(x+2,y-12); ctx.lineTo(x+6,y-4);
+  ctx.lineTo(x+8,y+R-4);
+  ctx.stroke();
+
+  ctx.shadowBlur=0;
+  ctx.font='12px Segoe UI';
+  ctx.fillStyle='#cbd5e1'; ctx.textAlign='center';
+  ctx.fillText('Lamp Load', x, y-R-10);
+  ctx.fillStyle='#64748b';
+  ctx.font='11px Segoe UI';
+  ctx.fillText(Rload+' Ω', x, y+R+26);
+  ctx.restore();
+}
+
+/* ───── مسیر ذرات (شامل عبور از خازن) ───── */
+function buildPaths(l, vac){
+  var st = getCircuitState(vac);
+
+  if(st.capDischarging){
+    if(flowMode==='conv'){
+      return [[
+        {x:l.capX, y:l.midY-10},
+        {x:l.capX, y:l.topY},
+        {x:l.lampX, y:l.topY},
+        {x:l.lampX, y:l.botY},
+        {x:l.capX, y:l.botY},
+        {x:l.capX, y:l.midY+10}
+      ]];
+    } else {
+      return [[
+        {x:l.capX, y:l.midY+10},
+        {x:l.capX, y:l.botY},
+        {x:l.lampX, y:l.botY},
+        {x:l.lampX, y:l.topY},
+        {x:l.capX, y:l.topY},
+        {x:l.capX, y:l.midY-10}
+      ]];
+    }
+  }
+
+  if(!st.diodeOn){
+    return null;
+  }
+
+  if(flowMode==='conv'){
+    return [[
+      {x:l.acX, y:l.botY},
+      {x:l.acX, y:l.topY},
+      {x:l.dX, y:l.topY},
+      {x:l.capX, y:l.topY},
+      {x:l.lampX, y:l.topY},
+      {x:l.lampX, y:l.botY},
+      {x:l.acX, y:l.botY}
+    ]];
+  } else {
+    return [[
+      {x:l.acX, y:l.topY},
+      {x:l.acX, y:l.botY},
+      {x:l.lampX, y:l.botY},
+      {x:l.lampX, y:l.topY},
+      {x:l.capX, y:l.topY},
+      {x:l.dX, y:l.topY},
+      {x:l.acX, y:l.topY}
+    ]];
+  }
+}
+
+function drawParticles(l, vac){
+  var paths=buildPaths(l, vac);
+  if(!paths) return;
+
+  var st = getCircuitState(vac);
+  var spd=0.006+(Math.abs(vac)/30)*0.012;
+
+  var pColor = st.capDischarging ? '#ffb703' : '#00f2fe';
+
+  if(st.capDischarging){
+    spd = 0.004 + (Vcap/Math.max(1,Vac))*0.008;
+  }
+
+  for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    p.progress+=spd;
+    if(p.progress>=1) p.progress-=1;
+
+    var path=paths[i%paths.length];
+    var pt=getPointAlongPath(path, p.progress);
+    if(!pt) continue;
+
+    ctx.beginPath();
+    ctx.arc(pt.x,pt.y,4,0,Math.PI*2);
+    ctx.fillStyle=pColor;
+    ctx.shadowColor=pColor;
+    ctx.shadowBlur=8;
+    ctx.fill();
+    ctx.shadowBlur=0;
+  }
+}
+
+function getPointAlongPath(pts,t){
+  if(!pts||pts.length<2) return null;
+  var tot=0, lens=[];
+  for(var i=0;i<pts.length-1;i++){
+    var dx=pts[i+1].x-pts[i].x, dy=pts[i+1].y-pts[i].y;
+    lens.push(Math.sqrt(dx*dx+dy*dy));
+    tot+=lens[i];
+  }
+  if(tot<1) return pts[0];
+  var tgt=t*tot, cur=0;
+  for(var i=0;i<lens.length;i++){
+    if(cur+lens[i]>=tgt){
+      var s=(tgt-cur)/lens[i];
+      return {x:pts[i].x+(pts[i+1].x-pts[i].x)*s, y:pts[i].y+(pts[i+1].y-pts[i].y)*s};
+    }
+    cur+=lens[i];
+  }
+  return pts[pts.length-1];
+}
+
+/* ───── اسیلوسکوپ ───── */
+function drawScope(ctxS,cvs,data,maxVal,color,isDC){
+  var w=cvs.width, h=cvs.height;
+  if(w<5||h<5) return;
+  ctxS.clearRect(0,0,w,h);
+
+  ctxS.strokeStyle='rgba(255,255,255,.05)'; ctxS.lineWidth=1;
+  ctxS.beginPath();
+  for(var x=0;x<w;x+=20){ctxS.moveTo(x,0);ctxS.lineTo(x,h);}
+  for(var y2=0;y2<h;y2+=20){ctxS.moveTo(0,y2);ctxS.lineTo(w,y2);}
+  ctxS.stroke();
+
+  var baseY=isDC?h-6:h/2;
+  ctxS.strokeStyle='rgba(255,255,255,.15)';
+  ctxS.beginPath(); ctxS.moveTo(0,baseY); ctxS.lineTo(w,baseY); ctxS.stroke();
+
+  if(data.length<2) return;
+  var amp=isDC?h*0.85:h*0.42;
+  var step=w/maxHist;
+
+  if(isDC && rcH.length>1){
+    ctxS.beginPath();
+    ctxS.strokeStyle='rgba(0,242,254,.18)';
+    ctxS.lineWidth=1.5;
+    ctxS.setLineDash([4,4]);
+    for(var i=0;i<rcH.length;i++){
+      var xx=i*step, yy=baseY-(rcH[i]/Math.max(1,maxVal))*amp;
+      if(i===0)ctxS.moveTo(xx,yy); else ctxS.lineTo(xx,yy);
+    }
+    ctxS.stroke(); ctxS.setLineDash([]);
+  }
+
+  ctxS.beginPath();
+  ctxS.strokeStyle=color; ctxS.lineWidth=2.5;
+  for(var i=0;i<data.length;i++){
+    var xx=i*step, yy=baseY-(data[i]/Math.max(1,maxVal))*amp;
+    if(i===0)ctxS.moveTo(xx,yy); else ctxS.lineTo(xx,yy);
+  }
+  ctxS.stroke();
+
+  if(isDC){
+    ctxS.font='10px Segoe UI';
+    ctxS.fillStyle='#e2b170'; ctxS.textAlign=fa?'right':'left';
+    ctxS.fillText(T.withCap,fa?w-6:6,14);
+    ctxS.fillStyle='rgba(0,242,254,.5)';
+    ctxS.fillText(T.noCap,fa?w-6:6,26);
+  }
+}
+
+/* ───── فیزیک ───── */
+function physicsStep(){
+  var stepsPerPeriod=500;
+  var physDt=(1/Math.max(1,freq))/stepsPerPeriod;
+  var stepsPerFrame=Math.max(1,Math.round(0.016/physDt));
+  if(stepsPerFrame>200) stepsPerFrame=200;
+
+  var C=capUf*1e-6;
+  var va,vr;
+
+  for(var s=0;s<stepsPerFrame;s++){
+    time+=physDt;
+    va=Vac*Math.sin(2*Math.PI*freq*time);
+    vr=Math.max(0, va - VD);
+
+    if(C>0){
+      if(vr>Vcap) Vcap+=(vr-Vcap)*(1-Math.exp(-physDt/(Rch*C)));
+      else Vcap*=Math.exp(-physDt/(Rload*C));
+    } else {
+      Vcap=vr;
+    }
+  }
+
+  return {va:va, vr:vr, vLoad:Vcap};
+}
+
+/* ───── حلقه اصلی ───── */
+function animate(){
+  var ph=physicsStep();
+
+  acH.push(ph.va); dcH.push(ph.vLoad); rcH.push(ph.vr);
+  if(acH.length>maxHist)acH.shift();
+  if(dcH.length>maxHist)dcH.shift();
+  if(rcH.length>maxHist)rcH.shift();
+
+  var vpo=Math.max(0,Vac-VD);
+  var vdcAvg=capUf>0?Vcap:vpo/Math.PI;
+  var last=dcH.length>100?dcH.slice(-100):dcH;
+  var vmx=-Infinity, vmn=Infinity;
+  for(var i=0;i<last.length;i++){if(last[i]>vmx)vmx=last[i];if(last[i]<vmn)vmn=last[i];}
+  var vRip=vmx-vmn;
+  var pwr=Vcap*Vcap/Rload;
+  var capPct=Vac>0?Math.round(Vcap/Vac*100):0;
+
+  document.getElementById('m-vpeak').textContent=Vac.toFixed(1)+' V';
+  document.getElementById('m-vdc').textContent=vdcAvg.toFixed(1)+' V';
+  document.getElementById('m-vrip').textContent=vRip.toFixed(2)+' V';
+  document.getElementById('m-pwr').textContent=pwr.toFixed(1)+' W';
+  document.getElementById('m-cap').textContent=capPct+' %';
+  document.getElementById('m-frip').textContent=freq+' Hz';
+
+  var l=getL();
+  ctx.clearRect(0,0,l.w,l.h);
+  drawWires(l, ph.va);
+  drawACSource(l, ph.va);
+  drawDiode(l, ph.va);
+  if(capUf>0) drawCapacitor(l, ph.va);
+  drawLamp(l, ph.vLoad);
+  drawParticles(l, ph.va);
+
+  drawScope(ctxAC,canvasAC,acH,Vac*1.2,'#ff4757',false);
+  drawScope(ctxDC,canvasDC,dcH,Vac*1.2,'#ffb703',true);
+
+  requestAnimationFrame(animate);
+}
+
+function start(){ resizeAll(); requestAnimationFrame(animate); }
+if(document.readyState==='complete') start();
+else window.addEventListener('load',start);
+
+})();
+</script>
+</body>
+</html>

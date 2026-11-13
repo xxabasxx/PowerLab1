@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">شبیه‌ساز رگولاتور خطی سری 78xx</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00d2d3;
+            --accent-blue: #54a0ff;
+            --accent-gold: #ffb020;
+            --accent-green: #10ac84;
+            --accent-red: #ee5253;
+            --accent-purple: #9b59b6;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 8px rgba(0, 210, 211, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1350px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 6px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-wave h3::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-cyan); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+        }
+
+        .metric-card.warning {
+            border-color: rgba(238, 82, 83, 0.6);
+            background: rgba(238, 82, 83, 0.1);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-dot.active { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        .status-dot.inactive { background: var(--accent-gold); box-shadow: 0 0 8px var(--accent-gold); }
+        .status-dot.danger { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+
+        .thermal-alert {
+            display: none;
+            padding: 8px;
+            border-radius: 8px;
+            background: rgba(238, 82, 83, 0.15);
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+            font-size: 0.8rem;
+            text-align: center;
+            font-weight: bold;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="txt-title">شبیه‌ساز رگولاتور خطی سری 78xx</h1>
+        <p id="txt-subtitle">تثبیت ولتاژ خطی، بررسی ولتاژ افت (Dropout) و اتلاف حرارتی آیسی</p>
+    </header>
+
+    <div class="main-container">
+        <!-- پنل تنظیمات -->
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group" style="display: none;">
+                <label id="lbl-lang">زبان / Language:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی (FA)</button>
+                    <button class="toggle-btn" id="btn-lang-en" onclick="setLanguage('en')">English (EN)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-ic">مدل آیسی رگولاتور:</span> <span class="val" id="val-ic">7805 (5V)</span></label>
+                <input type="range" id="slider-ic" min="0" max="3" value="0" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-vin">ولتاژ ورودی DC (V_in):</span> <span class="val" id="val-vin">12.0 V</span></label>
+                <input type="range" id="slider-vin" min="0" max="35" value="12" step="0.5">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-ripple">دامنه ریپل ورودی (V_ripple):</span> <span class="val" id="val-ripple">1.5 V</span></label>
+                <input type="range" id="slider-ripple" min="0" max="5" value="1.5" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-rl">مقاومت بار (R_L):</span> <span class="val" id="val-rl">25 Ω</span></label>
+                <input type="range" id="slider-rl" min="5" max="200" value="25" step="1">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot active" id="status-dot"></div>
+                <span id="status-text" style="color: var(--accent-green);">حالت: در حال تنظیم ولتاژ (Regulating)</span>
+            </div>
+
+            <div class="thermal-alert" id="thermal-alert">
+                ⚠️ تلفات حرارتی بالا! نصب هیت‌سینک الزامی است.
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title" id="lbl-vout">ولتاژ خروجی (V_out)</div>
+                    <div class="val" id="m-vout">5.00 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-il">جریان بار (I_L)</div>
+                    <div class="val" id="m-il">200 mA</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-vdrop">ولتاژ افت (V_drop)</div>
+                    <div class="val" id="m-vdrop">7.00 V</div>
+                </div>
+                <div class="metric-card" id="card-pdiss">
+                    <div class="title" id="lbl-pdiss">توان اتلافی آیسی (P_d)</div>
+                    <div class="val" style="color:var(--accent-purple)" id="m-pdiss">1.40 W</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ناحیه شبیه‌سازی -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-wave">
+                    <h3 id="lbl-scope-wave">اسیلوسکوپ: ولتاژ ورودی دارای ریپل (زرد) و ولتاژ خروجی رگوله شده (فیروزه‌ای)</h3>
+                    <div style="height: 180px; position: relative;">
+                        <canvas id="scopeWave"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const icModels = [
+            { name: "7805", vTarget: 5.0 },
+            { name: "7808", vTarget: 8.0 },
+            { name: "7812", vTarget: 12.0 },
+            { name: "7815", vTarget: 15.0 }
+        ];
+
+        const i18n = {
+            fa: {
+                title: "شبیه‌ساز رگولاتور خطی سری 78xx",
+                subtitle: "تثبیت ولتاژ خطی، بررسی ولتاژ افت (Dropout) و اتلاف حرارتی آیسی",
+                langLabel: "زبان / Language:",
+                icLabel: "مدل آیسی رگولاتور:",
+                vinLabel: "ولتاژ ورودی DC (V_in):",
+                rippleLabel: "دامنه ریپل ورودی (V_ripple):",
+                rlLabel: "مقاومت بار (R_L):",
+                stateReg: "حالت: در حال تنظیم ولتاژ (Regulating)",
+                stateNotReg: "حالت: افت ولتاژ (Dropout)",
+                voutLabel: "ولتاژ خروجی (V_out)",
+                ilLabel: "جریان بار (I_L)",
+                vdropLabel: "افت ولتاژ (V_drop)",
+                pdissLabel: "توان اتلافی آیسی (P_d)",
+                scopeWave: "اسیلوسکوپ: ولتاژ ورودی دارای ریپل (زرد) و ولتاژ خروجی رگوله شده (فیروزه‌ای)",
+                srcName: "منبع ورودی (V_in)",
+                cinName: "خازن ورودی C1",
+                icName: "رگولاتور 78xx",
+                coutName: "خازن خروجی C2",
+                loadName: "مقاومت بار R_L",
+                thermalWarn: "⚠️ تلفات حرارتی بالا! نصب هیت‌سینک الزامی است."
+            },
+            en: {
+                title: "78xx Linear Regulator Simulator",
+                subtitle: "Linear voltage stabilization, dropout voltage, and thermal dissipation analysis",
+                langLabel: "Language / زبان:",
+                icLabel: "Regulator IC Model:",
+                vinLabel: "DC Input Voltage (V_in):",
+                rippleLabel: "Input Ripple Amplitude (V_ripple):",
+                rlLabel: "Load Resistor (R_L):",
+                stateReg: "Status: Regulating Voltage",
+                stateNotReg: "Status: Not Regulating (Dropout)",
+                voutLabel: "Output Voltage (V_out)",
+                ilLabel: "Load Current (I_L)",
+                vdropLabel: "Dropout Voltage (V_drop)",
+                pdissLabel: "IC Dissipation Power (P_d)",
+                scopeWave: "Oscilloscope: Rippled Input Voltage (Yellow) & Regulated Output Voltage (Cyan)",
+                srcName: "Input Supply (V_in)",
+                cinName: "Input Cap C1",
+                icName: "78xx Regulator",
+                coutName: "Output Cap C2",
+                loadName: "Load Resistor R_L",
+                thermalWarn: "⚠️ High power dissipation! Heatsink required."
+            }
+        };
+
+        let currentLang = 'fa';
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+            document.getElementById('btn-lang-fa').classList.toggle('active', lang === 'fa');
+            document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+            
+            const t = i18n[lang];
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('lbl-lang').innerText = t.langLabel;
+            document.getElementById('lbl-ic').innerText = t.icLabel;
+            document.getElementById('lbl-vin').innerText = t.vinLabel;
+            document.getElementById('lbl-ripple').innerText = t.rippleLabel;
+            document.getElementById('lbl-rl').innerText = t.rlLabel;
+            document.getElementById('lbl-vout').innerText = t.voutLabel;
+            document.getElementById('lbl-il').innerText = t.ilLabel;
+            document.getElementById('lbl-vdrop').innerText = t.vdropLabel;
+            document.getElementById('lbl-pdiss').innerText = t.pdissLabel;
+            document.getElementById('lbl-scope-wave').innerText = t.scopeWave;
+            document.getElementById('thermal-alert').innerText = t.thermalWarn;
+        }
+
+        // Parameters
+        let selectedIcIdx = 0;
+        let V_in_dc = 12.0;
+        let V_ripple = 1.5;
+        let R_L = 25;
+        const DROPOUT_VOLTAGE = 2.0; // 78xx minimum dropout ~ 2.0V
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasWave = document.getElementById('scopeWave');
+        const ctxWave = canvasWave.getContext('2d');
+
+        document.getElementById('slider-ic').addEventListener('input', e => {
+            selectedIcIdx = parseInt(e.target.value);
+            const ic = icModels[selectedIcIdx];
+            document.getElementById('val-ic').innerText = `${ic.name} (${ic.vTarget}V)`;
+        });
+        document.getElementById('slider-vin').addEventListener('input', e => { V_in_dc = parseFloat(e.target.value); document.getElementById('val-vin').innerText = V_in_dc.toFixed(1) + ' V'; });
+        document.getElementById('slider-ripple').addEventListener('input', e => { V_ripple = parseFloat(e.target.value); document.getElementById('val-ripple').innerText = V_ripple.toFixed(1) + ' V'; });
+        document.getElementById('slider-rl').addEventListener('input', e => { R_L = parseFloat(e.target.value); document.getElementById('val-rl').innerText = R_L + ' Ω'; });
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height;
+            const rw = canvasWave.parentElement.getBoundingClientRect(); canvasWave.width = rw.width; canvasWave.height = rw.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        const hist_Vin = [];
+        const hist_Vout = [];
+        const maxHistory = 400;
+
+        let particles = [];
+        let heatParticles = [];
+        let time = 0;
+
+        // Closed rectangle coordinates
+        let leftX, rightX, topY, botY;
+        let midX_cin, midX_ic, midX_cout;
+
+        function animate() {
+            time += 0.05; 
+            
+            const w_ripple = 0.5;
+            const v_in_inst = Math.max(0, V_in_dc + V_ripple * Math.sin(time * w_ripple));
+            const v_target = icModels[selectedIcIdx].vTarget;
+
+            let v_out;
+            let isRegulating = false;
+
+            // 78xx Regulation Logic: Vin must be >= Vout + Vdrop
+            if (v_in_inst >= v_target + DROPOUT_VOLTAGE) {
+                isRegulating = true;
+                v_out = v_target;
+            } else {
+                isRegulating = false;
+                v_out = Math.max(0, v_in_inst - DROPOUT_VOLTAGE);
+            }
+
+            const i_L = v_out / R_L;
+            const v_drop = Math.max(0, v_in_inst - v_out);
+            const p_diss = v_drop * i_L; // Power dissipated in IC
+
+            const t = i18n[currentLang];
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const cardPdiss = document.getElementById('card-pdiss');
+            const thermalAlert = document.getElementById('thermal-alert');
+
+            if (isRegulating) {
+                dot.className = 'status-dot active';
+                txt.innerText = t.stateReg;
+                txt.style.color = 'var(--accent-green)';
+            } else {
+                dot.className = 'status-dot inactive';
+                txt.innerText = t.stateNotReg;
+                txt.style.color = 'var(--accent-gold)';
+            }
+
+            // High heat warning (> 2.0W)
+            if (p_diss > 2.0) {
+                cardPdiss.classList.add('warning');
+                thermalAlert.style.display = 'block';
+            } else {
+                cardPdiss.classList.remove('warning');
+                thermalAlert.style.display = 'none';
+            }
+
+            document.getElementById('m-vout').innerText = v_out.toFixed(2) + ' V';
+            document.getElementById('m-il').innerText = (i_L * 1000).toFixed(0) + ' mA';
+            document.getElementById('m-vdrop').innerText = v_drop.toFixed(2) + ' V';
+            document.getElementById('m-pdiss').innerText = p_diss.toFixed(2) + ' W';
+
+            hist_Vin.push(v_in_inst);
+            hist_Vout.push(v_out);
+            if (hist_Vin.length > maxHistory) { hist_Vin.shift(); hist_Vout.shift(); }
+
+            drawCircuit(v_in_inst, v_out, isRegulating, i_L, p_diss);
+            drawWaveScope();
+
+            if (i_L > 0.001 && Math.random() > 0.3) spawnParticle('top', i_L);
+            updateParticles(i_L);
+
+            // Heat waves animation if power dissipation is notable
+            if (p_diss > 0.5 && Math.random() < p_diss * 0.15) {
+                heatParticles.push({
+                    x: midX_ic + (Math.random() * 30 - 15),
+                    y: topY - 30,
+                    size: 2 + Math.random() * 4,
+                    alpha: 0.8,
+                    speedY: 0.5 + Math.random() * 1.0
+                });
+            }
+            updateHeatParticles();
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawCircuit(vIn, vOut, isRegulating, i_L, p_diss) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+            const t = i18n[currentLang];
+
+            // ===== CLOSED RECTANGLE GEOMETRY =====
+            leftX     = w * 0.12;
+            rightX    = w * 0.88;
+            topY      = h * 0.30;
+            botY      = h * 0.72;
+            midX_cin  = w * 0.30;
+            midX_ic   = w * 0.50;
+            midX_cout = w * 0.70;
+
+            // --- Base dark wires ---
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(leftX, topY); ctx.lineTo(rightX, topY);
+            ctx.lineTo(rightX, botY); ctx.lineTo(leftX, botY);
+            ctx.closePath();
+            ctx.stroke();
+
+            // Vertical parallel branches (Cin, IC GND, Cout)
+            ctx.beginPath();
+            ctx.moveTo(midX_cin, topY); ctx.lineTo(midX_cin, botY);
+            ctx.moveTo(midX_ic, topY + 25); ctx.lineTo(midX_ic, botY); // IC GND pin
+            ctx.moveTo(midX_cout, topY); ctx.lineTo(midX_cout, botY);
+            ctx.stroke();
+
+            // --- Soft Glow Active Highlights ---
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 4;
+
+            // Input side (Soft Gold)
+            ctx.strokeStyle = '#ffb020';
+            ctx.shadowColor = '#ffb020';
+            ctx.beginPath();
+            ctx.moveTo(leftX, topY); ctx.lineTo(midX_ic - 35, topY);
+            ctx.stroke();
+
+            // Output side (Soft Cyan)
+            ctx.strokeStyle = '#00d2d3';
+            ctx.shadowColor = '#00d2d3';
+            ctx.beginPath();
+            ctx.moveTo(midX_ic + 35, topY); ctx.lineTo(rightX, topY);
+            ctx.lineTo(rightX, botY);
+            ctx.stroke();
+
+            // Ground return rail (Soft Green)
+            ctx.strokeStyle = '#10ac84';
+            ctx.shadowColor = '#10ac84';
+            ctx.beginPath();
+            ctx.moveTo(rightX, botY); ctx.lineTo(leftX, botY);
+            ctx.lineTo(leftX, topY);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+
+            // Ground Symbol
+            ctx.strokeStyle = '#10ac84';
+            ctx.lineWidth = 2.5;
+            const gx = midX_ic;
+            ctx.beginPath();
+            ctx.moveTo(gx, botY); ctx.lineTo(gx, botY + 16);
+            ctx.moveTo(gx - 16, botY + 16); ctx.lineTo(gx + 16, botY + 16);
+            ctx.moveTo(gx - 10, botY + 21); ctx.lineTo(gx + 10, botY + 21);
+            ctx.moveTo(gx - 5,  botY + 26); ctx.lineTo(gx + 5,  botY + 26);
+            ctx.stroke();
+
+            // ===== COMPONENTS =====
+            drawDCSource(leftX, (topY + botY) / 2, vIn, t.srcName);
+            drawCapacitor(midX_cin, (topY + botY) / 2, t.cinName, "0.33 µF");
+            drawIC78xx(midX_ic, topY, icModels[selectedIcIdx].name, p_diss);
+            drawCapacitor(midX_cout, (topY + botY) / 2, t.coutName, "0.1 µF");
+            drawLoad(rightX, (topY + botY) / 2, vOut, t.loadName, R_L + ' Ω');
+        }
+
+        function drawDCSource(x, y, vInst, name) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.shadowColor = '#ffb020';
+            ctx.shadowBlur = 4;
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#ffb020';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(0, 0, 26, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            ctx.strokeStyle = '#ffe066';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-10, -5); ctx.lineTo(10, -5);
+            ctx.setLineDash([3, 3]);
+            ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+            ctx.setLineDash([]);
+            ctx.moveTo(-10, 7);
+            ctx.bezierCurveTo(-4, 2, 4, 12, 10, 7);
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffb020';
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(vInst.toFixed(1) + ' V', 0, 44);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px Segoe UI';
+            ctx.fillText(name, 0, -38);
+            ctx.restore();
+        }
+
+        function drawCapacitor(x, y, name, val) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.strokeStyle = '#54a0ff';
+            ctx.shadowColor = '#54a0ff';
+            ctx.shadowBlur = 4;
+            ctx.lineWidth = 3;
+
+            // Cap plates
+            ctx.beginPath();
+            ctx.moveTo(-14, -12); ctx.lineTo(14, -12);
+            ctx.moveTo(-14, 12);  ctx.lineTo(14, 12);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(name, 0, -25);
+            ctx.fillStyle = '#54a0ff';
+            ctx.fillText(val, 0, 30);
+            ctx.restore();
+        }
+
+        function drawIC78xx(x, y, icName, pDiss) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            // TO-220 Body
+            const isHot = pDiss > 2.0;
+            const strokeCol = isHot ? '#ee5253' : '#00d2d3';
+            
+            ctx.shadowColor = strokeCol;
+            ctx.shadowBlur = isHot ? 8 : 4;
+
+            // Heatsink tab (Top)
+            ctx.fillStyle = '#64748b';
+            ctx.fillRect(-25, -35, 50, 12);
+            ctx.fillStyle = '#0f172a';
+            ctx.beginPath(); ctx.arc(0, -29, 3, 0, Math.PI * 2); ctx.fill();
+
+            // Main Black Package Body
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = strokeCol;
+            ctx.lineWidth = 2.5;
+            ctx.fillRect(-35, -23, 70, 50);
+            ctx.strokeRect(-35, -23, 70, 50);
+
+            ctx.shadowBlur = 0;
+
+            // Pins labels inside
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '10px Segoe UI';
+            ctx.textAlign = 'left';  ctx.fillText('IN', -30, 20);
+            ctx.textAlign = 'center'; ctx.fillText('GND', 0, 20);
+            ctx.textAlign = 'right'; ctx.fillText('OUT', 30, 20);
+
+            // IC Part Name
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(icName, 0, -2);
+
+            ctx.restore();
+        }
+
+        function drawLoad(x, y, vOut, name, val) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.shadowColor = '#00d2d3';
+            ctx.shadowBlur = 4;
+
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#00d2d3';
+            ctx.lineWidth = 2.5;
+            ctx.fillRect(-15, -28, 30, 56);
+            ctx.strokeRect(-15, -28, 30, 56);
+            ctx.shadowBlur = 0;
+
+            ctx.strokeStyle = '#67e8f9';
+            ctx.lineWidth = 1.8;
+            for (let i = -16; i <= 16; i += 11) {
+                ctx.beginPath();
+                ctx.moveTo(-8, i); ctx.lineTo(8, i);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(name, 0, -38);
+            ctx.fillStyle = '#00d2d3';
+            ctx.fillText(val, 0, 48);
+            ctx.restore();
+        }
+
+        function spawnParticle(path, current) {
+            if (current <= 0) return;
+            particles.push({
+                path: path,
+                progress: 0,
+                speed: 0.008 + Math.min(0.025, current * 2)
+            });
+        }
+
+        function updateParticles(i_L) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.progress += p.speed;
+                let px, py, color;
+
+                if (p.path === 'top') {
+                    px = leftX + p.progress * (rightX - leftX);
+                    py = topY;
+                    color = px < midX_ic ? '#ffb020' : '#00d2d3';
+                    if (p.progress >= 1) {
+                        particles.splice(i, 1);
+                        spawnParticle('load', i_L);
+                        continue;
+                    }
+                } else if (p.path === 'load') {
+                    px = rightX;
+                    py = topY + p.progress * (botY - topY);
+                    color = '#00d2d3';
+                    if (p.progress >= 1) {
+                        particles.splice(i, 1);
+                        spawnParticle('bottom', i_L);
+                        continue;
+                    }
+                } else if (p.path === 'bottom') {
+                    px = rightX - p.progress * (rightX - leftX);
+                    py = botY;
+                    color = '#10ac84';
+                    if (p.progress >= 1) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                ctx.beginPath();
+                ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 4;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function updateHeatParticles() {
+            for (let i = heatParticles.length - 1; i >= 0; i--) {
+                let hp = heatParticles[i];
+                hp.y -= hp.speedY;
+                hp.alpha -= 0.015;
+                if (hp.alpha <= 0) {
+                    heatParticles.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.globalAlpha = hp.alpha;
+                ctx.fillStyle = '#ee5253';
+                ctx.shadowColor = '#ee5253';
+                ctx.shadowBlur = 4;
+                ctx.beginPath();
+                ctx.arc(hp.x, hp.y, hp.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function drawWaveScope() {
+            const w = canvasWave.width;
+            const h = canvasWave.height;
+            ctxWave.clearRect(0, 0, w, h);
+
+            // Grid
+            ctxWave.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxWave.lineWidth = 1;
+            ctxWave.beginPath();
+            for (let x = 0; x < w; x += 30) { ctxWave.moveTo(x, 0); ctxWave.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxWave.moveTo(0, y); ctxWave.lineTo(w, y); }
+            ctxWave.stroke();
+
+            const yZero = h - 18;
+            const scale = 4.0; // Up to 35V scale
+
+            // Ground line
+            ctxWave.strokeStyle = 'rgba(16, 172, 132, 0.4)';
+            ctxWave.setLineDash([4, 4]);
+            ctxWave.beginPath(); ctxWave.moveTo(0, yZero); ctxWave.lineTo(w, yZero); ctxWave.stroke();
+            ctxWave.setLineDash([]);
+
+            // Target Voltage Reference line
+            const vTarget = icModels[selectedIcIdx].vTarget;
+            const yT = yZero - vTarget * scale;
+            if (yT > 5) {
+                ctxWave.strokeStyle = 'rgba(0, 210, 211, 0.3)';
+                ctxWave.beginPath(); ctxWave.moveTo(0, yT); ctxWave.lineTo(w, yT); ctxWave.stroke();
+            }
+
+            const step = w / maxHistory;
+
+            // Vin (Rippled)
+            ctxWave.strokeStyle = '#ffb020';
+            ctxWave.lineWidth = 1.8;
+            ctxWave.beginPath();
+            for (let i = 0; i < hist_Vin.length; i++) {
+                const x = i * step;
+                const y = yZero - hist_Vin[i] * scale;
+                if (i === 0) ctxWave.moveTo(x, y); else ctxWave.lineTo(x, y);
+            }
+            ctxWave.stroke();
+
+            // Vout (Regulated)
+            ctxWave.strokeStyle = '#00d2d3';
+            ctxWave.lineWidth = 2.2;
+            ctxWave.beginPath();
+            for (let i = 0; i < hist_Vout.length; i++) {
+                const x = i * step;
+                const y = yZero - hist_Vout[i] * scale;
+                if (i === 0) ctxWave.moveTo(x, y); else ctxWave.lineTo(x, y);
+            }
+            ctxWave.stroke();
+
+            ctxWave.font = 'bold 11px Segoe UI';
+            ctxWave.textAlign = 'left';
+            ctxWave.fillStyle = '#ffb020'; ctxWave.fillText('V_in (DC + Ripple)', 10, 16);
+            ctxWave.fillStyle = '#00d2d3'; ctxWave.fillText('V_out (Regulated)', 10, 32);
+        }
+
+        setLanguage(currentLang);
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">شبیه‌ساز رگولاتور ولتاژ زنر (Zener Regulator)</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00d2d3;
+            --accent-blue: #54a0ff;
+            --accent-gold: #ffb020;
+            --accent-green: #10ac84;
+            --accent-red: #ee5253;
+            --accent-purple: #9b59b6;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 8px rgba(0, 210, 211, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1350px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 6px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 420px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-wave h3::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-cyan); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+        }
+
+        .metric-card.warning {
+            border-color: rgba(238, 82, 83, 0.6);
+            background: rgba(238, 82, 83, 0.1);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-dot.active { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        .status-dot.inactive { background: var(--accent-gold); box-shadow: 0 0 8px var(--accent-gold); }
+        .status-dot.danger { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="txt-title">شبیه‌ساز رگولاتور ولتاژ زنر (Zener Regulator)</h1>
+        <p id="txt-subtitle">تثبیت ولتاژ خروجی با استفاده از ناحیه شکست معکوس دیود زنر</p>
+    </header>
+
+    <div class="main-container">
+        <!-- پنل تنظیمات -->
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group" style="display: none;">
+                <label id="lbl-lang">زبان / Language:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی (FA)</button>
+                    <button class="toggle-btn" id="btn-lang-en" onclick="setLanguage('en')">English (EN)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-vin">ولتاژ ورودی DC (V_in):</span> <span class="val" id="val-vin">12 V</span></label>
+                <input type="range" id="slider-vin" min="2" max="24" value="12" step="0.5">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-ripple">دامنه ریپل ورودی (V_ripple):</span> <span class="val" id="val-ripple">2 V</span></label>
+                <input type="range" id="slider-ripple" min="0" max="5" value="2" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-vz">ولتاژ دیود زنر (V_z):</span> <span class="val" id="val-vz">5.1 V</span></label>
+                <input type="range" id="slider-vz" min="3.3" max="15" value="5.1" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-rs">مقاومت سری (R_s):</span> <span class="val" id="val-rs">100 Ω</span></label>
+                <input type="range" id="slider-rs" min="10" max="500" value="100" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-rl">مقاومت بار (R_L):</span> <span class="val" id="val-rl">200 Ω</span></label>
+                <input type="range" id="slider-rl" min="10" max="2000" value="200" step="10">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot active" id="status-dot"></div>
+                <span id="status-text" style="color: var(--accent-green);">حالت: در حال تنظیم ولتاژ (Regulating)</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title" id="lbl-vout">ولتاژ بار (V_out)</div>
+                    <div class="val" id="m-vout">5.10 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-il">جریان بار (I_L)</div>
+                    <div class="val" id="m-il">25.5 mA</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-iz">جریان زنر (I_z)</div>
+                    <div class="val" id="m-iz">43.5 mA</div>
+                </div>
+                <div class="metric-card" id="card-pz">
+                    <div class="title" id="lbl-pz">توان تلفاتی زنر (P_z)</div>
+                    <div class="val" style="color:var(--accent-purple)" id="m-pz">221 mW</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ناحیه شبیه‌سازی -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-wave">
+                    <h3 id="lbl-scope-wave">اسیلوسکوپ: ولتاژ ورودی دارای ریپل (زرد) و ولتاژ تنظیم‌شده بار (فیروزه‌ای)</h3>
+                    <div style="height: 180px; position: relative;">
+                        <canvas id="scopeWave"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const i18n = {
+            fa: {
+                title: "شبیه‌ساز رگولاتور ولتاژ زنر (Zener Regulator)",
+                subtitle: "تثبیت ولتاژ خروجی با استفاده از ناحیه شکست معکوس دیود زنر",
+                langLabel: "زبان / Language:",
+                vinLabel: "ولتاژ ورودی DC (V_in):",
+                rippleLabel: "دامنه ریپل ورودی (V_ripple):",
+                vzLabel: "ولتاژ دیود زنر (V_z):",
+                rsLabel: "مقاومت سری (R_s):",
+                rlLabel: "مقاومت بار (R_L):",
+                stateReg: "حالت: در حال تنظیم ولتاژ (Regulating)",
+                stateNotReg: "حالت: افت ولتاژ (خارج از تنظیم)",
+                voutLabel: "ولتاژ بار (V_out)",
+                ilLabel: "جریان بار (I_L)",
+                izLabel: "جریان زنر (I_z)",
+                pzLabel: "توان تلفاتی زنر (P_z)",
+                scopeWave: "اسیلوسکوپ: ولتاژ ورودی دارای ریپل (زرد) و ولتاژ تنظیم‌شده بار (فیروزه‌ای)",
+                srcName: "منبع تغذیه (V_in)",
+                rsName: "مقاومت سری",
+                zenerName: "دیود زنر",
+                loadName: "مقاومت بار"
+            },
+            en: {
+                title: "Zener Voltage Regulator Simulator",
+                subtitle: "Stabilizing output voltage using the reverse breakdown region of a Zener diode",
+                langLabel: "Language / زبان:",
+                vinLabel: "DC Input Voltage (V_in):",
+                rippleLabel: "Input Ripple Amplitude (V_ripple):",
+                vzLabel: "Zener Voltage (V_z):",
+                rsLabel: "Series Resistor (R_s):",
+                rlLabel: "Load Resistor (R_L):",
+                stateReg: "Status: Regulating Voltage",
+                stateNotReg: "Status: Not Regulating (Dropout)",
+                voutLabel: "Load Voltage (V_out)",
+                ilLabel: "Load Current (I_L)",
+                izLabel: "Zener Current (I_z)",
+                pzLabel: "Zener Power Dissipation (P_z)",
+                scopeWave: "Oscilloscope: Rippled Input Voltage (Yellow) & Regulated Load Voltage (Cyan)",
+                srcName: "Power Supply (V_in)",
+                rsName: "Series Resistor",
+                zenerName: "Zener Diode",
+                loadName: "Load Resistor"
+            }
+        };
+
+        let currentLang = 'fa';
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+            document.getElementById('btn-lang-fa').classList.toggle('active', lang === 'fa');
+            document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+            
+            const t = i18n[lang];
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('lbl-lang').innerText = t.langLabel;
+            document.getElementById('lbl-vin').innerText = t.vinLabel;
+            document.getElementById('lbl-ripple').innerText = t.rippleLabel;
+            document.getElementById('lbl-vz').innerText = t.vzLabel;
+            document.getElementById('lbl-rs').innerText = t.rsLabel;
+            document.getElementById('lbl-rl').innerText = t.rlLabel;
+            document.getElementById('lbl-vout').innerText = t.voutLabel;
+            document.getElementById('lbl-il').innerText = t.ilLabel;
+            document.getElementById('lbl-iz').innerText = t.izLabel;
+            document.getElementById('lbl-pz').innerText = t.pzLabel;
+            document.getElementById('lbl-scope-wave').innerText = t.scopeWave;
+        }
+
+        // Circuit Parameters
+        let V_in_dc = 12;
+        let V_ripple = 2;
+        let V_z = 5.1;
+        let R_s = 100;
+        let R_L = 200;
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasWave = document.getElementById('scopeWave');
+        const ctxWave = canvasWave.getContext('2d');
+
+        document.getElementById('slider-vin').addEventListener('input', e => { V_in_dc = parseFloat(e.target.value); document.getElementById('val-vin').innerText = V_in_dc + ' V'; });
+        document.getElementById('slider-ripple').addEventListener('input', e => { V_ripple = parseFloat(e.target.value); document.getElementById('val-ripple').innerText = V_ripple + ' V'; });
+        document.getElementById('slider-vz').addEventListener('input', e => { V_z = parseFloat(e.target.value); document.getElementById('val-vz').innerText = V_z.toFixed(1) + ' V'; });
+        document.getElementById('slider-rs').addEventListener('input', e => { R_s = parseFloat(e.target.value); document.getElementById('val-rs').innerText = R_s + ' Ω'; });
+        document.getElementById('slider-rl').addEventListener('input', e => { R_L = parseFloat(e.target.value); document.getElementById('val-rl').innerText = R_L + ' Ω'; });
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height;
+            const rw = canvasWave.parentElement.getBoundingClientRect(); canvasWave.width = rw.width; canvasWave.height = rw.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        const hist_Vin = [];
+        const hist_Vout = [];
+        const maxHistory = 400;
+
+        let particles = [];
+        let time = 0;
+
+        // Closed rectangle coordinates
+        let leftX, rightX, topY, botY;
+        let midX_rs, midX_node;
+
+        function animate() {
+            time += 0.05; 
+            
+            const w_ripple = 0.5;
+            const v_in_inst = Math.max(0, V_in_dc + V_ripple * Math.sin(time * w_ripple));
+
+            const V_th = v_in_inst * (R_L / (R_s + R_L));
+            
+            let v_out, i_L, i_s, i_z;
+            let isRegulating = false;
+
+            if (V_th > V_z) {
+                isRegulating = true;
+                v_out = V_z;
+                i_L = v_out / R_L;
+                i_s = (v_in_inst - v_out) / R_s;
+                i_z = Math.max(0, i_s - i_L);
+            } else {
+                isRegulating = false;
+                v_out = V_th;
+                i_L = v_out / R_L;
+                i_s = i_L;
+                i_z = 0;
+            }
+
+            const p_z = v_out * i_z;
+
+            const t = i18n[currentLang];
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const cardPz = document.getElementById('card-pz');
+
+            if (isRegulating) {
+                dot.className = 'status-dot active';
+                txt.innerText = t.stateReg;
+                txt.style.color = 'var(--accent-green)';
+            } else {
+                dot.className = 'status-dot inactive';
+                txt.innerText = t.stateNotReg;
+                txt.style.color = 'var(--accent-gold)';
+            }
+
+            if (p_z > 1.0) cardPz.classList.add('warning');
+            else cardPz.classList.remove('warning');
+
+            document.getElementById('m-vout').innerText = v_out.toFixed(2) + ' V';
+            document.getElementById('m-il').innerText = (i_L * 1000).toFixed(1) + ' mA';
+            document.getElementById('m-iz').innerText = (i_z * 1000).toFixed(1) + ' mA';
+            document.getElementById('m-pz').innerText = (p_z * 1000).toFixed(0) + ' mW';
+
+            hist_Vin.push(v_in_inst);
+            hist_Vout.push(v_out);
+            if (hist_Vin.length > maxHistory) { hist_Vin.shift(); hist_Vout.shift(); }
+
+            drawCircuit(v_in_inst, v_out, isRegulating, i_s, i_z, i_L);
+            drawWaveScope();
+
+            if (i_s > 0.001 && Math.random() > 0.35) spawnParticle('top', i_s);
+            updateParticles(i_s, i_z, i_L);
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawCircuit(vIn, vOut, isRegulating, i_s, i_z, i_L) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+            const t = i18n[currentLang];
+
+            // ===== CLOSED RECTANGLE GEOMETRY =====
+            leftX  = w * 0.14;
+            rightX = w * 0.86;
+            topY   = h * 0.28;
+            botY   = h * 0.72;
+            midX_rs   = w * 0.38;
+            midX_node = w * 0.62;
+
+            // --- Base closed rectangle wires (dark) ---
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(leftX, topY);
+            ctx.lineTo(rightX, topY);
+            ctx.lineTo(rightX, botY);
+            ctx.lineTo(leftX, botY);
+            ctx.closePath();
+            ctx.stroke();
+
+            // Vertical branch for Zener
+            ctx.beginPath();
+            ctx.moveTo(midX_node, topY);
+            ctx.lineTo(midX_node, botY);
+            ctx.stroke();
+
+            // --- Gentle active highlights (ShadowBlur reduced to 4) ---
+            ctx.lineWidth = 4;
+            ctx.shadowBlur = 4;
+
+            // Left-top (Vin - Soft Gold)
+            ctx.strokeStyle = '#ffb020';
+            ctx.shadowColor = '#ffb020';
+            ctx.beginPath();
+            ctx.moveTo(leftX, topY);
+            ctx.lineTo(midX_rs - 28, topY);
+            ctx.stroke();
+
+            // Right-top (Vout - Soft Cyan)
+            ctx.strokeStyle = '#00d2d3';
+            ctx.shadowColor = '#00d2d3';
+            ctx.beginPath();
+            ctx.moveTo(midX_rs + 28, topY);
+            ctx.lineTo(rightX, topY);
+            ctx.stroke();
+
+            // Right vertical (load side)
+            ctx.beginPath();
+            ctx.moveTo(rightX, topY);
+            ctx.lineTo(rightX, botY);
+            ctx.stroke();
+
+            // Zener vertical highlight
+            if (isRegulating) {
+                ctx.strokeStyle = '#9b59b6';
+                ctx.shadowColor = '#9b59b6';
+                ctx.beginPath();
+                ctx.moveTo(midX_node, topY);
+                ctx.lineTo(midX_node, botY);
+                ctx.stroke();
+            }
+
+            // Bottom return rail (Soft Green ground)
+            ctx.strokeStyle = '#10ac84';
+            ctx.shadowColor = '#10ac84';
+            ctx.beginPath();
+            ctx.moveTo(rightX, botY);
+            ctx.lineTo(leftX, botY);
+            ctx.stroke();
+
+            // Left vertical
+            ctx.beginPath();
+            ctx.moveTo(leftX, botY);
+            ctx.lineTo(leftX, topY);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+
+            // Ground symbol under rectangle
+            ctx.strokeStyle = '#10ac84';
+            ctx.lineWidth = 2.5;
+            const gx = midX_node;
+            ctx.beginPath();
+            ctx.moveTo(gx, botY); ctx.lineTo(gx, botY + 16);
+            ctx.moveTo(gx - 16, botY + 16); ctx.lineTo(gx + 16, botY + 16);
+            ctx.moveTo(gx - 10, botY + 21); ctx.lineTo(gx + 10, botY + 21);
+            ctx.moveTo(gx - 5,  botY + 26); ctx.lineTo(gx + 5,  botY + 26);
+            ctx.stroke();
+
+            // ===== COMPONENTS =====
+            drawDCSource(leftX, (topY + botY) / 2, vIn, t.srcName);
+            drawSeriesResistor(midX_rs, topY, t.rsName, R_s + ' Ω');
+            drawZener(midX_node, (topY + botY) / 2, isRegulating, t.zenerName, V_z.toFixed(1) + ' V');
+            drawLoad(rightX, (topY + botY) / 2, vOut, t.loadName, R_L + ' Ω');
+        }
+
+        function drawDCSource(x, y, vInst, name) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.shadowColor = '#ffb020';
+            ctx.shadowBlur = 4;
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#ffb020';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(0, 0, 26, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            ctx.strokeStyle = '#ffe066';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-10, -5); ctx.lineTo(10, -5);
+            ctx.setLineDash([3, 3]);
+            ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+            ctx.setLineDash([]);
+            ctx.moveTo(-10, 7);
+            ctx.bezierCurveTo(-4, 2, 4, 12, 10, 7);
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffb020';
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(vInst.toFixed(1) + ' V', 0, 44);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px Segoe UI';
+            ctx.fillText(name, 0, -38);
+            ctx.restore();
+        }
+
+        function drawSeriesResistor(x, y, name, val) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.shadowColor = '#54a0ff';
+            ctx.shadowBlur = 4;
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#54a0ff';
+            ctx.lineWidth = 2.5;
+            ctx.fillRect(-30, -13, 60, 26);
+            ctx.strokeRect(-30, -13, 60, 26);
+            ctx.shadowBlur = 0;
+
+            ctx.strokeStyle = '#7dd3fc';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.moveTo(-18, 0);
+            ctx.lineTo(-10, -7); ctx.lineTo(-3, 7); ctx.lineTo(3, -7); ctx.lineTo(10, 7); ctx.lineTo(18, 0);
+            ctx.stroke();
+
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(name, 0, -22);
+            ctx.fillStyle = '#00d2d3';
+            ctx.fillText(val, 0, 32);
+            ctx.restore();
+        }
+
+        function drawZener(x, y, isRegulating, name, val) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const col = isRegulating ? '#9b59b6' : '#64748b';
+            if (isRegulating) {
+                ctx.shadowColor = col;
+                ctx.shadowBlur = 5;
+            }
+
+            ctx.strokeStyle = col;
+            ctx.fillStyle = '#0f172a';
+            ctx.lineWidth = 2.5;
+
+            ctx.beginPath();
+            ctx.moveTo(0, -16);
+            ctx.lineTo(14, 14);
+            ctx.lineTo(-14, 14);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(-14, -16); ctx.lineTo(14, -16);
+            ctx.moveTo(-14, -16); ctx.lineTo(-14, -21);
+            ctx.moveTo(14, -16);  ctx.lineTo(14, -11);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(name, 0, 36);
+            ctx.fillStyle = col;
+            ctx.fillText(val, 0, 50);
+            ctx.restore();
+        }
+
+        function drawLoad(x, y, vOut, name, val) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.shadowColor = '#00d2d3';
+            ctx.shadowBlur = 4;
+
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#00d2d3';
+            ctx.lineWidth = 2.5;
+            ctx.fillRect(-15, -28, 30, 56);
+            ctx.strokeRect(-15, -28, 30, 56);
+            ctx.shadowBlur = 0;
+
+            ctx.strokeStyle = '#67e8f9';
+            ctx.lineWidth = 1.8;
+            for (let i = -16; i <= 16; i += 11) {
+                ctx.beginPath();
+                ctx.moveTo(-8, i); ctx.lineTo(8, i);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(name, 0, -38);
+            ctx.fillStyle = '#00d2d3';
+            ctx.fillText(val, 0, 48);
+            ctx.restore();
+        }
+
+        function spawnParticle(path, current) {
+            if (current <= 0) return;
+            particles.push({
+                path: path,
+                progress: 0,
+                speed: 0.008 + Math.min(0.03, current * 4)
+            });
+        }
+
+        function updateParticles(i_s, i_z, i_L) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.progress += p.speed;
+                let px, py, color;
+
+                if (p.path === 'top') {
+                    px = leftX + p.progress * (rightX - leftX);
+                    py = topY;
+                    color = p.progress < 0.35 ? '#ffb020' : '#00d2d3';
+                    if (p.progress >= 1) {
+                        particles.splice(i, 1);
+                        const total = i_z + i_L;
+                        if (total > 0.0001) {
+                            if (Math.random() < (i_z / total)) spawnParticle('zener', i_z);
+                            else spawnParticle('load', i_L);
+                        }
+                        continue;
+                    }
+                } else if (p.path === 'zener') {
+                    px = midX_node;
+                    py = topY + p.progress * (botY - topY);
+                    color = '#9b59b6';
+                    if (p.progress >= 1) {
+                        particles.splice(i, 1);
+                        spawnParticle('bottom', i_z);
+                        continue;
+                    }
+                } else if (p.path === 'load') {
+                    px = rightX;
+                    py = topY + p.progress * (botY - topY);
+                    color = '#00d2d3';
+                    if (p.progress >= 1) {
+                        particles.splice(i, 1);
+                        spawnParticle('bottom', i_L);
+                        continue;
+                    }
+                } else if (p.path === 'bottom') {
+                    px = rightX - p.progress * (rightX - leftX);
+                    py = botY;
+                    color = '#10ac84';
+                    if (p.progress >= 1) {
+                        particles.splice(i, 1);
+                        continue;
+                    }
+                }
+
+                ctx.beginPath();
+                ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 4;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function drawWaveScope() {
+            const w = canvasWave.width;
+            const h = canvasWave.height;
+            ctxWave.clearRect(0, 0, w, h);
+
+            // Grid
+            ctxWave.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxWave.lineWidth = 1;
+            ctxWave.beginPath();
+            for (let x = 0; x < w; x += 30) { ctxWave.moveTo(x, 0); ctxWave.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxWave.moveTo(0, y); ctxWave.lineTo(w, y); }
+            ctxWave.stroke();
+
+            const yZero = h - 18;
+            const scale = 5.5;
+
+            // Ground line
+            ctxWave.strokeStyle = 'rgba(16, 172, 132, 0.4)';
+            ctxWave.setLineDash([4, 4]);
+            ctxWave.beginPath(); ctxWave.moveTo(0, yZero); ctxWave.lineTo(w, yZero); ctxWave.stroke();
+            ctxWave.setLineDash([]);
+
+            // Vz reference
+            const yZ = yZero - V_z * scale;
+            if (yZ > 5) {
+                ctxWave.strokeStyle = 'rgba(155, 89, 182, 0.4)';
+                ctxWave.beginPath(); ctxWave.moveTo(0, yZ); ctxWave.lineTo(w, yZ); ctxWave.stroke();
+                ctxWave.fillStyle = '#9b59b6';
+                ctxWave.font = 'bold 11px Segoe UI';
+                ctxWave.fillText('V_z', w - 28, yZ - 6);
+            }
+
+            const step = w / maxHistory;
+
+            // Vin
+            ctxWave.strokeStyle = '#ffb020';
+            ctxWave.lineWidth = 1.8;
+            ctxWave.beginPath();
+            for (let i = 0; i < hist_Vin.length; i++) {
+                const x = i * step;
+                const y = yZero - hist_Vin[i] * scale;
+                if (i === 0) ctxWave.moveTo(x, y); else ctxWave.lineTo(x, y);
+            }
+            ctxWave.stroke();
+
+            // Vout
+            ctxWave.strokeStyle = '#00d2d3';
+            ctxWave.lineWidth = 2.2;
+            ctxWave.beginPath();
+            for (let i = 0; i < hist_Vout.length; i++) {
+                const x = i * step;
+                const y = yZero - hist_Vout[i] * scale;
+                if (i === 0) ctxWave.moveTo(x, y); else ctxWave.lineTo(x, y);
+            }
+            ctxWave.stroke();
+
+            ctxWave.font = 'bold 11px Segoe UI';
+            ctxWave.textAlign = 'left';
+            ctxWave.fillStyle = '#ffb020'; ctxWave.fillText('V_in (DC + Ripple)', 10, 16);
+            ctxWave.fillStyle = '#00d2d3'; ctxWave.fillText('V_out (Regulated)', 10, 32);
+        }
+
+        setLanguage(currentLang);
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

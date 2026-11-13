@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شبیه‌ساز مدار شارژر باتری لیتیوم-یون (CC-CV)</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --accent-purple: #9d4edd;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .toggle-btn.danger {
+            background: rgba(255, 71, 87, 0.1);
+            color: var(--accent-red);
+            border: 1px solid rgba(255, 71, 87, 0.3);
+            margin-top: 5px;
+        }
+
+        .toggle-btn.danger:hover {
+            background: var(--accent-red);
+            color: #fff;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-card h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .scope-v h3::before { background: var(--accent-gold); }
+        .scope-i h3::before { background: var(--accent-green); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .stage-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .stage-pre { background: rgba(255, 71, 87, 0.15); color: var(--accent-red); border: 1px solid var(--accent-red); }
+        .stage-cc { background: rgba(0, 242, 254, 0.15); color: var(--accent-cyan); border: 1px solid var(--accent-cyan); }
+        .stage-cv { background: rgba(157, 78, 221, 0.15); color: var(--accent-purple); border: 1px solid var(--accent-purple); }
+        .stage-done { background: rgba(46, 213, 115, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>شبیه‌ساز مدار شارژر باتری لیتیوم-یون (CC-CV)</h1>
+        <p>الگوریتم شارژ کامل 18650: Pre-charge -> CC (شارژ سریع) -> CV (تکمیل ظرفیت) -> شارژ کامل (قطع)</p>
+    </header>
+
+    <div class="main-container">
+        <!-- پنل تنظیمات -->
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group">
+                <label>نوع جریان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">قراردادی (+ به -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">الکترونی (- به +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span>ولتاژ ورودی (V_in):</span> <span class="val" id="val-vin">5.0 V</span></label>
+                <input type="range" id="slider-vin" min="4.5" max="12" value="5.0" step="0.5">
+            </div>
+
+            <div class="control-group">
+                <label><span>جریان شارژ سریع (I_CC):</span> <span class="val" id="val-icc">1.5 A</span></label>
+                <input type="range" id="slider-icc" min="0.5" max="3.0" value="1.5" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label><span>ظرفیت باتری (mAh):</span> <span class="val" id="val-cap">2500 mAh</span></label>
+                <input type="range" id="slider-cap" min="1000" max="5000" value="2500" step="100">
+            </div>
+
+            <div class="control-group">
+                <label><span>ضریب سرعت شبیه‌سازی:</span> <span class="val" id="val-speed">500x</span></label>
+                <input type="range" id="slider-speed" min="1" max="2000" value="500" step="10">
+            </div>
+
+            <button class="toggle-btn danger" onclick="resetBattery()">تخلیه کامل باتری (افت ولتاژ زیر ۳ ولت)</button>
+
+            <div class="state-indicator">
+                <div class="stage-badge stage-cc" id="badge-stage">مرحله ۲: CC (جریان ثابت)</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title">ولتاژ سلول (V_bat)</div>
+                    <div class="val" id="m-vbat" style="color:var(--accent-gold)">3.70 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">جریان شارژ (I_charge)</div>
+                    <div class="val" id="m-ibat" style="color:var(--accent-green)">0.00 A</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">سطح شارژ (SoC)</div>
+                    <div class="val" id="m-soc">0 %</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">چرخه کاری (Duty)</div>
+                    <div class="val" id="m-duty">0 %</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ناحیه شبیه‌سازی و اسیلوسکوپ‌ها -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-v">
+                    <h3>منحنی ولتاژ باتری لیتیومی (هدف: 4.2V)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeV"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-i">
+                    <h3>منحنی جریان شارژ (نمایی در حالت CV)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeI"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // متغیرهای حالت سیستم
+        let flowMode = 'conv';
+        let Vin = 5.0;
+        let I_cc = 1.5; // آمپر (جریان شارژ سریع)
+        let C_mah = 2500; // میلی‌آمپر ساعت
+        let simSpeed = 500; // ضریب سرعت زمان واقعی
+        
+        let dutyCycle = 0;
+        let SoC = 50; // درصد شارژ اولیه (۵۰٪)
+        let V_bat = 3.7; 
+        let I_sim = 0;
+        let stage = 'cc'; // 'pre', 'cc', 'cv', 'done'
+
+        const R_int = 0.08; // مقاومت داخلی سلول 18650 (حدود ۸۰ میلی‌اهم)
+        const freqSw = 100; // کیلوهرتز (فرکانس نمایش سوئیچینگ)
+        const V_target = 4.20; // ولتاژ شارژ کامل لیتیوم-یون
+
+        // بوم‌های کانوِاس
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasV = document.getElementById('scopeV');
+        const ctxV = canvasV.getContext('2d');
+        const canvasI = document.getElementById('scopeI');
+        const ctxI = canvasI.getContext('2d');
+
+        // رویدادهای اسلایدرها
+        document.getElementById('slider-vin').addEventListener('input', (e) => {
+            Vin = parseFloat(e.target.value);
+            document.getElementById('val-vin').innerText = Vin.toFixed(1) + ' V';
+        });
+        document.getElementById('slider-icc').addEventListener('input', (e) => {
+            I_cc = parseFloat(e.target.value);
+            document.getElementById('val-icc').innerText = I_cc.toFixed(1) + ' A';
+        });
+        document.getElementById('slider-cap').addEventListener('input', (e) => {
+            C_mah = parseFloat(e.target.value);
+            document.getElementById('val-cap').innerText = C_mah + ' mAh';
+        });
+        document.getElementById('slider-speed').addEventListener('input', (e) => {
+            simSpeed = parseFloat(e.target.value);
+            document.getElementById('val-speed').innerText = simSpeed + 'x';
+        });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        // دکمه تخلیه کامل (دیپ دیسشارژ) برای تست مرحله Pre-charge
+        function resetBattery() {
+            SoC = 0; // ولتاژ افت می‌کند به ۲.۸ ولت
+            stage = 'pre';
+            I_sim = 0;
+            vHistory.fill(2.8);
+            iHistory.fill(0);
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            const rectV = canvasV.parentElement.getBoundingClientRect();
+            canvasV.width = rectV.width;
+            canvasV.height = rectV.height;
+
+            const rectI = canvasI.parentElement.getBoundingClientRect();
+            canvasI.width = rectI.width;
+            canvasI.height = rectI.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        // تاریخچه برای اسیلوسکوپ
+        const maxHistory = 400;
+        const vHistory = new Array(maxHistory).fill(3.7);
+        const iHistory = new Array(maxHistory).fill(0);
+
+        // ذرات متحرک
+        const particles = [];
+        for (let i = 0; i < 40; i++) {
+            particles.push({ progress: Math.random() });
+        }
+
+        let time = 0;
+        let lastTime = performance.now();
+
+        function animate(currentTime) {
+            let dt = (currentTime - lastTime) / 1000;
+            if (dt > 0.1) dt = 0.016;
+            lastTime = currentTime;
+            time += dt;
+
+            // مدل فیزیکی ولتاژ استراحت باتری لیتیومی (0% = 2.8V, 100% = 4.2V)
+            // به صورت ساده شده خطی در نظر گرفته شده است.
+            let V_rest = 2.8 + ((V_target - 2.8) * (SoC / 100));
+            
+            let I_pre = I_cc * 0.1; // جریان در حالت پیش‌شارژ (۱۰٪ جریان اصلی)
+            let I_cutoff = I_cc * 0.05; // جریان قطع شارژ کامل (۵٪ جریان اصلی)
+
+            // تعیین مراحل شارژ بر اساس وضعیت باتری
+            if (SoC >= 100 || (stage === 'cv' && I_sim < I_cutoff)) {
+                stage = 'done'; // قطع کامل
+            } else if (V_bat >= V_target && stage !== 'done') {
+                stage = 'cv'; // رسیدن به 4.2 و حفظ آن
+            } else if (V_bat < 3.0 && stage !== 'cv' && stage !== 'done') {
+                stage = 'pre'; // بازیابی باتری مرده
+            } else if (stage !== 'cv' && stage !== 'done') {
+                stage = 'cc'; // شارژ سریع
+            }
+
+            // محاسبه مستقیم Duty Cycle برای پایداری در سرعت‌های بالا (مدل ریاضی پایدار مبدل کاهنده)
+            let duty_target = 0;
+            
+            if (stage === 'pre') {
+                duty_target = (V_rest + I_pre * R_int) / Vin;
+            } else if (stage === 'cc') {
+                duty_target = (V_rest + I_cc * R_int) / Vin;
+            } else if (stage === 'cv') {
+                // در حالت CV می‌خواهیم ولتاژ ترمینال دقیقاً روی 4.2 قفل شود.
+                duty_target = V_target / Vin;
+            } else if (stage === 'done') {
+                duty_target = 0; // قطع کامل سوئیچینگ!
+            }
+
+            // اطمینان از قرار گرفتن Duty Cycle در بازه مجاز و اعمال تغییرات نرم
+            if (Vin < V_target && stage !== 'done') duty_target = 0.99; // اگر منبع ضعیف بود
+            duty_target = Math.max(0, Math.min(0.99, duty_target));
+            
+            // نرم کردن تغییرات سوئیچینگ کنترلر
+            dutyCycle += (duty_target - dutyCycle) * (dt * 15);
+
+            // محاسبه جریان واقعی لحظه‌ای 
+            let V_buck_out = Vin * dutyCycle;
+            let I_ideal = (V_buck_out - V_rest) / R_int;
+            if (I_ideal < 0 || stage === 'done') I_ideal = 0; // دیود اجازه جریان معکوس نمی‌دهد و حالت قطع کامل
+
+            // فیلتر سلف برای نرمی جریان
+            I_sim += (I_ideal - I_sim) * (dt * 10);
+            if (I_sim < 0.001) I_sim = 0;
+
+            // محاسبه ولتاژ ترمینال باتری
+            V_bat = V_rest + (I_sim * R_int);
+
+            // بروزرسانی ظرفیت (SoC)
+            let chargeAddedAh = (I_sim * dt * simSpeed) / 3600; // آمپر-ساعت اضافه شده
+            let capAh = C_mah / 1000;
+            SoC += (chargeAddedAh / capAh) * 100;
+            if (SoC > 100) SoC = 100;
+
+            // محاسبه زمان‌بندی برای گرافیک سوئیچینگ و ذرات
+            const period = 1 / (freqSw * 0.1);
+            const phase = (time % period) / period;
+            const isMosfetOn = stage !== 'done' && phase < dutyCycle;
+
+            // بروزرسانی پنل UI
+            const badge = document.getElementById('badge-stage');
+            if (stage === 'pre') {
+                badge.className = 'stage-badge stage-pre';
+                badge.innerText = 'مرحله ۱: Pre-charge (بازیابی زیر ۳ ولت)';
+            } else if (stage === 'cc') {
+                badge.className = 'stage-badge stage-cc';
+                badge.innerText = 'مرحله ۲: CC (شارژ سریع جریان ثابت)';
+            } else if (stage === 'cv') {
+                badge.className = 'stage-badge stage-cv';
+                badge.innerText = 'مرحله ۳: CV (ولتاژ ثابت ۴.۲ ولت)';
+            } else {
+                badge.className = 'stage-badge stage-done';
+                badge.innerText = 'مرحله ۴: Done (شارژ کاملاً قطع شد)';
+            }
+
+            document.getElementById('m-vbat').innerText = V_bat.toFixed(3) + ' V';
+            document.getElementById('m-ibat').innerText = I_sim.toFixed(2) + ' A';
+            document.getElementById('m-soc').innerText = SoC.toFixed(1) + ' %';
+            document.getElementById('m-duty').innerText = (dutyCycle * 100).toFixed(1) + ' %';
+
+            // ذخیره تاریخچه نمودارها
+            vHistory.push(V_bat);
+            iHistory.push(I_sim);
+            if (vHistory.length > maxHistory) vHistory.shift();
+            if (iHistory.length > maxHistory) iHistory.shift();
+
+            // رندر نقاشی‌ها
+            drawCircuit(isMosfetOn, I_sim, stage);
+            drawVScope();
+            drawIScope();
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawCircuit(isMosfetOn, current, currentStage) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+
+            const vinX = w * 0.10;
+            const mosfetX = w * 0.28;
+            const switchNodeX = w * 0.45;
+            const inductorEndX = w * 0.65;
+            const senseX = w * 0.75;
+            const batX = w * 0.88;
+
+            const topY = h * 0.25;
+            const bottomY = h * 0.75;
+            const midY = (topY + bottomY) / 2;
+            const ctlY = h * 0.88;
+
+            // 1. سیم‌های پایه (ضخامت ۴ پیکسل - رنگ تیره)
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#334155';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            ctx.beginPath();
+            ctx.moveTo(vinX, topY); ctx.lineTo(batX, topY); // مسیر مثبت
+            ctx.moveTo(vinX, bottomY); ctx.lineTo(batX, bottomY); // مسیر منفی (GND)
+            ctx.moveTo(vinX, topY); ctx.lineTo(vinX, bottomY); // شاخه ورودی
+            ctx.moveTo(switchNodeX, topY); ctx.lineTo(switchNodeX, bottomY); // دیود
+            ctx.moveTo(batX, topY); ctx.lineTo(batX, bottomY); // شاخه باتری
+            ctx.stroke();
+
+            // 2. سیم‌های حامل توان (نورانی و رنگی)
+            const isConducting = current > 0.01;
+
+            if (isMosfetOn) {
+                // مسیر روشن: منبع -> ماسفت -> سلف -> سنسور -> باتری -> زمین
+                ctx.strokeStyle = 'rgba(0, 242, 254, 0.8)';
+                ctx.beginPath();
+                ctx.moveTo(vinX, bottomY); ctx.lineTo(vinX, topY); ctx.lineTo(batX, topY);
+                ctx.stroke();
+
+                if (isConducting) {
+                    ctx.beginPath();
+                    ctx.moveTo(batX, topY); ctx.lineTo(batX, bottomY); ctx.lineTo(vinX, bottomY);
+                    ctx.stroke();
+                }
+            } else if (currentStage !== 'done') {
+                // مسیر خاموش (هرزگرد): دیود -> سلف -> سنسور -> باتری -> دیود
+                ctx.strokeStyle = 'rgba(255, 183, 3, 0.8)';
+                ctx.beginPath();
+                ctx.moveTo(switchNodeX, bottomY); ctx.lineTo(switchNodeX, topY); ctx.lineTo(batX, topY);
+                if (isConducting) {
+                    ctx.lineTo(batX, bottomY); ctx.lineTo(switchNodeX, bottomY);
+                }
+                ctx.stroke();
+            }
+
+            // 3. مسیرهای فیدبک کنترلی (خط چین آبی)
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            // حسگر ولتاژ: از قطب مثبت باتری به کنترلر
+            ctx.moveTo(batX, topY + 15); ctx.lineTo(mosfetX, topY + 15); ctx.lineTo(mosfetX, ctlY - 15);
+            // حسگر جریان: از دو سر مقاومت سنس به کنترلر
+            ctx.moveTo(senseX, topY + 25); ctx.lineTo(mosfetX + 20, topY + 25); ctx.lineTo(mosfetX + 20, ctlY - 15);
+            // فرمان گیت: از کنترلر به پایه گیت ماسفت
+            ctx.moveTo(mosfetX, ctlY - 45); ctx.lineTo(mosfetX, topY + 25);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 4. رسم قطعات مدار
+            drawDCSource(vinX, midY, Vin);
+            drawMOSFET(mosfetX, topY, isMosfetOn);
+            drawFreewheelingDiode(switchNodeX, midY, !isMosfetOn && isConducting);
+            drawInductor(switchNodeX, inductorEndX, topY, isMosfetOn);
+            drawSenseResistor(senseX, topY);
+            draw18650Battery(batX, midY, SoC); // باتری لیتیومی 18650
+            drawLiIonController(mosfetX, ctlY - 30, currentStage);
+
+            // 5. رسم ذرات در حال حرکت
+            if (isConducting && currentStage !== 'done') {
+                drawParticles(isMosfetOn, vinX, mosfetX, switchNodeX, inductorEndX, senseX, batX, topY, bottomY);
+            }
+        }
+
+        // --- توابع رسم المان‌ها ---
+
+        function drawDCSource(x, y, vVal) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#4facfe'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(x, y, 26, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.font = 'bold 13px Segoe UI';
+            ctx.fillStyle = '#ff4757'; ctx.fillText('+', x - 4, y - 10);
+            ctx.fillStyle = '#2ed573'; ctx.fillText('-', x - 3, y + 18);
+            ctx.fillStyle = '#94a3b8'; ctx.font = '12px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('منبع 5V', x - 48, y + 4);
+            ctx.restore();
+        }
+
+        function drawMOSFET(x, y, isOn) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.fillStyle = isOn ? 'rgba(0, 242, 254, 0.15)' : '#1e293b';
+            ctx.strokeStyle = isOn ? '#00f2fe' : '#64748b'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.rect(-20, -18, 40, 36); ctx.fill(); ctx.stroke();
+            ctx.font = 'bold 10px Segoe UI'; ctx.fillStyle = isOn ? '#00f2fe' : '#94a3b8';
+            ctx.fillText('D', -15, -6); ctx.fillText('S', 10, -6); ctx.fillText('G', -4, 12);
+            ctx.strokeStyle = isOn ? '#00f2fe' : '#475569';
+            ctx.beginPath(); ctx.moveTo(0, 18); ctx.lineTo(0, 25); ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawFreewheelingDiode(x, y, isActive) {
+            ctx.save();
+            ctx.translate(x, y);
+            const size = 16;
+            ctx.fillStyle = isActive ? '#ffb703' : '#1e293b';
+            ctx.strokeStyle = isActive ? '#ffb703' : '#64748b'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, -size); ctx.lineTo(-size, size); ctx.lineTo(size, size); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-size, -size); ctx.lineTo(size, -size); ctx.stroke();
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = isActive ? '#ffb703' : '#64748b'; ctx.textAlign = 'center';
+            ctx.fillText('دیود شاتکی', x > 400 ? 55 : -55, 4);
+            ctx.restore();
+        }
+
+        function drawInductor(x1, x2, y, isCharging) {
+            ctx.save();
+            const width = x2 - x1;
+            const coils = 4;
+            const coilWidth = width / coils;
+
+            if (isCharging) { ctx.shadowColor = '#00f2fe'; ctx.shadowBlur = 15; }
+            else { ctx.shadowColor = '#ffb703'; ctx.shadowBlur = 10; }
+
+            ctx.strokeStyle = isCharging ? '#00f2fe' : '#ffb703';
+            ctx.lineWidth = 30; ctx.lineCap = 'round'; ctx.globalAlpha = 0.15;
+            ctx.beginPath(); ctx.moveTo(x1 + 10, y); ctx.lineTo(x2 - 10, y); ctx.stroke();
+
+            ctx.globalAlpha = 1.0; ctx.shadowBlur = 0; ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < coils; i++) {
+                const cx = x1 + i * coilWidth + coilWidth / 2;
+                ctx.arc(cx, y, coilWidth / 2, Math.PI, 0, false);
+            }
+            ctx.stroke();
+            ctx.font = '12px Segoe UI'; ctx.fillStyle = '#cbd5e1'; ctx.textAlign = 'center';
+            ctx.fillText('سلف مبدل', x1 + width / 2, y - 20);
+            ctx.restore();
+        }
+
+        function drawSenseResistor(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(-15, 0); ctx.lineTo(-10, 6); ctx.lineTo(-5, -6);
+            ctx.lineTo(0, 6); ctx.lineTo(5, -6); ctx.lineTo(10, 6); ctx.lineTo(15, 0);
+            ctx.stroke();
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center';
+            ctx.fillText('R_sense', 0, -15);
+            ctx.restore();
+        }
+
+        // رسم گرافیکی سلول لیتیومی 18650
+        function draw18650Battery(x, y, soc) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const bw = 32;
+            const bh = 68;
+            
+            // درپوش قطب مثبت 18650
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillRect(-8, -bh/2 - 4, 16, 4);
+
+            // بدنه باتری (Wrap)
+            ctx.fillStyle = '#0f172a'; 
+            ctx.strokeStyle = '#00f2fe'; 
+            ctx.lineWidth = 2;
+            
+            // گوشه‌های کمی گرد برای نمای استوانه‌ای
+            ctx.beginPath();
+            ctx.roundRect(-bw/2, -bh/2, bw, bh, 3);
+            ctx.fill();
+            ctx.stroke();
+
+            // روکش رنگی داخل باتری (شبیه‌سازی سطح شارژ)
+            let wrapColor = '#00f2fe'; // رنگ فیروزه‌ای پیش‌فرض روکش 18650
+            if (soc < 20) wrapColor = '#ff4757';
+            else if (soc >= 100) wrapColor = '#2ed573';
+
+            const fillH = (soc / 100) * (bh - 2);
+            ctx.fillStyle = wrapColor;
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath();
+            ctx.roundRect(-bw/2 + 1, bh/2 - 1 - fillH, bw - 2, fillH, 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+
+            if (soc >= 100) {
+                ctx.shadowColor = '#2ed573'; ctx.shadowBlur = 15;
+                ctx.strokeStyle = '#2ed573';
+                ctx.beginPath(); ctx.roundRect(-bw/2, -bh/2, bw, bh, 3); ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // متن و برچسب
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#e2e8f0'; ctx.textAlign = 'center';
+            ctx.fillText('18650 Cell', 0, -bh/2 - 12);
+            
+            ctx.fillStyle = soc > 40 ? '#0a0f1d' : '#e2e8f0'; ctx.font = 'bold 12px Segoe UI';
+            ctx.fillText(Math.round(soc) + '%', 0, 4);
+
+            ctx.restore();
+        }
+
+        function drawLiIonController(x, y, currentStage) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            let strokeColor = '#4facfe';
+            if(currentStage === 'pre') strokeColor = '#ff4757';
+            if(currentStage === 'cv') strokeColor = '#9d4edd';
+            if(currentStage === 'done') strokeColor = '#2ed573';
+
+            ctx.fillStyle = '#0f172a'; ctx.strokeStyle = strokeColor; ctx.lineWidth = 2;
+            ctx.fillRect(-55, -20, 110, 40); ctx.strokeRect(-55, -20, 110, 40);
+            
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#e2e8f0'; ctx.textAlign = 'center';
+            ctx.fillText('کنترلر لیتیومی', 0, -4);
+            
+            ctx.fillStyle = strokeColor; 
+            ctx.fillText(currentStage.toUpperCase() + ' Mode', 0, 10);
+            ctx.restore();
+        }
+
+        // --- مسیر و حرکت ذرات ---
+
+        function drawParticles(isMosfetOn, vinX, mosfetX, switchNodeX, inductorEndX, senseX, batX, topY, bottomY) {
+            const speed = 0.008;
+
+            particles.forEach(p => {
+                p.progress += speed;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = [];
+                let pColor = '#00f2fe';
+
+                if (flowMode === 'conv') {
+                    if (isMosfetOn) {
+                        pColor = '#00f2fe';
+                        path = [
+                            { x: vinX, y: bottomY }, { x: vinX, y: topY },
+                            { x: mosfetX, y: topY }, { x: switchNodeX, y: topY },
+                            { x: inductorEndX, y: topY }, { x: senseX, y: topY },
+                            { x: batX, y: topY }, { x: batX, y: bottomY },
+                            { x: vinX, y: bottomY }
+                        ];
+                    } else {
+                        pColor = '#ffb703';
+                        path = [
+                            { x: switchNodeX, y: bottomY }, { x: switchNodeX, y: topY },
+                            { x: inductorEndX, y: topY }, { x: senseX, y: topY },
+                            { x: batX, y: topY }, { x: batX, y: bottomY },
+                            { x: switchNodeX, y: bottomY }
+                        ];
+                    }
+                } else {
+                    if (isMosfetOn) {
+                        pColor = '#00f2fe';
+                        path = [
+                            { x: vinX, y: topY }, { x: vinX, y: bottomY },
+                            { x: batX, y: bottomY }, { x: batX, y: topY },
+                            { x: senseX, y: topY }, { x: inductorEndX, y: topY },
+                            { x: switchNodeX, y: topY }, { x: mosfetX, y: topY },
+                            { x: vinX, y: topY }
+                        ];
+                    } else {
+                        pColor = '#ffb703';
+                        path = [
+                            { x: switchNodeX, y: topY }, { x: switchNodeX, y: bottomY },
+                            { x: batX, y: bottomY }, { x: batX, y: topY },
+                            { x: senseX, y: topY }, { x: inductorEndX, y: topY },
+                            { x: switchNodeX, y: topY }
+                        ];
+                    }
+                }
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = pColor; ctx.shadowColor = pColor; ctx.shadowBlur = 8;
+                    ctx.fill(); ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0;
+            const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i + 1].x - points[i].x;
+                const dy = points[i + 1].y - points[i].y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                lengths.push(len);
+                totalLen += len;
+            }
+            let targetLen = t * totalLen;
+            let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segmentT = (targetLen - currentLen) / lengths[i];
+                    const p1 = points[i];
+                    const p2 = points[i + 1];
+                    return {
+                        x: p1.x + (p2.x - p1.x) * segmentT,
+                        y: p1.y + (p2.y - p1.y) * segmentT
+                    };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        // --- اسیلوسکوپ‌ها ---
+
+        function drawVScope() {
+            const w = canvasV.width;
+            const h = canvasV.height;
+            ctxV.clearRect(0, 0, w, h);
+
+            // شبکه‌بندی پس‌زمینه
+            ctxV.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctxV.lineWidth = 1;
+            ctxV.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxV.moveTo(x, 0); ctxV.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxV.moveTo(0, y); ctxV.lineTo(w, y); }
+            ctxV.stroke();
+
+            const minV = 2.5;
+            const maxV = 4.5;
+            const range = maxV - minV;
+            
+            // خط هدف ولتاژ باتری (4.2V)
+            const y4_2 = h - ((4.2 - minV) / range) * h;
+            ctxV.strokeStyle = 'rgba(157, 78, 221, 0.7)'; // بنفش
+            ctxV.setLineDash([4, 4]);
+            ctxV.beginPath(); ctxV.moveTo(0, y4_2); ctxV.lineTo(w, y4_2); ctxV.stroke();
+            
+            // خط حد Pre-charge (3.0V)
+            const y3_0 = h - ((3.0 - minV) / range) * h;
+            ctxV.strokeStyle = 'rgba(255, 71, 87, 0.4)'; // قرمز
+            ctxV.beginPath(); ctxV.moveTo(0, y3_0); ctxV.lineTo(w, y3_0); ctxV.stroke();
+            ctxV.setLineDash([]);
+
+            // نمودار ولتاژ
+            ctxV.strokeStyle = '#ffb703'; ctxV.lineWidth = 2.5;
+            ctxV.beginPath();
+            const step = w / maxHistory;
+            for (let i = 0; i < vHistory.length; i++) {
+                const x = i * step;
+                const y = h - ((vHistory[i] - minV) / range) * h;
+                if (i === 0) ctxV.moveTo(x, y);
+                else ctxV.lineTo(x, y);
+            }
+            ctxV.stroke();
+        }
+
+        function drawIScope() {
+            const w = canvasI.width;
+            const h = canvasI.height;
+            ctxI.clearRect(0, 0, w, h);
+
+            // شبکه‌بندی پس‌زمینه
+            ctxI.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctxI.lineWidth = 1;
+            ctxI.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxI.moveTo(x, 0); ctxI.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxI.moveTo(0, y); ctxI.lineTo(w, y); }
+            ctxI.stroke();
+
+            const maxI = 3.5;
+            
+            // خط جریان شارژ سریع هدف (CC)
+            const yTarget = h - (I_cc / maxI) * h;
+            ctxI.strokeStyle = 'rgba(0, 242, 254, 0.5)'; ctxI.setLineDash([4, 4]);
+            ctxI.beginPath(); ctxI.moveTo(0, yTarget); ctxI.lineTo(w, yTarget); ctxI.stroke();
+            ctxI.setLineDash([]);
+
+            // نمودار جریان
+            ctxI.strokeStyle = '#2ed573'; ctxI.lineWidth = 2.5;
+            ctxI.beginPath();
+            const step = w / maxHistory;
+            for (let i = 0; i < iHistory.length; i++) {
+                const x = i * step;
+                const y = h - (iHistory[i] / maxI) * h;
+                if (i === 0) ctxI.moveTo(x, y);
+                else ctxI.lineTo(x, y);
+            }
+            ctxI.stroke();
+        }
+
+        // پشتیبانی از RoundRect در مرورگرهای قدیمی‌تر
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r);
+                this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r);
+                this.arcTo(x, y, x + w, y, r);
+                this.closePath();
+                return this;
+            }
+        }
+
+        // شروع پویانمایی
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

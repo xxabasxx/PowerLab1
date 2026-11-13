@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constant Current (CC) Buck LED Driver Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-card h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .scope-pwm h3::before { background: var(--accent-cyan); }
+        .scope-out h3::before { background: var(--accent-green); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.on {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .status-dot.off {
+            background: var(--accent-gold);
+            box-shadow: 0 0 10px var(--accent-gold);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Constant Current (CC) Buck LED Driver</h1>
+        <p>PWM Dimming, Current Sensing Feedback, and Continuous Current Topology</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Control Panel -->
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group">
+                <label>Current Flow:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">Conventional (+ to -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">Electron (- to +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span>Input Voltage (V_in):</span> <span class="val" id="val-vin">24 V</span></label>
+                <input type="range" id="slider-vin" min="12" max="48" value="24" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span>Target LED Current (Dimming):</span> <span class="val" id="val-iset">700 mA</span></label>
+                <input type="range" id="slider-iset" min="100" max="1500" value="700" step="50">
+            </div>
+
+            <div class="control-group">
+                <label><span>Number of LEDs in Series:</span> <span class="val" id="val-leds">4</span></label>
+                <input type="range" id="slider-leds" min="1" max="10" value="4" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span>Switching Frequency (f_sw):</span> <span class="val" id="val-freq">50 kHz</span></label>
+                <input type="range" id="slider-freq" min="20" max="150" value="50" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span>Inductance (L):</span> <span class="val" id="val-ind">330 µH</span></label>
+                <input type="range" id="slider-ind" min="100" max="1000" value="330" step="10">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">State: MOSFET ON</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title">Total LED Voltage</div>
+                    <div class="val" id="m-vled">12.0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">Actual LED Current</div>
+                    <div class="val" id="m-iled" style="color:var(--accent-green)">700 mA</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">Dynamic Duty Cycle</div>
+                    <div class="val" id="m-duty">50 %</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">LED Power Output</div>
+                    <div class="val" id="m-pwr">8.4 W</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Simulation Area & Oscilloscopes -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-pwm">
+                    <h3>CC Controller PWM Output (Gate Drive)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopePWM"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-out">
+                    <h3>LED Current & Ripple (I_LED)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeOUT"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // State Variables
+        let flowMode = 'conv';
+        let Vin = 24;
+        let I_target = 0.700; // A
+        let numLEDs = 4;
+        let freqSw = 50; // kHz
+        let L_val = 330; // uH
+        const V_f_led = 3.0; // V per LED
+        const R_sense = 0.5; // Ohm
+        const C_val = 47; // uF
+
+        let I_led_sim = 0;
+        let dutyCycle = 0;
+
+        // Canvases
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasPWM = document.getElementById('scopePWM');
+        const ctxPWM = canvasPWM.getContext('2d');
+        const canvasOUT = document.getElementById('scopeOUT');
+        const ctxOUT = canvasOUT.getContext('2d');
+
+        // Event Listeners
+        document.getElementById('slider-vin').addEventListener('input', (e) => {
+            Vin = parseFloat(e.target.value);
+            document.getElementById('val-vin').innerText = Vin + ' V';
+        });
+        document.getElementById('slider-iset').addEventListener('input', (e) => {
+            I_target = parseFloat(e.target.value) / 1000;
+            document.getElementById('val-iset').innerText = e.target.value + ' mA';
+        });
+        document.getElementById('slider-leds').addEventListener('input', (e) => {
+            numLEDs = parseInt(e.target.value);
+            document.getElementById('val-leds').innerText = numLEDs;
+        });
+        document.getElementById('slider-freq').addEventListener('input', (e) => {
+            freqSw = parseFloat(e.target.value);
+            document.getElementById('val-freq').innerText = freqSw + ' kHz';
+        });
+        document.getElementById('slider-ind').addEventListener('input', (e) => {
+            L_val = parseFloat(e.target.value);
+            document.getElementById('val-ind').innerText = L_val + ' µH';
+        });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            const rectPWM = canvasPWM.parentElement.getBoundingClientRect();
+            canvasPWM.width = rectPWM.width;
+            canvasPWM.height = rectPWM.height;
+
+            const rectOUT = canvasOUT.parentElement.getBoundingClientRect();
+            canvasOUT.width = rectOUT.width;
+            canvasOUT.height = rectOUT.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        // Signal History
+        const pwmHistory = [];
+        const currentHistory = [];
+        const maxHistory = 300;
+
+        // Moving Particles
+        const particles = [];
+        for (let i = 0; i < 40; i++) {
+            particles.push({
+                progress: Math.random(),
+                branch: i % 4 === 0 ? 'cap' : 'led' // Most current goes through LEDs
+            });
+        }
+
+        let time = 0;
+
+        function animate() {
+            time += 0.015;
+
+            // Physics & Control Loop Math
+            const V_string = numLEDs * V_f_led;
+            const V_out_req = V_string + (I_target * R_sense);
+            
+            let dutyTarget = V_out_req / Vin;
+            
+            if (V_out_req >= Vin) {
+                dutyTarget = 0.99; // Max duty cycle if input voltage is too low
+            }
+
+            // Smooth duty cycle changes
+            dutyCycle += (dutyTarget - dutyCycle) * 0.1;
+            dutyCycle = Math.max(0, Math.min(0.99, dutyCycle));
+
+            // Timing
+            const period = 1 / (freqSw * 0.1); // Visual scaling
+            const phase = (time % period) / period;
+            const isMosfetOn = phase < dutyCycle;
+
+            // Dynamic Ripple Simulation
+            const rippleAmp = ((Vin - V_out_req) * dutyCycle) / ((L_val * 1e-6) * (freqSw * 1e3) * 100);
+            
+            // Current Tracking
+            let I_ideal = 0;
+            if (dutyCycle > 0.95 && V_out_req >= Vin) {
+                // Out of regulation
+                I_ideal = Math.max(0, (Vin - V_string) / R_sense);
+            } else {
+                I_ideal = I_target;
+            }
+
+            if (isMosfetOn) {
+                I_led_sim += (I_ideal + rippleAmp - I_led_sim) * 0.15;
+            } else {
+                I_led_sim += (I_ideal - rippleAmp - I_led_sim) * 0.15;
+            }
+
+            if (I_led_sim < 0) I_led_sim = 0;
+
+            const P_out = V_string * I_led_sim;
+
+            // Update UI
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+
+            if (isMosfetOn) {
+                dot.className = 'status-dot on';
+                txt.innerText = 'State: MOSFET ON (Charging)';
+            } else {
+                dot.className = 'status-dot off';
+                txt.innerText = 'State: MOSFET OFF (Freewheeling)';
+            }
+
+            document.getElementById('m-vled').innerText = V_string.toFixed(1) + ' V';
+            document.getElementById('m-iled').innerText = (I_led_sim * 1000).toFixed(0) + ' mA';
+            document.getElementById('m-duty').innerText = (dutyCycle * 100).toFixed(1) + ' %';
+            document.getElementById('m-pwr').innerText = P_out.toFixed(2) + ' W';
+
+            // Scopes History
+            pwmHistory.push(isMosfetOn ? 1 : 0);
+            currentHistory.push(I_led_sim);
+            if (pwmHistory.length > maxHistory) pwmHistory.shift();
+            if (currentHistory.length > maxHistory) currentHistory.shift();
+
+            // Render
+            drawCircuit(isMosfetOn, I_led_sim);
+            drawPWMScope();
+            drawOUTScope(I_ideal);
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawCircuit(isMosfetOn, iLed) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Exact grid coordinates for 90-degree orthogonal wiring
+            const vinX = w * 0.10;
+            const mosfetX = w * 0.28;
+            const switchNodeX = w * 0.45;
+            const inductorEndX = w * 0.65;
+            const capX = w * 0.75;
+            const ledX = w * 0.88;
+
+            const topY = h * 0.22;
+            const bottomY = h * 0.82;
+            const midY = (topY + bottomY) / 2;
+            const rsenseY = h * 0.68; // Sense resistor position
+            const ctlY = h * 0.88; // Controller box
+
+            // 1. Draw Base Wires (Dark Gray)
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#334155';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // Top Rail
+            ctx.beginPath();
+            ctx.moveTo(vinX, topY);
+            ctx.lineTo(ledX, topY);
+            ctx.stroke();
+
+            // Bottom Rail (GND)
+            ctx.beginPath();
+            ctx.moveTo(vinX, bottomY);
+            ctx.lineTo(ledX, bottomY);
+            ctx.stroke();
+
+            // Branches
+            ctx.beginPath();
+            ctx.moveTo(vinX, topY); ctx.lineTo(vinX, bottomY); // Source
+            ctx.moveTo(switchNodeX, topY); ctx.lineTo(switchNodeX, bottomY); // Diode
+            ctx.moveTo(capX, topY); ctx.lineTo(capX, bottomY); // Cap
+            ctx.moveTo(ledX, topY); ctx.lineTo(ledX, bottomY); // LED + Rsense
+            ctx.stroke();
+
+            // 2. Draw Active Wires (Path of Current)
+            ctx.lineWidth = 4;
+            const isConducting = iLed > 0.01;
+
+            if (isMosfetOn) {
+                // ON: Vin -> MOSFET -> Inductor -> LEDs -> GND
+                ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)';
+                ctx.beginPath();
+                ctx.moveTo(vinX, bottomY);
+                ctx.lineTo(vinX, topY);
+                ctx.lineTo(ledX, topY);
+                ctx.stroke();
+
+                if (isConducting) {
+                    ctx.beginPath();
+                    ctx.moveTo(ledX, topY);
+                    ctx.lineTo(ledX, bottomY);
+                    ctx.lineTo(vinX, bottomY);
+                    ctx.stroke();
+                }
+            } else {
+                // OFF: Diode -> Inductor -> LEDs -> GND -> Diode
+                ctx.strokeStyle = 'rgba(255, 183, 3, 0.6)';
+                ctx.beginPath();
+                ctx.moveTo(switchNodeX, bottomY);
+                ctx.lineTo(switchNodeX, topY);
+                ctx.lineTo(ledX, topY);
+                if (isConducting) {
+                    ctx.lineTo(ledX, bottomY);
+                    ctx.lineTo(switchNodeX, bottomY);
+                }
+                ctx.stroke();
+            }
+
+            // 3. Draw Feedback Control Path (Dashed)
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            // From Rsense top to Controller
+            ctx.moveTo(ledX, rsenseY - 15);
+            ctx.lineTo(mosfetX, rsenseY - 15);
+            ctx.lineTo(mosfetX, ctlY - 15);
+            // From Controller to MOSFET Gate
+            ctx.moveTo(mosfetX, topY + 25);
+            ctx.lineTo(mosfetX, ctlY - 45);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 4. Draw Components
+            drawDCSource(vinX, midY, Vin);
+            drawMOSFET(mosfetX, topY, isMosfetOn);
+            drawFreewheelingDiode(switchNodeX, midY, !isMosfetOn && isConducting);
+            drawInductor(switchNodeX, inductorEndX, topY, isMosfetOn);
+            drawCapacitor(capX, midY);
+            drawLEDString(ledX, topY + 20, rsenseY - 30, isConducting, iLed);
+            drawSenseResistor(ledX, rsenseY);
+            drawController(mosfetX, ctlY - 30);
+
+            // 5. Draw Moving Particles
+            if (isConducting) {
+                drawParticles(isMosfetOn, vinX, mosfetX, switchNodeX, inductorEndX, capX, ledX, topY, bottomY);
+            }
+        }
+
+        // Components
+        function drawDCSource(x, y, vVal) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y, 26, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font = 'bold 13px Segoe UI';
+            ctx.fillStyle = '#ff4757'; ctx.fillText('+', x - 4, y - 10);
+            ctx.fillStyle = '#2ed573'; ctx.fillText('-', x - 3, y + 18);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('Vin (' + vVal + 'V)', x - 45, y + 4);
+            ctx.restore();
+        }
+
+        function drawMOSFET(x, y, isOn) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.fillStyle = isOn ? 'rgba(0, 242, 254, 0.15)' : '#1e293b';
+            ctx.strokeStyle = isOn ? '#00f2fe' : '#64748b';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.rect(-20, -18, 40, 36);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font = 'bold 10px Segoe UI';
+            ctx.fillStyle = isOn ? '#00f2fe' : '#94a3b8';
+            ctx.fillText('D', -15, -6);
+            ctx.fillText('S', 10, -6);
+            ctx.fillText('G', -4, 12);
+
+            // Gate wire stub
+            ctx.strokeStyle = isOn ? '#00f2fe' : '#475569';
+            ctx.beginPath();
+            ctx.moveTo(0, 18);
+            ctx.lineTo(0, 25);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawFreewheelingDiode(x, y, isActive) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const size = 16;
+            ctx.fillStyle = isActive ? '#ffb703' : '#1e293b';
+            ctx.strokeStyle = isActive ? '#ffb703' : '#64748b';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(0, -size);
+            ctx.lineTo(-size, size);
+            ctx.lineTo(size, size);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(-size, -size);
+            ctx.lineTo(size, -size);
+            ctx.stroke();
+
+            ctx.font = '11px Segoe UI';
+            ctx.fillStyle = isActive ? '#ffb703' : '#64748b';
+            ctx.textAlign = 'center';
+            ctx.fillText('Diode', x > 400 ? 40 : -40, 4);
+
+            ctx.restore();
+        }
+
+        function drawInductor(x1, x2, y, isCharging) {
+            ctx.save();
+            const width = x2 - x1;
+            const coils = 5;
+            const coilWidth = width / coils;
+
+            if (isCharging) {
+                ctx.shadowColor = '#00f2fe';
+                ctx.shadowBlur = 15;
+            } else {
+                ctx.shadowColor = '#ffb703';
+                ctx.shadowBlur = 10;
+            }
+
+            ctx.strokeStyle = isCharging ? '#00f2fe' : '#ffb703';
+            ctx.lineWidth = 35;
+            ctx.lineCap = 'round';
+            ctx.globalAlpha = 0.15;
+            ctx.beginPath();
+            ctx.moveTo(x1 + 10, y);
+            ctx.lineTo(x2 - 10, y);
+            ctx.stroke();
+
+            ctx.globalAlpha = 1.0;
+            ctx.shadowBlur = 0;
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+            for (let i = 0; i < coils; i++) {
+                const cx = x1 + i * coilWidth + coilWidth / 2;
+                ctx.arc(cx, y, coilWidth / 2, Math.PI, 0, false);
+            }
+            ctx.stroke();
+
+            ctx.font = '12px Segoe UI';
+            ctx.fillStyle = '#cbd5e1';
+            ctx.textAlign = 'center';
+            ctx.fillText('Inductor (' + L_val + 'µH)', x1 + width / 2, y - 22);
+
+            ctx.restore();
+        }
+
+        function drawCapacitor(x, y) {
+            ctx.save();
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 4;
+
+            ctx.beginPath();
+            ctx.moveTo(x - 16, y - 10); ctx.lineTo(x + 16, y - 10);
+            ctx.moveTo(x - 16, y + 10); ctx.lineTo(x + 16, y + 10);
+            ctx.stroke();
+
+            ctx.font = '11px Segoe UI';
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.fillText('Filter Cap', x, y + 28);
+            ctx.restore();
+        }
+
+        function drawLEDString(x, yStart, yEnd, isConducting, iLed) {
+            ctx.save();
+            
+            // Draw LED representation
+            const ledHeight = (yEnd - yStart) / 2; // Show 2 graphical LEDs to represent the string
+            
+            for (let i = 0; i < 2; i++) {
+                const cy = yStart + (i * ledHeight) + (ledHeight / 2);
+                
+                ctx.translate(x, cy);
+                
+                const s = 12;
+                ctx.fillStyle = isConducting ? '#2ed573' : '#1e293b';
+                ctx.strokeStyle = isConducting ? '#2ed573' : '#64748b';
+                ctx.lineWidth = 2;
+
+                if (isConducting) {
+                    ctx.shadowColor = '#2ed573';
+                    ctx.shadowBlur = Math.min(25, iLed * 30);
+                }
+
+                // Triangle pointing down
+                ctx.beginPath();
+                ctx.moveTo(0, s);
+                ctx.lineTo(-s, -s);
+                ctx.lineTo(s, -s);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Bar
+                ctx.beginPath();
+                ctx.moveTo(-s, s);
+                ctx.lineTo(s, s);
+                ctx.stroke();
+
+                // Light arrows
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(s + 5, -5); ctx.lineTo(s + 15, -15);
+                ctx.moveTo(s + 15, -15); ctx.lineTo(s + 10, -15);
+                ctx.moveTo(s + 15, -15); ctx.lineTo(s + 15, -10);
+                
+                ctx.moveTo(s + 5, 5); ctx.lineTo(s + 15, -5);
+                ctx.moveTo(s + 15, -5); ctx.lineTo(s + 10, -5);
+                ctx.moveTo(s + 15, -5); ctx.lineTo(s + 15, 0);
+                ctx.stroke();
+
+                ctx.shadowBlur = 0;
+                ctx.translate(-x, -cy);
+            }
+
+            ctx.font = '12px Segoe UI';
+            ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'center';
+            ctx.fillText(numLEDs + 'x LEDs', x + 35, yStart + ledHeight);
+
+            ctx.restore();
+        }
+
+        function drawSenseResistor(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 2.5;
+            
+            ctx.beginPath();
+            ctx.moveTo(0, -15);
+            ctx.lineTo(6, -10); ctx.lineTo(-6, -5);
+            ctx.lineTo(6, 0); ctx.lineTo(-6, 5);
+            ctx.lineTo(6, 10); ctx.lineTo(0, 15);
+            ctx.stroke();
+
+            ctx.font = '11px Segoe UI';
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.fillText('R_sense', x > 500 ? -25 : 25, 4);
+
+            ctx.restore();
+        }
+
+        function drawController(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 2;
+
+            ctx.fillRect(-35, -15, 70, 30);
+            ctx.strokeRect(-35, -15, 70, 30);
+
+            ctx.font = '11px Segoe UI';
+            ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'center';
+            ctx.fillText('CC PWM Ctrl', 0, 4);
+
+            ctx.restore();
+        }
+
+        // Particle Animation (Orthogonal routing)
+        function drawParticles(isMosfetOn, vinX, mosfetX, switchNodeX, inductorEndX, capX, ledX, topY, bottomY) {
+            const speed = 0.008;
+
+            particles.forEach(p => {
+                p.progress += speed;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = [];
+                let pColor = '#00f2fe';
+
+                const targetX = p.branch === 'cap' ? capX : ledX;
+
+                if (flowMode === 'conv') {
+                    if (isMosfetOn) {
+                        pColor = '#00f2fe';
+                        path = [
+                            { x: vinX, y: bottomY },
+                            { x: vinX, y: topY },
+                            { x: mosfetX, y: topY },
+                            { x: switchNodeX, y: topY },
+                            { x: inductorEndX, y: topY },
+                            { x: targetX, y: topY },
+                            { x: targetX, y: bottomY },
+                            { x: vinX, y: bottomY }
+                        ];
+                    } else {
+                        pColor = '#ffb703';
+                        path = [
+                            { x: switchNodeX, y: bottomY },
+                            { x: switchNodeX, y: topY },
+                            { x: inductorEndX, y: topY },
+                            { x: targetX, y: topY },
+                            { x: targetX, y: bottomY },
+                            { x: switchNodeX, y: bottomY }
+                        ];
+                    }
+                } else {
+                    // Electron flow (reverse)
+                    if (isMosfetOn) {
+                        pColor = '#00f2fe';
+                        path = [
+                            { x: vinX, y: topY },
+                            { x: vinX, y: bottomY },
+                            { x: targetX, y: bottomY },
+                            { x: targetX, y: topY },
+                            { x: inductorEndX, y: topY },
+                            { x: switchNodeX, y: topY },
+                            { x: mosfetX, y: topY },
+                            { x: vinX, y: topY }
+                        ];
+                    } else {
+                        pColor = '#ffb703';
+                        path = [
+                            { x: switchNodeX, y: topY },
+                            { x: switchNodeX, y: bottomY },
+                            { x: targetX, y: bottomY },
+                            { x: targetX, y: topY },
+                            { x: inductorEndX, y: topY },
+                            { x: switchNodeX, y: topY }
+                        ];
+                    }
+                }
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    // Make LED particles green
+                    if (targetX === ledX && pt.y > topY && pt.y < bottomY) {
+                        pColor = '#2ed573';
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = pColor;
+                    ctx.shadowColor = pColor;
+                    ctx.shadowBlur = 8;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+
+            let totalLen = 0;
+            const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i + 1].x - points[i].x;
+                const dy = points[i + 1].y - points[i].y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                lengths.push(len);
+                totalLen += len;
+            }
+
+            let targetLen = t * totalLen;
+            let currentLen = 0;
+
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segmentT = (targetLen - currentLen) / lengths[i];
+                    const p1 = points[i];
+                    const p2 = points[i + 1];
+                    return {
+                        x: p1.x + (p2.x - p1.x) * segmentT,
+                        y: p1.y + (p2.y - p1.y) * segmentT
+                    };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        // Scopes
+        function drawPWMScope() {
+            const w = canvasPWM.width;
+            const h = canvasPWM.height;
+            ctxPWM.clearRect(0, 0, w, h);
+
+            ctxPWM.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxPWM.lineWidth = 1;
+            ctxPWM.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxPWM.moveTo(x, 0); ctxPWM.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxPWM.moveTo(0, y); ctxPWM.lineTo(w, y); }
+            ctxPWM.stroke();
+
+            ctxPWM.strokeStyle = '#00f2fe';
+            ctxPWM.lineWidth = 2;
+            ctxPWM.beginPath();
+
+            const step = w / maxHistory;
+            for (let i = 0; i < pwmHistory.length; i++) {
+                const x = i * step;
+                const y = pwmHistory[i] === 1 ? h * 0.25 : h * 0.75;
+                if (i === 0) ctxPWM.moveTo(x, y);
+                else {
+                    const prevY = pwmHistory[i - 1] === 1 ? h * 0.25 : h * 0.75;
+                    if (prevY !== y) ctxPWM.lineTo(x, prevY);
+                    ctxPWM.lineTo(x, y);
+                }
+            }
+            ctxPWM.stroke();
+        }
+
+        function drawOUTScope(iIdeal) {
+            const w = canvasOUT.width;
+            const h = canvasOUT.height;
+            ctxOUT.clearRect(0, 0, w, h);
+
+            ctxOUT.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxOUT.lineWidth = 1;
+            ctxOUT.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxOUT.moveTo(x, 0); ctxOUT.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxOUT.moveTo(0, y); ctxOUT.lineTo(w, y); }
+            ctxOUT.stroke();
+
+            // Scale to max 2A
+            const maxI = 2.0; 
+            const yIdeal = h * 0.85 - (iIdeal / maxI) * (h * 0.7);
+            
+            ctxOUT.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctxOUT.setLineDash([4, 4]);
+            ctxOUT.beginPath();
+            ctxOUT.moveTo(0, yIdeal);
+            ctxOUT.lineTo(w, yIdeal);
+            ctxOUT.stroke();
+            ctxOUT.setLineDash([]);
+
+            ctxOUT.strokeStyle = '#2ed573';
+            ctxOUT.lineWidth = 2.5;
+            ctxOUT.beginPath();
+
+            const step = w / maxHistory;
+            for (let i = 0; i < currentHistory.length; i++) {
+                const x = i * step;
+                const y = h * 0.85 - (currentHistory[i] / maxI) * (h * 0.7);
+                if (i === 0) ctxOUT.moveTo(x, y);
+                else ctxOUT.lineTo(x, y);
+            }
+            ctxOUT.stroke();
+        }
+
+        // Start Animation
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Cycloconverter Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --accent-purple: #a855f7;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1350px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 440px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-wave h3::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-cyan); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.pgroup { background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
+        .status-dot.ngroup { background: var(--accent-gold); box-shadow: 0 0 10px var(--accent-gold); }
+        .status-dot.off { background: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="txt-title">Cycloconverter Simulator</h1>
+        <p id="txt-subtitle">Direct AC to AC step-down frequency conversion using Positive (P) and Negative (N) thyristor groups</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Settings Panel -->
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group" style="display: none;">
+                <label id="lbl-lang">Language / زبان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی (FA)</button>
+                    <button class="toggle-btn active" id="btn-lang-en" onclick="setLanguage('en')">English (EN)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-flow">Current Flow:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">Conventional (+ to -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">Electron (- to +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-vac">Grid Input Voltage (V_in):</span> <span class="val" id="val-vac">220 V</span></label>
+                <input type="range" id="slider-vac" min="50" max="380" value="220" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-freq-in">Input Frequency (f_in):</span> <span class="val" id="val-freq-in">50 Hz</span></label>
+                <input type="range" id="slider-freq-in" min="50" max="60" value="50" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-divider">Frequency Divider (N):</span> <span class="val" id="val-divider">3</span></label>
+                <input type="range" id="slider-divider" min="2" max="6" value="3" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-alpha">Firing Angle (α):</span> <span class="val" id="val-alpha">0°</span></label>
+                <input type="range" id="slider-alpha" min="0" max="150" value="0" step="5">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-res">Load Resistance (R_load):</span> <span class="val" id="val-res">50 Ω</span></label>
+                <input type="range" id="slider-res" min="10" max="200" value="50" step="10">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">State: P-Group Converter (Positive Half)</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title" id="lbl-fout">Output Frequency (f_out)</div>
+                    <div class="val" style="color:var(--accent-purple)" id="m-fout">16.67 Hz</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-vrms">Output RMS Voltage (V_out)</div>
+                    <div class="val" id="m-vrms">220.0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-irms">RMS Current (I_rms)</div>
+                    <div class="val" id="m-irms">4.40 A</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-pwr">Output Power (P_out)</div>
+                    <div class="val" id="m-pwr">968 W</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Simulation Area -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-wave">
+                    <h3 id="lbl-scope-wave">High Freq (Input) and Low Freq Chopped (Output) Waveforms</h3>
+                    <div style="height: 160px; position: relative;">
+                        <canvas id="scopeWave"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const i18n = {
+            fa: {
+                title: "شبیه‌ساز سیکلوکانورتر (Cycloconverter)",
+                subtitle: "تبدیل مستقیم فرکانس AC به فرکانس پایین‌تر با استفاده از دو گروه مبدل تریستوری (P و N)",
+                langLabel: "زبان / Language:",
+                flowLabel: "نوع جریان:",
+                convFlow: "قراردادی (+ به -)",
+                elecFlow: "الکترونی (- به +)",
+                vacLabel: "ولتاژ ورودی شبکه (V_in):",
+                freqInLabel: "فرکانس ورودی (f_in):",
+                dividerLabel: "مقسوم‌علیه فرکانس (N):",
+                alphaLabel: "زاویه آتش (α):",
+                resLabel: "مقاومت بار (R_load):",
+                stateP: "حالت: مبدل گروه P (نیم‌سیکل مثبت)",
+                stateN: "حالت: مبدل گروه N (نیم‌سیکل منفی)",
+                stateOff: "حالت: خاموش (برش فاز)",
+                foutLabel: "فرکانس خروجی (f_out)",
+                vrmsLabel: "ولتاژ مؤثر خروجی (V_out)",
+                irmsLabel: "جریان مؤثر (I_rms)",
+                pwrLabel: "توان خروجی (P_out)",
+                scopeWave: "شکل موج فرکانس بالا (ورودی) و فرکانس پایین (خروجی بار)",
+                acName: "منبع AC",
+                pGroupName: "گروه مثبت (P)",
+                nGroupName: "گروه منفی (N)",
+                loadName: "بار R"
+            },
+            en: {
+                title: "Cycloconverter Simulator",
+                subtitle: "Direct AC to AC step-down frequency conversion using Positive (P) and Negative (N) thyristor groups",
+                langLabel: "Language / زبان:",
+                flowLabel: "Current Flow:",
+                convFlow: "Conventional (+ to -)",
+                elecFlow: "Electron (- to +)",
+                vacLabel: "Grid Input Voltage (V_in):",
+                freqInLabel: "Input Frequency (f_in):",
+                dividerLabel: "Frequency Divider (N):",
+                alphaLabel: "Firing Angle (α):",
+                resLabel: "Load Resistance (R_load):",
+                stateP: "State: P-Group Converter (Positive Half)",
+                stateN: "State: N-Group Converter (Negative Half)",
+                stateOff: "State: OFF (Phase Chopping)",
+                foutLabel: "Output Frequency (f_out)",
+                vrmsLabel: "Output RMS Voltage (V_out)",
+                irmsLabel: "RMS Current (I_rms)",
+                pwrLabel: "Output Power (P_out)",
+                scopeWave: "High Freq (Input) and Low Freq Chopped (Output) Waveforms",
+                acName: "AC Source",
+                pGroupName: "Positive Group (P)",
+                nGroupName: "Negative Group (N)",
+                loadName: "Load R"
+            }
+        };
+
+        let currentLang = 'en';
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+            document.getElementById('btn-lang-fa').classList.toggle('active', lang === 'fa');
+            document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+            
+            const t = i18n[lang];
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('lbl-lang').innerText = t.langLabel;
+            document.getElementById('lbl-flow').innerText = t.flowLabel;
+            document.getElementById('btn-conv').innerText = t.convFlow;
+            document.getElementById('btn-elec').innerText = t.elecFlow;
+            document.getElementById('lbl-vac').innerText = t.vacLabel;
+            document.getElementById('lbl-freq-in').innerText = t.freqInLabel;
+            document.getElementById('lbl-divider').innerText = t.dividerLabel;
+            document.getElementById('lbl-alpha').innerText = t.alphaLabel;
+            document.getElementById('lbl-res').innerText = t.resLabel;
+            document.getElementById('lbl-fout').innerText = t.foutLabel;
+            document.getElementById('lbl-vrms').innerText = t.vrmsLabel;
+            document.getElementById('lbl-irms').innerText = t.irmsLabel;
+            document.getElementById('lbl-pwr').innerText = t.pwrLabel;
+            document.getElementById('lbl-scope-wave').innerText = t.scopeWave;
+        }
+
+        let flowMode = 'conv';
+        let V_in_rms = 220;
+        let f_in = 50;
+        let dividerN = 3;
+        let alpha_deg = 0;
+        let R_load = 50;
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasWave = document.getElementById('scopeWave');
+        const ctxWave = canvasWave.getContext('2d');
+
+        document.getElementById('slider-vac').addEventListener('input', e => { V_in_rms = parseFloat(e.target.value); document.getElementById('val-vac').innerText = V_in_rms + ' V'; });
+        document.getElementById('slider-freq-in').addEventListener('input', e => { f_in = parseFloat(e.target.value); document.getElementById('val-freq-in').innerText = f_in + ' Hz'; });
+        document.getElementById('slider-divider').addEventListener('input', e => { dividerN = parseInt(e.target.value); document.getElementById('val-divider').innerText = dividerN; });
+        document.getElementById('slider-alpha').addEventListener('input', e => { alpha_deg = parseFloat(e.target.value); document.getElementById('val-alpha').innerText = alpha_deg + '°'; });
+        document.getElementById('slider-res').addEventListener('input', e => { R_load = parseFloat(e.target.value); document.getElementById('val-res').innerText = R_load + ' Ω'; });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height;
+            const rw = canvasWave.parentElement.getBoundingClientRect(); canvasWave.width = rw.width; canvasWave.height = rw.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        const vGridHistory = [];
+        const vLoadHistory = [];
+        const maxHistory = 500; // Longer history to see the full slow cycle
+
+        const particles = [];
+        for (let i = 0; i < 45; i++) particles.push({ progress: Math.random() });
+
+        let time = 0;
+
+        function animate() {
+            time += 0.0035; // Speed multiplier
+            
+            const w_in = 2 * Math.PI * f_in * 0.05; // Visual frequency
+            const theta_in = (time * w_in);
+            
+            const V_peak = V_in_rms * Math.SQRT2;
+            const v_inst_grid = V_peak * Math.sin(theta_in);
+            
+            // Cycloconverter Logic
+            // 1 output cycle = N input cycles = 2N input half-cycles
+            const total_half_cycles = Math.floor(theta_in / Math.PI);
+            
+            // Group active based on divider N
+            // P-Group active for N half cycles, N-Group active for N half cycles
+            const cycle_phase = Math.floor(total_half_cycles / dividerN) % 2;
+            const is_P_group = (cycle_phase === 0);
+            
+            const local_theta = theta_in % Math.PI; // 0 to PI for each half cycle
+            const alpha_rad = alpha_deg * Math.PI / 180;
+            
+            let v_inst_load = 0;
+            let isConducting = false;
+
+            if (local_theta >= alpha_rad) {
+                isConducting = true;
+                // P-Group acts as a positive rectifier, N-group as a negative rectifier
+                if (is_P_group) {
+                    v_inst_load = Math.abs(V_peak * Math.sin(local_theta));
+                } else {
+                    v_inst_load = -Math.abs(V_peak * Math.sin(local_theta));
+                }
+            }
+
+            // Calculations
+            const f_out = f_in / dividerN;
+            // RMS calculation (same as phase controlled full wave rectifier)
+            const term = 1 - (alpha_rad / Math.PI) + (Math.sin(2 * alpha_rad) / (2 * Math.PI));
+            const V_out_rms = V_in_rms * Math.sqrt(Math.max(0, term));
+            const I_out_rms = V_out_rms / R_load;
+            const P_out = V_out_rms * I_out_rms;
+
+            // UI Updates
+            const t = i18n[currentLang];
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+
+            if (!isConducting) {
+                dot.className = 'status-dot off';
+                txt.innerText = t.stateOff;
+            } else if (is_P_group) {
+                dot.className = 'status-dot pgroup';
+                txt.innerText = t.stateP;
+            } else {
+                dot.className = 'status-dot ngroup';
+                txt.innerText = t.stateN;
+            }
+
+            document.getElementById('m-fout').innerText = f_out.toFixed(2) + ' Hz';
+            document.getElementById('m-vrms').innerText = V_out_rms.toFixed(1) + ' V';
+            document.getElementById('m-irms').innerText = I_out_rms.toFixed(2) + ' A';
+            document.getElementById('m-pwr').innerText = P_out.toFixed(0) + ' W';
+
+            // Scopes
+            vGridHistory.push(v_inst_grid / V_peak);
+            vLoadHistory.push(v_inst_load / V_peak);
+            
+            if (vGridHistory.length > maxHistory) vGridHistory.shift();
+            if (vLoadHistory.length > maxHistory) vLoadHistory.shift();
+
+            drawCircuit(isConducting, is_P_group, P_out);
+            drawWaveScope(dividerN);
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawCircuit(isConducting, is_P_group, pOut) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+
+            const acX = w * 0.12;
+            const splitX = w * 0.25;
+            const pGrpX = w * 0.50;
+            const nGrpX = w * 0.50;
+            const joinX = w * 0.75;
+            const loadX = w * 0.88;
+
+            const topY = h * 0.25;
+            const botY = h * 0.75;
+            const midY = h * 0.50;
+
+            // ---- Base wiring ----
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#334155';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // AC to split
+            ctx.beginPath(); ctx.moveTo(acX, topY); ctx.lineTo(splitX, topY); ctx.stroke();
+            // Split up and down to groups
+            ctx.beginPath(); ctx.moveTo(splitX, topY); ctx.lineTo(splitX, botY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(splitX, topY); ctx.lineTo(pGrpX, topY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(splitX, botY); ctx.lineTo(nGrpX, botY); ctx.stroke();
+
+            // Groups to join
+            ctx.beginPath(); ctx.moveTo(pGrpX, topY); ctx.lineTo(joinX, topY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(nGrpX, botY); ctx.lineTo(joinX, botY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(joinX, topY); ctx.lineTo(joinX, botY); ctx.stroke();
+
+            // Join to Load to return
+            ctx.beginPath(); ctx.moveTo(joinX, midY); ctx.lineTo(loadX, midY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(loadX, midY); ctx.lineTo(loadX, botY + 30); ctx.lineTo(acX, botY + 30); ctx.lineTo(acX, midY); ctx.stroke();
+            
+            // AC vertical
+            ctx.beginPath(); ctx.moveTo(acX, topY); ctx.lineTo(acX, midY); ctx.stroke();
+
+
+            // ---- Highlight Active Path ----
+            if (isConducting) {
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = is_P_group ? 'rgba(0, 242, 254, 0.6)' : 'rgba(255, 183, 3, 0.6)';
+                ctx.beginPath();
+                
+                if (is_P_group) {
+                    // P-Group path: AC -> Top -> P-Grp -> Mid -> Load -> Return
+                    ctx.moveTo(acX, midY); ctx.lineTo(acX, topY); ctx.lineTo(pGrpX, topY);
+                    ctx.lineTo(joinX, topY); ctx.lineTo(joinX, midY); ctx.lineTo(loadX, midY);
+                    ctx.lineTo(loadX, botY + 30); ctx.lineTo(acX, botY + 30); ctx.lineTo(acX, midY);
+                } else {
+                    // N-Group path generates negative voltage. Current flows reverse through load!
+                    // AC -> Return wire -> Load (bottom up) -> Mid -> N-Grp -> Bot -> Split -> AC top
+                    ctx.moveTo(acX, midY); ctx.lineTo(acX, botY + 30); ctx.lineTo(loadX, botY + 30);
+                    ctx.lineTo(loadX, midY); ctx.lineTo(joinX, midY); ctx.lineTo(joinX, botY);
+                    ctx.lineTo(nGrpX, botY); ctx.lineTo(splitX, botY); ctx.lineTo(splitX, topY); ctx.lineTo(acX, topY);
+                }
+                ctx.stroke();
+            }
+
+            // ---- Components ----
+            drawACSource(acX, midY, isConducting, is_P_group);
+            drawConverterGroup(pGrpX, topY, true, isConducting && is_P_group);
+            drawConverterGroup(nGrpX, botY, false, isConducting && !is_P_group);
+            drawLoad(loadX, (midY + botY + 30)/2, pOut);
+
+            // ---- Particles ----
+            if (isConducting) {
+                drawParticles(is_P_group, acX, splitX, pGrpX, joinX, loadX, topY, botY, midY);
+            }
+        }
+
+        function drawACSource(x, y, isConducting, is_P) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = isConducting ? (is_P ? '#00f2fe' : '#ffb703') : '#4facfe';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y, 26, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.strokeStyle = isConducting ? (is_P ? '#00f2fe' : '#ffb703') : '#64748b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x - 12, y);
+            ctx.bezierCurveTo(x - 6, y - 12, x, y + 12, x + 12, y);
+            ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].acName, x - 45, y + 4);
+            ctx.restore();
+        }
+
+        function drawConverterGroup(x, y, isPositive, isActive) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const color = isPositive ? '#00f2fe' : '#ffb703';
+            
+            if (isActive) {
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 15;
+            }
+
+            ctx.fillStyle = isActive ? (isPositive ? 'rgba(0, 242, 254, 0.15)' : 'rgba(255, 183, 3, 0.15)') : '#1e293b';
+            ctx.strokeStyle = isActive ? color : '#475569';
+            ctx.lineWidth = 2;
+
+            const bw = 50, bh = 40;
+            ctx.fillRect(-bw/2, -bh/2, bw, bh);
+            ctx.strokeRect(-bw/2, -bh/2, bw, bh);
+            
+            ctx.shadowBlur = 0;
+
+            // Inner Bridge Symbol
+            ctx.beginPath();
+            ctx.moveTo(-15, 0); ctx.lineTo(0, -10); ctx.lineTo(15, 0); ctx.lineTo(0, 10); ctx.closePath();
+            ctx.stroke();
+
+            // Arrow direction
+            ctx.fillStyle = isActive ? color : '#64748b';
+            ctx.beginPath();
+            if (isPositive) {
+                // Pointing Right
+                ctx.moveTo(-4, -5); ctx.lineTo(6, 0); ctx.lineTo(-4, 5);
+            } else {
+                // Pointing Left
+                ctx.moveTo(4, -5); ctx.lineTo(-6, 0); ctx.lineTo(4, 5);
+            }
+            ctx.fill();
+
+            ctx.font = 'bold 11px Segoe UI';
+            ctx.fillStyle = isActive ? color : '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.fillText(isPositive ? i18n[currentLang].pGroupName : i18n[currentLang].nGroupName, 0, bh/2 + 16);
+
+            ctx.restore();
+        }
+
+        function drawLoad(x, cy, pOut) {
+            ctx.save();
+            ctx.translate(x, cy);
+
+            const w = 24;
+            const h = 44;
+            const maxP = 1500; 
+            const ratio = Math.min(1, Math.max(0, pOut / maxP));
+
+            ctx.fillStyle = '#1e293b';
+            const r = Math.round(100 + ratio * 155);
+            const g = Math.round(116 - ratio * 40);
+            const b = Math.round(139 - ratio * 139);
+            const glowColor = `rgb(${r},${g},${b})`;
+
+            ctx.strokeStyle = ratio > 0.05 ? glowColor : '#64748b';
+            ctx.lineWidth = 2.5;
+
+            if (ratio > 0.05) {
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = ratio * 25;
+            }
+
+            ctx.fillRect(-w/2, -h/2, w, h);
+            ctx.strokeRect(-w/2, -h/2, w, h);
+            ctx.shadowBlur = 0;
+
+            ctx.font = '12px Segoe UI';
+            ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].loadName, 0, h/2 + 18);
+            ctx.fillText(R_load + ' Ω', 0, h/2 + 32);
+
+            ctx.restore();
+        }
+
+        function drawParticles(is_P_group, acX, splitX, grpX, joinX, loadX, topY, botY, midY) {
+            let path = [];
+            let color = is_P_group ? '#00f2fe' : '#ffb703';
+
+            let clockwise = is_P_group;
+            if (flowMode === 'elec') clockwise = !clockwise;
+
+            if (is_P_group) {
+                if(clockwise) {
+                    path = [
+                        {x: acX, y: midY}, {x: acX, y: topY}, {x: splitX, y: topY}, {x: grpX, y: topY},
+                        {x: joinX, y: topY}, {x: joinX, y: midY}, {x: loadX, y: midY}, 
+                        {x: loadX, y: botY + 30}, {x: acX, y: botY + 30}, {x: acX, y: midY}
+                    ];
+                } else {
+                    path = [
+                        {x: acX, y: midY}, {x: acX, y: botY + 30}, {x: loadX, y: botY + 30},
+                        {x: loadX, y: midY}, {x: joinX, y: midY}, {x: joinX, y: topY},
+                        {x: grpX, y: topY}, {x: splitX, y: topY}, {x: acX, y: topY}, {x: acX, y: midY}
+                    ];
+                }
+            } else {
+                if(clockwise) { // Remember N-group pushes negative current
+                    path = [
+                        {x: acX, y: midY}, {x: acX, y: botY + 30}, {x: loadX, y: botY + 30},
+                        {x: loadX, y: midY}, {x: joinX, y: midY}, {x: joinX, y: botY},
+                        {x: grpX, y: botY}, {x: splitX, y: botY}, {x: splitX, y: topY}, {x: acX, y: topY}
+                    ];
+                } else {
+                    path = [
+                        {x: acX, y: topY}, {x: splitX, y: topY}, {x: splitX, y: botY}, {x: grpX, y: botY},
+                        {x: joinX, y: botY}, {x: joinX, y: midY}, {x: loadX, y: midY},
+                        {x: loadX, y: botY + 30}, {x: acX, y: botY + 30}, {x: acX, y: midY}
+                    ];
+                }
+            }
+
+            particles.forEach(p => {
+                p.progress += 0.007;
+                if (p.progress >= 1) p.progress = 0;
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 8;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0;
+            const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i + 1].x - points[i].x;
+                const dy = points[i + 1].y - points[i].y;
+                lengths.push(Math.sqrt(dx * dx + dy * dy));
+                totalLen += lengths[i];
+            }
+            let targetLen = t * totalLen;
+            let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segT = (targetLen - currentLen) / lengths[i];
+                    return {
+                        x: points[i].x + (points[i + 1].x - points[i].x) * segT,
+                        y: points[i].y + (points[i + 1].y - points[i].y) * segT
+                    };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        function drawWaveScope(divider) {
+            const w = canvasWave.width;
+            const h = canvasWave.height;
+            ctxWave.clearRect(0, 0, w, h);
+
+            // Grid
+            ctxWave.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxWave.lineWidth = 1;
+            ctxWave.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxWave.moveTo(x, 0); ctxWave.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxWave.moveTo(0, y); ctxWave.lineTo(w, y); }
+            ctxWave.stroke();
+
+            // Zero line
+            ctxWave.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctxWave.setLineDash([4, 4]);
+            ctxWave.beginPath(); ctxWave.moveTo(0, h / 2); ctxWave.lineTo(w, h / 2); ctxWave.stroke();
+            ctxWave.setLineDash([]);
+
+            const step = w / maxHistory;
+
+            // Grid Voltage (Fast Sine)
+            ctxWave.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+            ctxWave.lineWidth = 1.5;
+            ctxWave.beginPath();
+            for (let i = 0; i < vGridHistory.length; i++) {
+                const x = i * step;
+                const y = h / 2 - vGridHistory[i] * (h * 0.4);
+                if (i === 0) ctxWave.moveTo(x, y);
+                else ctxWave.lineTo(x, y);
+            }
+            ctxWave.stroke();
+
+            // Cycloconverter Output Voltage (Envelope)
+            ctxWave.lineWidth = 2.5;
+            
+            // Draw output with changing colors based on polarity
+            for (let i = 1; i < vLoadHistory.length; i++) {
+                const x0 = (i - 1) * step;
+                const y0 = h / 2 - vLoadHistory[i - 1] * (h * 0.4);
+                const x1 = i * step;
+                const y1 = h / 2 - vLoadHistory[i] * (h * 0.4);
+                
+                ctxWave.beginPath();
+                ctxWave.moveTo(x0, y0);
+                
+                if (Math.abs(y1 - y0) > 20) {
+                    ctxWave.lineTo(x1, y0); // Vertical drop
+                }
+                ctxWave.lineTo(x1, y1);
+                
+                if (vLoadHistory[i] > 0.05) ctxWave.strokeStyle = '#00f2fe';
+                else if (vLoadHistory[i] < -0.05) ctxWave.strokeStyle = '#ffb703';
+                else ctxWave.strokeStyle = '#e2e8f0'; // zero
+
+                ctxWave.stroke();
+            }
+            
+            // Output Ideal Envelope reference (Sine of f_out)
+            ctxWave.strokeStyle = 'rgba(168, 85, 247, 0.4)'; // Purple ref
+            ctxWave.setLineDash([3, 3]);
+            ctxWave.lineWidth = 2;
+            ctxWave.beginPath();
+            
+            const currTime = time;
+            for (let i = 0; i < maxHistory; i++) {
+                const historicalTime = currTime - ((maxHistory - i) * 0.0035);
+                const historicalThetaIn = historicalTime * (2 * Math.PI * f_in * 0.05);
+                const historicalThetaOut = historicalThetaIn / dividerN;
+                const x = i * step;
+                const y = h / 2 - Math.sin(historicalThetaOut) * (h * 0.4);
+                if (i === 0) ctxWave.moveTo(x, y);
+                else ctxWave.lineTo(x, y);
+            }
+            ctxWave.stroke();
+            ctxWave.setLineDash([]);
+
+
+            ctxWave.font = '10px Segoe UI';
+            ctxWave.fillStyle = '#00f2fe';
+            ctxWave.textAlign = 'left';
+            ctxWave.fillText('── V_out (Chopped)', 6, 14);
+            ctxWave.fillStyle = '#a855f7';
+            ctxWave.fillText('--- V_out (Fundamental Envelope)', 6, 28);
+        }
+
+        setLanguage(currentLang);
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

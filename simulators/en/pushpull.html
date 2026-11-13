@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push-Pull Converter Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;    /* Q1 Color */
+            --accent-pink: #f43f5e;    /* Q2 Color */
+            --accent-gold: #ffb703;    /* Freewheel / Output */
+            --accent-green: #2ed573;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1350px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-card h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .scope-pwm h3::before { background: var(--accent-cyan); }
+        .scope-out h3::before { background: var(--accent-gold); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #64748b;
+            transition: all 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Push-Pull Converter Simulator</h1>
+        <p>Analysis of alternating switching phases, center-tapped transformer & output filter</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Control Panel -->
+        <aside class="glass-panel controls-sidebar">
+            
+            <div class="control-group">
+                <label>Current Flow:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">Conventional (+ to -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">Electron (- to +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span>Input Voltage (V_in):</span> <span class="val" id="val-vin">24 V</span></label>
+                <input type="range" id="slider-vin" min="5" max="48" value="24" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span>Duty Cycle per Switch (D):</span> <span class="val" id="val-duty">35 %</span></label>
+                <input type="range" id="slider-duty" min="10" max="45" value="35" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span>Switching Freq (f_sw):</span> <span class="val" id="val-freq">50 kHz</span></label>
+                <input type="range" id="slider-freq" min="10" max="100" value="50" step="5">
+            </div>
+            
+            <div class="control-group">
+                <label><span>Turns Ratio (Np/Ns):</span> <span class="val" id="val-turns">1.0</span></label>
+                <input type="range" id="slider-turns" min="0.1" max="5.0" value="1.0" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label><span>Inductance (L):</span> <span class="val" id="val-ind">100 µH</span></label>
+                <input type="range" id="slider-ind" min="50" max="1000" value="100" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span>Output Capacitance (C):</span> <span class="val" id="val-cap">470 µF</span></label>
+                <input type="range" id="slider-cap" min="10" max="2000" value="470" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span>Load Resistance (R_load):</span> <span class="val" id="val-res">10 Ω</span></label>
+                <input type="range" id="slider-res" min="2" max="50" value="10" step="1">
+            </div>
+
+            <div class="state-indicator" id="state-box">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">State: Q1 ON (Phase 1)</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title">Output Voltage (V_out)</div>
+                    <div class="val" id="m-vout">16.8 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">Switch Voltage Stress</div>
+                    <div class="val" id="m-stress" style="color:var(--accent-pink)">48.0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">Output Current (I_out)</div>
+                    <div class="val" id="m-iout">1.68 A</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">Output Power (P_out)</div>
+                    <div class="val" id="m-pwr" style="color:var(--accent-green)">28.2 W</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Simulation and Scopes Area -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-pwm">
+                    <h3>Gate Signals Q1 (Cyan) & Q2 (Pink)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopePWM"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-out">
+                    <h3>Output Voltage & Ripple (V_out)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeOUT"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Physical variables of Push-Pull Converter
+        let flowMode = 'conv';
+        let Vin = 24;
+        let dutyCycle = 0.35; // max 0.45 per switch
+        let freqSw = 50; // kHz
+        let turnsRatio = 1.0; // Np / Ns
+        let L_val = 100; // uH
+        let C_val = 470; // uF
+        let R_load = 10; // Ohm
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasPWM = document.getElementById('scopePWM');
+        const ctxPWM = canvasPWM.getContext('2d');
+        const canvasOUT = document.getElementById('scopeOUT');
+        const ctxOUT = canvasOUT.getContext('2d');
+
+        // Slider events
+        document.getElementById('slider-vin').addEventListener('input', (e) => {
+            Vin = parseFloat(e.target.value);
+            document.getElementById('val-vin').innerText = Vin + ' V';
+        });
+        document.getElementById('slider-duty').addEventListener('input', (e) => {
+            dutyCycle = parseFloat(e.target.value) / 100;
+            document.getElementById('val-duty').innerText = e.target.value + ' %';
+        });
+        document.getElementById('slider-freq').addEventListener('input', (e) => {
+            freqSw = parseFloat(e.target.value);
+            document.getElementById('val-freq').innerText = freqSw + ' kHz';
+        });
+        document.getElementById('slider-turns').addEventListener('input', (e) => {
+            turnsRatio = parseFloat(e.target.value);
+            document.getElementById('val-turns').innerText = turnsRatio.toFixed(1);
+        });
+        document.getElementById('slider-ind').addEventListener('input', (e) => {
+            L_val = parseFloat(e.target.value);
+            document.getElementById('val-ind').innerText = L_val + ' µH';
+        });
+        document.getElementById('slider-cap').addEventListener('input', (e) => {
+            C_val = parseFloat(e.target.value);
+            document.getElementById('val-cap').innerText = C_val + ' µF';
+        });
+        document.getElementById('slider-res').addEventListener('input', (e) => {
+            R_load = parseFloat(e.target.value);
+            document.getElementById('val-res').innerText = R_load + ' Ω';
+        });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        let C = {};
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            const rectPWM = canvasPWM.parentElement.getBoundingClientRect();
+            canvasPWM.width = rectPWM.width;
+            canvasPWM.height = rectPWM.height;
+
+            const rectOUT = canvasOUT.parentElement.getBoundingClientRect();
+            canvasOUT.width = rectOUT.width;
+            canvasOUT.height = rectOUT.height;
+
+            const w = canvas.width;
+            const h = canvas.height;
+            // Coordinate System
+            C = {
+                yTop: h * 0.22,
+                yCT_Pri: h * 0.50,
+                yCT_Sec: h * 0.50,
+                yBot: h * 0.78,
+                yMid: h * 0.50,
+                
+                xVin: w * 0.08,
+                xQ1: w * 0.22,
+                xQ2: w * 0.22,
+                xPri: w * 0.35,
+                xSec: w * 0.45,
+                xD1: w * 0.56,
+                xD2: w * 0.56,
+                xL1: w * 0.61,
+                xL2: w * 0.72,
+                xC: w * 0.82,
+                xLoad: w * 0.92
+            };
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        const pwmHistory1 = [];
+        const pwmHistory2 = [];
+        const voutHistory = [];
+        const maxHistory = 300;
+
+        const particles = [];
+        for (let i = 0; i < 60; i++) {
+            particles.push({
+                progress: Math.random(),
+                pathId: i % 4
+            });
+        }
+
+        let time = 0;
+        let V_out_sim = 0;
+
+        function animate() {
+            time += 0.015;
+
+            const period = 1 / (freqSw * 0.08);
+            const phase = (time % period) / period;
+
+            // Push-Pull phase detection
+            const isQ1 = phase < dutyCycle;
+            const isQ2 = phase >= 0.5 && phase < (0.5 + dutyCycle);
+            const isFreewheel = !isQ1 && !isQ2;
+
+            // Physical equations
+            const V_out_ideal = 2 * dutyCycle * (Vin / turnsRatio);
+            
+            const delta_IL = (((Vin / turnsRatio) - V_out_ideal) * dutyCycle) / (freqSw * 1e3 * L_val * 1e-6);
+            const visualRippleScale = 800; 
+            const rippleAmp = (delta_IL / (8 * (2 * freqSw * 1e3) * C_val * 1e-6)) * visualRippleScale; 
+            
+            if (isQ1 || isQ2) {
+                V_out_sim += (V_out_ideal + rippleAmp - V_out_sim) * 0.1;
+            } else {
+                V_out_sim += (V_out_ideal - rippleAmp - V_out_sim) * 0.1;
+            }
+
+            const I_out = V_out_sim / R_load;
+            const P_out = V_out_sim * I_out;
+            const V_stress = 2 * Vin;
+
+            // UI Update
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const box = document.getElementById('state-box');
+
+            if (isQ1) {
+                dot.style.background = 'var(--accent-cyan)';
+                dot.style.boxShadow = '0 0 10px var(--accent-cyan)';
+                box.style.borderColor = 'var(--accent-cyan)';
+                txt.innerText = "State: Q1 ON (Phase 1)";
+            } else if (isQ2) {
+                dot.style.background = 'var(--accent-pink)';
+                dot.style.boxShadow = '0 0 10px var(--accent-pink)';
+                box.style.borderColor = 'var(--accent-pink)';
+                txt.innerText = "State: Q2 ON (Phase 2)";
+            } else {
+                dot.style.background = 'var(--accent-gold)';
+                dot.style.boxShadow = '0 0 10px var(--accent-gold)';
+                box.style.borderColor = 'var(--accent-gold)';
+                txt.innerText = "State: Diode Freewheeling (All OFF)";
+            }
+
+            document.getElementById('m-vout').innerText = V_out_sim.toFixed(2) + ' V';
+            document.getElementById('m-stress').innerText = V_stress.toFixed(1) + ' V';
+            document.getElementById('m-iout').innerText = I_out.toFixed(2) + ' A';
+            document.getElementById('m-pwr').innerText = P_out.toFixed(1) + ' W';
+
+            pwmHistory1.push(isQ1 ? 1 : 0);
+            pwmHistory2.push(isQ2 ? 1 : 0);
+            voutHistory.push(V_out_sim);
+            if (pwmHistory1.length > maxHistory) pwmHistory1.shift();
+            if (pwmHistory2.length > maxHistory) pwmHistory2.shift();
+            if (voutHistory.length > maxHistory) voutHistory.shift();
+
+            drawCircuit(isQ1, isQ2, isFreewheel, V_out_sim);
+            drawPWMScope();
+            drawOUTScope(V_out_ideal);
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawCircuit(isQ1, isQ2, isFreewheel, vOut) {
+            if (!C.xVin) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const cQ1 = isQ1 ? 'rgba(0, 242, 254, 0.8)' : '#334155';
+            const cQ2 = isQ2 ? 'rgba(244, 63, 94, 0.8)' : '#334155';
+            const cSec = isQ1 ? 'rgba(0, 242, 254, 0.8)' : (isQ2 ? 'rgba(244, 63, 94, 0.8)' : 'rgba(255, 183, 3, 0.8)');
+
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // --- 1. Primary Wiring ---
+            drawWire(C.xVin, C.yCT_Pri, C.xPri, C.yCT_Pri, isQ1 || isQ2 ? 'rgba(255, 183, 3, 0.8)' : '#334155');
+            drawWire(C.xQ1, C.yTop, C.xPri, C.yTop, cQ1);
+            drawWire(C.xQ2, C.yBot, C.xPri, C.yBot, cQ2);
+            drawWire(C.xQ1, C.yTop, C.xQ1, C.yBot + 30, cQ1); 
+            drawWire(C.xQ2, C.yBot, C.xQ2, C.yBot + 30, cQ2); 
+            drawWire(C.xVin, C.yBot + 30, C.xQ1, C.yBot + 30, isQ1 || isQ2 ? 'rgba(255, 183, 3, 0.8)' : '#334155');
+            drawWire(C.xVin, C.yCT_Pri, C.xVin, C.yBot + 30, isQ1 || isQ2 ? 'rgba(255, 183, 3, 0.8)' : '#334155');
+
+            // --- 2. Secondary Wiring ---
+            drawWire(C.xSec, C.yTop, C.xD1 - 15, C.yTop, cQ1);
+            drawWire(C.xSec, C.yBot, C.xD2 - 15, C.yBot, cQ2);
+            drawWire(C.xD1 + 15, C.yTop, C.xL1, C.yTop, cQ1);
+            drawWire(C.xL1, C.yTop, C.xL1, C.yMid, cQ1);
+            drawWire(C.xD2 + 15, C.yBot, C.xL1, C.yBot, cQ2);
+            drawWire(C.xL1, C.yBot, C.xL1, C.yMid, cQ2);
+            
+            if (isFreewheel) {
+                drawWire(C.xL1, C.yTop, C.xL1, C.yBot, cSec);
+            }
+            
+            drawWire(C.xL2, C.yMid, C.xLoad, C.yMid, cSec);
+            drawWire(C.xSec, C.yCT_Sec, C.xSec + 20, C.yCT_Sec, '#334155');
+            drawWire(C.xSec + 20, C.yCT_Sec, C.xSec + 20, C.yBot + 30, '#334155');
+            drawWire(C.xSec + 20, C.yBot + 30, C.xLoad, C.yBot + 30, '#334155');
+            drawWire(C.xC, C.yMid, C.xC, C.yBot + 30, cSec);
+            drawWire(C.xLoad, C.yMid, C.xLoad, C.yBot + 30, cSec);
+
+            // --- 3. Draw Components ---
+            drawDCSource(C.xVin, C.yCT_Pri + (C.yBot+30 - C.yCT_Pri)/2, Vin);
+            drawMOSFET(C.xQ1, C.yTop, isQ1, 'Q1', '#00f2fe');
+            drawMOSFET(C.xQ2, C.yBot, isQ2, 'Q2', '#f43f5e');
+            drawTransformer(C.xPri, C.xSec, C.yTop, C.yCT_Pri, C.yBot, isQ1, isQ2);
+            drawDiode(C.xD1, C.yTop, isQ1 || isFreewheel, 'D1');
+            drawDiode(C.xD2, C.yBot, isQ2 || isFreewheel, 'D2');
+            drawInductor(C.xL1, C.xL2, C.yMid, isQ1 || isQ2 || isFreewheel);
+            drawCapacitor(C.xC, C.yMid + (C.yBot+30 - C.yMid)/2);
+            drawLoadResistor(C.xLoad, C.yMid + (C.yBot+30 - C.yMid)/2, vOut, C.yBot+30 - C.yMid);
+
+            // --- 4. Draw Particles ---
+            drawParticles(isQ1, isQ2, isFreewheel);
+        }
+
+        function drawWire(x1, y1, x2, y2, color) {
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = color === '#334155' ? 3 : 4;
+            if (color !== '#334155') {
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 8;
+            }
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        function drawDCSource(x, y, vVal) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#ffb703';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y, 22, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.fillStyle = '#ff4757'; ctx.fillText('+', x - 4, y - 8);
+            ctx.fillStyle = '#2ed573'; ctx.fillText('-', x - 3, y + 14);
+
+            ctx.fillStyle = '#94a3b8'; ctx.font = '12px Segoe UI'; ctx.textAlign = 'right';
+            ctx.fillText('Vin', x - 30, y + 4);
+            ctx.restore();
+        }
+
+        function drawMOSFET(x, y, isOn, label, activeColor) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.fillStyle = isOn ? activeColor + '22' : '#1e293b';
+            ctx.strokeStyle = isOn ? activeColor : '#64748b';
+            ctx.lineWidth = 2;
+
+            // Box
+            ctx.beginPath();
+            ctx.rect(-16, -16, 32, 32);
+            ctx.fill(); ctx.stroke();
+
+            if (isOn) {
+                ctx.shadowColor = activeColor;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // Gate Wire
+            ctx.beginPath();
+            ctx.moveTo(-16, 0); ctx.lineTo(-30, 0);
+            ctx.stroke();
+
+            // PWM Box
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-55, -10, 25, 20);
+            ctx.strokeRect(-55, -10, 25, 20);
+
+            ctx.font = '9px Segoe UI';
+            ctx.fillStyle = isOn ? activeColor : '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.fillText('PWM', -42, 3);
+
+            ctx.font = 'bold 12px Segoe UI';
+            ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'left';
+            ctx.fillText(label, 22, 4);
+
+            ctx.restore();
+        }
+
+        function drawTransformer(xPri, xSec, yTop, yCT, yBot, isQ1, isQ2) {
+            const cx = (xPri + xSec) / 2;
+            
+            // Core
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(cx - 4, yTop); ctx.lineTo(cx - 4, yBot); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx + 4, yTop); ctx.lineTo(cx + 4, yBot); ctx.stroke();
+
+            drawCoil(xPri, yTop, yCT, 4, true, isQ1 ? '#00f2fe' : '#475569');
+            drawCoil(xPri, yCT, yBot, 4, true, isQ2 ? '#f43f5e' : '#475569');
+
+            drawCoil(xSec, yTop, yCT, 4, false, isQ1 ? '#00f2fe' : '#475569');
+            drawCoil(xSec, yCT, yBot, 4, false, isQ2 ? '#f43f5e' : '#475569');
+
+            // Center Tap Dots
+            ctx.fillStyle = '#ffb703';
+            ctx.beginPath(); ctx.arc(xPri, yCT, 4, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#cbd5e1';
+            ctx.beginPath(); ctx.arc(xSec, yCT, 4, 0, Math.PI*2); ctx.fill();
+
+            // Polarity Dots
+            ctx.fillStyle = '#00f2fe';
+            ctx.beginPath(); ctx.arc(xPri - 16, yTop + 10, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(xSec + 16, yTop + 10, 3, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = '#f43f5e';
+            ctx.beginPath(); ctx.arc(xPri - 16, yCT + 10, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(xSec + 16, yCT + 10, 3, 0, Math.PI*2); ctx.fill();
+        }
+
+        function drawCoil(x, y1, y2, turns, faceLeft, color) {
+            const h = y2 - y1;
+            const r = h / (turns * 2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            if (color !== '#475569') { ctx.shadowColor = color; ctx.shadowBlur = 8; }
+            
+            ctx.beginPath(); ctx.moveTo(x, y1);
+            for(let i=0; i<turns; i++) {
+                const cy = y1 + r + (i * 2 * r);
+                ctx.arc(x, cy, r, -Math.PI/2, Math.PI/2, faceLeft);
+            }
+            ctx.stroke(); ctx.shadowBlur = 0;
+        }
+
+        function drawDiode(x, y, isActive, label) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            const color = isActive ? '#ffb703' : '#64748b';
+            ctx.fillStyle = isActive ? '#ffb703' : '#1e293b';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            if (isActive) { ctx.shadowColor = color; ctx.shadowBlur = 8; }
+
+            ctx.beginPath();
+            ctx.moveTo(-12, -12); ctx.lineTo(-12, 12); ctx.lineTo(8, 0);
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(8, -14); ctx.lineTo(8, 14);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.font = 'bold 11px Segoe UI';
+            ctx.fillStyle = isActive ? '#ffb703' : '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, 0, -20);
+            
+            ctx.restore();
+        }
+
+        function drawInductor(x1, x2, y, isActive) {
+            ctx.save();
+            const width = x2 - x1;
+            const coils = 4;
+            const coilWidth = width / coils;
+            const color = isActive ? '#ffb703' : '#64748b';
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            if (isActive) { ctx.shadowColor = color; ctx.shadowBlur = 8; }
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y);
+            for (let i = 0; i < coils; i++) {
+                const cx = x1 + i * coilWidth + coilWidth / 2;
+                ctx.arc(cx, y, coilWidth / 2, Math.PI, 0, false);
+            }
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.font = '12px Segoe UI';
+            ctx.fillStyle = '#cbd5e1';
+            ctx.textAlign = 'center';
+            ctx.fillText('Inductor L', x1 + width / 2, y - 20);
+
+            ctx.restore();
+        }
+
+        function drawCapacitor(x, y) {
+            ctx.save();
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+            ctx.moveTo(x - 14, y - 6); ctx.lineTo(x + 14, y - 6);
+            ctx.moveTo(x - 14, y + 6); ctx.lineTo(x + 14, y + 6);
+            ctx.stroke();
+
+            ctx.font = '12px Segoe UI';
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.fillText('Capacitor C', x + 30, y + 4);
+            ctx.restore();
+        }
+
+        function drawLoadResistor(x, y, vOut, height) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const h = height * 0.6;
+            const w = 16;
+
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = vOut > 1 ? '#ffb703' : '#64748b';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            let curY = -h/2;
+            ctx.moveTo(0, curY);
+            for(let i=0; i<5; i++) {
+                ctx.lineTo(i%2===0 ? w/2 : -w/2, curY += h/5);
+            }
+            ctx.lineTo(0, h/2);
+            ctx.stroke();
+
+            if (vOut > 1) {
+                ctx.shadowColor = '#ffb703';
+                ctx.shadowBlur = Math.min(20, vOut);
+                ctx.stroke();
+            }
+
+            ctx.shadowBlur = 0;
+            ctx.font = '12px Segoe UI';
+            ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'center';
+            ctx.fillText('Load R', 30, 0);
+
+            ctx.restore();
+        }
+
+        function drawParticles(isQ1, isQ2, isFreewheel) {
+            const speed = 0.008;
+
+            particles.forEach(p => {
+                p.progress += speed;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = [];
+                let pColor = '#334155';
+
+                const targetX = (p.pathId % 2 === 0) ? C.xC : C.xLoad;
+                const GND_Y = C.yBot + 30;
+
+                if (flowMode === 'conv') {
+                    if (isQ1) {
+                        pColor = '#00f2fe';
+                        if (p.pathId < 2) {
+                            // Primary Q1
+                            path = [{x:C.xVin, y:GND_Y}, {x:C.xVin, y:C.yCT_Pri}, {x:C.xPri, y:C.yCT_Pri}, {x:C.xPri, y:C.yTop}, {x:C.xQ1, y:C.yTop}, {x:C.xQ1, y:GND_Y}, {x:C.xVin, y:GND_Y}];
+                        } else {
+                            // Secondary Q1
+                            path = [{x:C.xSec+20, y:C.yCT_Sec}, {x:C.xSec, y:C.yCT_Sec}, {x:C.xSec, y:C.yTop}, {x:C.xL1, y:C.yTop}, {x:C.xL1, y:C.yMid}, {x:C.xL2, y:C.yMid}, {x:targetX, y:C.yMid}, {x:targetX, y:GND_Y}, {x:C.xSec+20, y:GND_Y}, {x:C.xSec+20, y:C.yCT_Sec}];
+                        }
+                    } else if (isQ2) {
+                        pColor = '#f43f5e';
+                        if (p.pathId < 2) {
+                            // Primary Q2
+                            path = [{x:C.xVin, y:GND_Y}, {x:C.xVin, y:C.yCT_Pri}, {x:C.xPri, y:C.yCT_Pri}, {x:C.xPri, y:C.yBot}, {x:C.xQ2, y:C.yBot}, {x:C.xQ2, y:GND_Y}, {x:C.xVin, y:GND_Y}];
+                        } else {
+                            // Secondary Q2
+                            path = [{x:C.xSec+20, y:C.yCT_Sec}, {x:C.xSec, y:C.yCT_Sec}, {x:C.xSec, y:C.yBot}, {x:C.xL1, y:C.yBot}, {x:C.xL1, y:C.yMid}, {x:C.xL2, y:C.yMid}, {x:targetX, y:C.yMid}, {x:targetX, y:GND_Y}, {x:C.xSec+20, y:GND_Y}, {x:C.xSec+20, y:C.yCT_Sec}];
+                        }
+                    } else {
+                        // Freewheel
+                        pColor = '#ffb703';
+                        const yBranch = (p.pathId % 2 === 0) ? C.yTop : C.yBot;
+                        path = [{x:C.xSec+20, y:C.yCT_Sec}, {x:C.xSec, y:C.yCT_Sec}, {x:C.xSec, y:yBranch}, {x:C.xL1, y:yBranch}, {x:C.xL1, y:C.yMid}, {x:C.xL2, y:C.yMid}, {x:targetX, y:C.yMid}, {x:targetX, y:GND_Y}, {x:C.xSec+20, y:GND_Y}, {x:C.xSec+20, y:C.yCT_Sec}];
+                    }
+                } else {
+                    // Electron flow (Reverse path)
+                    if (isQ1) {
+                        pColor = '#00f2fe';
+                        if (p.pathId < 2) path = [{x:C.xVin, y:GND_Y}, {x:C.xQ1, y:GND_Y}, {x:C.xQ1, y:C.yTop}, {x:C.xPri, y:C.yTop}, {x:C.xPri, y:C.yCT_Pri}, {x:C.xVin, y:C.yCT_Pri}, {x:C.xVin, y:GND_Y}];
+                        else path = [{x:C.xSec+20, y:C.yCT_Sec}, {x:C.xSec+20, y:GND_Y}, {x:targetX, y:GND_Y}, {x:targetX, y:C.yMid}, {x:C.xL2, y:C.yMid}, {x:C.xL1, y:C.yMid}, {x:C.xL1, y:C.yTop}, {x:C.xSec, y:C.yTop}, {x:C.xSec, y:C.yCT_Sec}, {x:C.xSec+20, y:C.yCT_Sec}];
+                    } else if (isQ2) {
+                        pColor = '#f43f5e';
+                        if (p.pathId < 2) path = [{x:C.xVin, y:GND_Y}, {x:C.xQ2, y:GND_Y}, {x:C.xQ2, y:C.yBot}, {x:C.xPri, y:C.yBot}, {x:C.xPri, y:C.yCT_Pri}, {x:C.xVin, y:C.yCT_Pri}, {x:C.xVin, y:GND_Y}];
+                        else path = [{x:C.xSec+20, y:C.yCT_Sec}, {x:C.xSec+20, y:GND_Y}, {x:targetX, y:GND_Y}, {x:targetX, y:C.yMid}, {x:C.xL2, y:C.yMid}, {x:C.xL1, y:C.yMid}, {x:C.xL1, y:C.yBot}, {x:C.xSec, y:C.yBot}, {x:C.xSec, y:C.yCT_Sec}, {x:C.xSec+20, y:C.yCT_Sec}];
+                    } else {
+                        pColor = '#ffb703';
+                        const yBranch = (p.pathId % 2 === 0) ? C.yTop : C.yBot;
+                        path = [{x:C.xSec+20, y:C.yCT_Sec}, {x:C.xSec+20, y:GND_Y}, {x:targetX, y:GND_Y}, {x:targetX, y:C.yMid}, {x:C.xL2, y:C.yMid}, {x:C.xL1, y:C.yMid}, {x:C.xL1, y:yBranch}, {x:C.xSec, y:yBranch}, {x:C.xSec, y:C.yCT_Sec}, {x:C.xSec+20, y:C.yCT_Sec}];
+                    }
+                }
+
+                if (path.length > 0) {
+                    const pt = getPointAlongPath(path, p.progress);
+                    if (pt) {
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
+                        ctx.fillStyle = pColor;
+                        ctx.shadowColor = pColor;
+                        ctx.shadowBlur = 6;
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0;
+            const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i + 1].x - points[i].x;
+                const dy = points[i + 1].y - points[i].y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                lengths.push(len);
+                totalLen += len;
+            }
+            let targetLen = t * totalLen;
+            let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segmentT = (targetLen - currentLen) / lengths[i];
+                    return {
+                        x: points[i].x + (points[i + 1].x - points[i].x) * segmentT,
+                        y: points[i].y + (points[i + 1].y - points[i].y) * segmentT
+                    };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        function drawPWMScope() {
+            const w = canvasPWM.width;
+            const h = canvasPWM.height;
+            ctxPWM.clearRect(0, 0, w, h);
+
+            ctxPWM.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxPWM.lineWidth = 1;
+            ctxPWM.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxPWM.moveTo(x, 0); ctxPWM.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxPWM.moveTo(0, y); ctxPWM.lineTo(w, y); }
+            ctxPWM.stroke();
+
+            const step = w / maxHistory;
+
+            // Q1 Signal (Cyan)
+            ctxPWM.strokeStyle = '#00f2fe';
+            ctxPWM.lineWidth = 2;
+            ctxPWM.beginPath();
+            for (let i = 0; i < pwmHistory1.length; i++) {
+                const x = i * step;
+                const y = pwmHistory1[i] === 1 ? h * 0.15 : h * 0.45;
+                if (i === 0) ctxPWM.moveTo(x, y);
+                else {
+                    const prevY = pwmHistory1[i - 1] === 1 ? h * 0.15 : h * 0.45;
+                    if (prevY !== y) ctxPWM.lineTo(x, prevY);
+                    ctxPWM.lineTo(x, y);
+                }
+            }
+            ctxPWM.stroke();
+
+            // Q2 Signal (Pink)
+            ctxPWM.strokeStyle = '#f43f5e';
+            ctxPWM.beginPath();
+            for (let i = 0; i < pwmHistory2.length; i++) {
+                const x = i * step;
+                const y = pwmHistory2[i] === 1 ? h * 0.55 : h * 0.85;
+                if (i === 0) ctxPWM.moveTo(x, y);
+                else {
+                    const prevY = pwmHistory2[i - 1] === 1 ? h * 0.55 : h * 0.85;
+                    if (prevY !== y) ctxPWM.lineTo(x, prevY);
+                    ctxPWM.lineTo(x, y);
+                }
+            }
+            ctxPWM.stroke();
+        }
+
+        function drawOUTScope(vIdeal) {
+            const w = canvasOUT.width;
+            const h = canvasOUT.height;
+            ctxOUT.clearRect(0, 0, w, h);
+
+            ctxOUT.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxOUT.lineWidth = 1;
+            ctxOUT.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxOUT.moveTo(x, 0); ctxOUT.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxOUT.moveTo(0, y); ctxOUT.lineTo(w, y); }
+            ctxOUT.stroke();
+
+            const maxScopeV = Vin * 2; 
+            const yIdeal = h * 0.85 - (vIdeal / maxScopeV) * (h * 0.7);
+            
+            ctxOUT.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctxOUT.setLineDash([4, 4]);
+            ctxOUT.beginPath();
+            ctxOUT.moveTo(0, yIdeal); ctxOUT.lineTo(w, yIdeal);
+            ctxOUT.stroke();
+            ctxOUT.setLineDash([]);
+
+            ctxOUT.strokeStyle = '#ffb703';
+            ctxOUT.lineWidth = 2.5;
+            ctxOUT.beginPath();
+
+            const step = w / maxHistory;
+            for (let i = 0; i < voutHistory.length; i++) {
+                const x = i * step;
+                const y = h * 0.85 - (voutHistory[i] / maxScopeV) * (h * 0.7);
+                if (i === 0) ctxOUT.moveTo(x, y);
+                else ctxOUT.lineTo(x, y);
+            }
+            ctxOUT.stroke();
+        }
+
+        // Start Animation
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">DC Motor Driver Simulator (H-Bridge)</title>
+    <style>
+        /* --- Golden Template Styles --- */
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 440px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-card h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .scope-pwm h3::before { background: var(--accent-cyan); }
+        .scope-out h3::before { background: var(--accent-gold); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.on {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+        .status-dot.rev {
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+        .status-dot.off {
+            background: var(--accent-gold);
+            box-shadow: 0 0 10px var(--accent-gold);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="txt-title">DC Motor Driver Simulator (H-Bridge)</h1>
+        <p id="txt-subtitle">Direction and speed control using PWM and 4 Power MOSFETs</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Control Panel -->
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group" style="display: none;">
+                <label id="lbl-lang">Language / زبان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn lang-btn" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی</button>
+                    <button class="toggle-btn lang-btn active" id="btn-lang-en" onclick="setLanguage('en')">English</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-flow">Current Flow:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">Conventional (+ to -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">Electron (- to +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-dir">Rotation Direction:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-fwd" onclick="setDirection(1)">Forward (CW)</button>
+                    <button class="toggle-btn" id="btn-rev" onclick="setDirection(-1)">Reverse (CCW)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-vin">Supply Voltage (V_in):</span> <span class="val" id="val-vin">24 V</span></label>
+                <input type="range" id="slider-vin" min="12" max="48" value="24" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-duty">Speed / Duty Cycle:</span> <span class="val" id="val-duty">75 %</span></label>
+                <input type="range" id="slider-duty" min="0" max="100" value="75" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-freq">PWM Frequency (f_sw):</span> <span class="val" id="val-freq">10 kHz</span></label>
+                <input type="range" id="slider-freq" min="1" max="20" value="10" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-load">Mechanical Load:</span> <span class="val" id="val-load">Medium</span></label>
+                <input type="range" id="slider-load" min="1" max="10" value="5" step="1">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">State: Forward Drive (Q1 & Q4 ON)</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title" id="lbl-vmotor">Avg Motor Voltage</div>
+                    <div class="val" id="m-vmotor">18.0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-imotor">Motor Current (I_m)</div>
+                    <div class="val" id="m-imotor">2.50 A</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-rpm">Motor Speed (RPM)</div>
+                    <div class="val" id="m-rpm">1800</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-pwr">Mechanical Power</div>
+                    <div class="val" style="color:var(--accent-green)" id="m-pwr">45.0 W</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Simulation Area & Oscilloscopes -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-pwm">
+                    <h3 id="lbl-scope-pwm">PWM Gate Drive Signal</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopePWM"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-out">
+                    <h3 id="lbl-scope-out">Motor Terminal Voltage (V_m)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeOUT"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Dictionary according to the Golden Rule
+        const i18n = {
+            fa: {
+                title: "شبیه‌ساز درایور موتور DC (H-Bridge)",
+                subtitle: "کنترل جهت و سرعت موتور با استفاده از تکنیک PWM و ۴ ماسفت قدرت",
+                flowLabel: "نوع جریان:",
+                convFlow: "قراردادی (+ به -)",
+                elecFlow: "الکترونی (- به +)",
+                dirLabel: "جهت چرخش (Direction):",
+                fwdBtn: "راست‌گرد (Forward)",
+                revBtn: "چپ‌گرد (Reverse)",
+                vinLabel: "ولتاژ تغذیه (V_in):",
+                dutyLabel: "سرعت / چرخه کاری (Duty Cycle):",
+                freqLabel: "فرکانس PWM (f_sw):",
+                loadLabel: "بار مکانیکی موتور:",
+                statusFwdOn: "حالت: درایو راست‌گرد (Q1 و Q4 روشن)",
+                statusRevOn: "حالت: درایو چپ‌گرد (Q2 و Q3 روشن)",
+                statusOff: "حالت: هرزگردی موتور (PWM OFF)",
+                vMotorLabel: "ولتاژ متوسط موتور",
+                iMotorLabel: "جریان موتور (I_m)",
+                rpmLabel: "سرعت موتور (RPM)",
+                pwrLabel: "توان مکانیکی",
+                scopePwm: "سیگنال PWM فرمان (گیت ماسفت)",
+                scopeOut: "ولتاژ دو سر موتور (V_motor)",
+                motorName: "موتور DC"
+            },
+            en: {
+                title: "DC Motor Driver Simulator (H-Bridge)",
+                subtitle: "Direction and speed control using PWM and 4 Power MOSFETs",
+                flowLabel: "Current Flow:",
+                convFlow: "Conventional (+ to -)",
+                elecFlow: "Electron (- to +)",
+                dirLabel: "Rotation Direction:",
+                fwdBtn: "Forward (CW)",
+                revBtn: "Reverse (CCW)",
+                vinLabel: "Supply Voltage (V_in):",
+                dutyLabel: "Speed / Duty Cycle:",
+                freqLabel: "PWM Frequency (f_sw):",
+                loadLabel: "Mechanical Load:",
+                statusFwdOn: "State: Forward Drive (Q1 & Q4 ON)",
+                statusRevOn: "State: Reverse Drive (Q2 & Q3 ON)",
+                statusOff: "State: Motor Freewheeling (PWM OFF)",
+                vMotorLabel: "Avg Motor Voltage",
+                iMotorLabel: "Motor Current (I_m)",
+                rpmLabel: "Motor Speed (RPM)",
+                pwrLabel: "Mechanical Power",
+                scopePwm: "PWM Gate Drive Signal",
+                scopeOut: "Motor Terminal Voltage (V_m)",
+                motorName: "DC Motor"
+            }
+        };
+
+        let currentLang = 'en';
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('lang') === 'fa') currentLang = 'fa';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+            
+            const t = i18n[lang];
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('lbl-flow').innerText = t.flowLabel;
+            document.getElementById('btn-conv').innerText = t.convFlow;
+            document.getElementById('btn-elec').innerText = t.elecFlow;
+            document.getElementById('lbl-dir').innerText = t.dirLabel;
+            document.getElementById('btn-fwd').innerText = t.fwdBtn;
+            document.getElementById('btn-rev').innerText = t.revBtn;
+            document.getElementById('lbl-vin').innerText = t.vinLabel;
+            document.getElementById('lbl-duty').innerText = t.dutyLabel;
+            document.getElementById('lbl-freq').innerText = t.freqLabel;
+            document.getElementById('lbl-load').innerText = t.loadLabel;
+            document.getElementById('lbl-vmotor').innerText = t.vMotorLabel;
+            document.getElementById('lbl-imotor').innerText = t.iMotorLabel;
+            document.getElementById('lbl-rpm').innerText = t.rpmLabel;
+            document.getElementById('lbl-pwr').innerText = t.pwrLabel;
+            document.getElementById('lbl-scope-pwm').innerText = t.scopePwm;
+            document.getElementById('lbl-scope-out').innerText = t.scopeOut;
+        }
+
+        // Circuit Physical Variables
+        let flowMode = 'conv';
+        let direction = 1; // 1: FWD, -1: REV
+        let Vin = 24;
+        let dutyCycle = 0.75; // 75%
+        let freqSw = 10; // kHz
+        let mechLoad = 5;
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasPWM = document.getElementById('scopePWM');
+        const ctxPWM = canvasPWM.getContext('2d');
+        const canvasOUT = document.getElementById('scopeOUT');
+        const ctxOUT = canvasOUT.getContext('2d');
+
+        // UI Controls
+        document.getElementById('slider-vin').addEventListener('input', (e) => { Vin = parseFloat(e.target.value); document.getElementById('val-vin').innerText = Vin + ' V'; });
+        document.getElementById('slider-duty').addEventListener('input', (e) => { dutyCycle = parseFloat(e.target.value) / 100; document.getElementById('val-duty').innerText = e.target.value + ' %'; });
+        document.getElementById('slider-freq').addEventListener('input', (e) => { freqSw = parseFloat(e.target.value); document.getElementById('val-freq').innerText = freqSw + ' kHz'; });
+        document.getElementById('slider-load').addEventListener('input', (e) => { 
+            mechLoad = parseFloat(e.target.value); 
+            const labelsEn = ['Very Light', 'Light', 'Med-Light', 'Medium', 'Med-Heavy', 'Heavy', 'Very Heavy', 'Near Stall', 'Stalled'];
+            const labelsFa = ['بسیار سبک', 'سبک', 'متوسط-سبک', 'متوسط', 'متوسط-سنگین', 'سنگین', 'خیلی سنگین', 'قفل نزدیک', 'استال'];
+            const labels = currentLang === 'fa' ? labelsFa : labelsEn;
+            document.getElementById('val-load').innerText = labels[Math.min(8, Math.floor(mechLoad)-1)]; 
+        });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        function setDirection(dir) {
+            direction = dir;
+            document.getElementById('btn-fwd').classList.toggle('active', dir === 1);
+            document.getElementById('btn-rev').classList.toggle('active', dir === -1);
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width; canvas.height = rect.height;
+            const rectPWM = canvasPWM.parentElement.getBoundingClientRect();
+            canvasPWM.width = rectPWM.width; canvasPWM.height = rectPWM.height;
+            const rectOUT = canvasOUT.parentElement.getBoundingClientRect();
+            canvasOUT.width = rectOUT.width; canvasOUT.height = rectOUT.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        const pwmHistory = [];
+        const vmotorHistory = [];
+        const maxHistory = 300;
+
+        const particles = [];
+        for (let i = 0; i < 40; i++) particles.push({ progress: Math.random() });
+
+        let time = 0;
+        let RPM_sim = 0;
+        let motorAngle = 0;
+
+        function animate() {
+            time += 0.015;
+
+            // Switching logic (Sign-Magnitude PWM)
+            const period = 1 / (freqSw * 0.2); 
+            const phase = (time % period) / period;
+            const isPwmOn = phase < dutyCycle && dutyCycle > 0;
+
+            // DC Motor Dynamics
+            const targetVoltage = isPwmOn ? (Vin * direction) : 0;
+            const targetRPM = targetVoltage * 100; // Motor constant (Kv scale)
+            
+            // Motor inertia (Low-pass filter on speed)
+            const inertia = 0.02 / (mechLoad * 0.5);
+            RPM_sim += (targetRPM - RPM_sim) * inertia;
+            motorAngle += (RPM_sim / 60) * 0.1; // Motor visual rotation
+
+            // Current calculation based on Back-EMF
+            const backEMF = RPM_sim / 100;
+            let current = isPwmOn ? (Vin - Math.abs(backEMF)) / (mechLoad) : (-Math.abs(backEMF)) / (mechLoad + 1);
+            if(dutyCycle === 0) current = 0;
+
+            const mechPower = Math.abs(backEMF * current);
+            const instVoltage = isPwmOn ? (Vin * direction) : 0; // For Oscilloscope
+
+            // Update UI
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const t = i18n[currentLang];
+
+            if (isPwmOn) {
+                if(direction === 1) {
+                    dot.className = 'status-dot on'; txt.innerText = t.statusFwdOn;
+                } else {
+                    dot.className = 'status-dot rev'; txt.innerText = t.statusRevOn;
+                }
+            } else {
+                dot.className = 'status-dot off'; txt.innerText = t.statusOff;
+            }
+
+            document.getElementById('m-vmotor').innerText = (Vin * dutyCycle).toFixed(1) + ' V';
+            document.getElementById('m-imotor').innerText = Math.abs(current).toFixed(2) + ' A';
+            document.getElementById('m-rpm').innerText = Math.round(Math.abs(RPM_sim));
+            document.getElementById('m-pwr').innerText = mechPower.toFixed(1) + ' W';
+
+            pwmHistory.push(isPwmOn ? 1 : 0);
+            vmotorHistory.push(instVoltage);
+            if (pwmHistory.length > maxHistory) pwmHistory.shift();
+            if (vmotorHistory.length > maxHistory) vmotorHistory.shift();
+
+            drawCircuit(isPwmOn, RPM_sim);
+            drawPWMScope();
+            drawOUTScope();
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- Draw Circuit According to Golden Rule ---
+        function drawCircuit(isPwmOn, rpm) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width; const h = canvas.height;
+
+            const vinX = w * 0.15;
+            const leftBranchX = w * 0.40;
+            const rightBranchX = w * 0.75;
+            const motorX = (leftBranchX + rightBranchX) / 2;
+            
+            const topY = h * 0.25;
+            const bottomY = h * 0.75;
+            const midY = (topY + bottomY) / 2;
+
+            // 1. Base Wires (Dark Gray)
+            ctx.lineWidth = 3; ctx.strokeStyle = '#334155'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            
+            ctx.beginPath(); // Top Rail (Vcc)
+            ctx.moveTo(vinX, topY); ctx.lineTo(rightBranchX, topY); ctx.stroke();
+            
+            ctx.beginPath(); // Bottom Rail (GND)
+            ctx.moveTo(vinX, bottomY); ctx.lineTo(rightBranchX, bottomY); ctx.stroke();
+            
+            ctx.beginPath(); // Source Branch
+            ctx.moveTo(vinX, topY); ctx.lineTo(vinX, bottomY); ctx.stroke();
+            
+            ctx.beginPath(); // Vertical H Branches
+            ctx.moveTo(leftBranchX, topY); ctx.lineTo(leftBranchX, bottomY);
+            ctx.moveTo(rightBranchX, topY); ctx.lineTo(rightBranchX, bottomY);
+            ctx.stroke();
+
+            ctx.beginPath(); // Middle Branch (Motor)
+            ctx.moveTo(leftBranchX, midY); ctx.lineTo(rightBranchX, midY); ctx.stroke();
+
+            // 2. Active Path Highlight
+            ctx.lineWidth = 4;
+            if (isPwmOn && dutyCycle > 0) {
+                ctx.strokeStyle = direction === 1 ? 'rgba(0, 242, 254, 0.6)' : 'rgba(46, 213, 115, 0.6)';
+                ctx.beginPath();
+                if (direction === 1) { // Forward
+                    ctx.moveTo(vinX, bottomY); ctx.lineTo(vinX, topY); ctx.lineTo(leftBranchX, topY);
+                    ctx.lineTo(leftBranchX, midY); ctx.lineTo(rightBranchX, midY); ctx.lineTo(rightBranchX, bottomY);
+                    ctx.lineTo(vinX, bottomY);
+                } else { // Reverse
+                    ctx.moveTo(vinX, bottomY); ctx.lineTo(vinX, topY); ctx.lineTo(rightBranchX, topY);
+                    ctx.lineTo(rightBranchX, midY); ctx.lineTo(leftBranchX, midY); ctx.lineTo(leftBranchX, bottomY);
+                    ctx.lineTo(vinX, bottomY);
+                }
+                ctx.stroke();
+            } else if (dutyCycle > 0 && Math.abs(rpm) > 10) {
+                // Freewheeling (PWM Off, but motor spinning)
+                ctx.strokeStyle = 'rgba(255, 183, 3, 0.6)';
+                ctx.beginPath();
+                if (direction === 1) {
+                    ctx.moveTo(leftBranchX, midY); ctx.lineTo(rightBranchX, midY); 
+                    ctx.lineTo(rightBranchX, bottomY); ctx.lineTo(leftBranchX, bottomY); ctx.lineTo(leftBranchX, midY);
+                } else {
+                    ctx.moveTo(rightBranchX, midY); ctx.lineTo(leftBranchX, midY);
+                    ctx.lineTo(leftBranchX, bottomY); ctx.lineTo(rightBranchX, bottomY); ctx.lineTo(rightBranchX, midY);
+                }
+                ctx.stroke();
+            }
+
+            // 3. Draw Elements
+            drawDCSource(vinX, midY, Vin);
+            
+            // MOSFET Statuses
+            const q1_on = isPwmOn && direction === 1;
+            const q4_on = direction === 1;
+            const q3_on = isPwmOn && direction === -1;
+            const q2_on = direction === -1;
+
+            drawMOSFET(leftBranchX, topY + (midY-topY)/2, q1_on, 'Q1 (High)', direction===1);
+            drawMOSFET(leftBranchX, midY + (bottomY-midY)/2, q2_on, 'Q2 (Low)', direction===-1);
+            drawMOSFET(rightBranchX, topY + (midY-topY)/2, q3_on, 'Q3 (High)', direction===-1);
+            drawMOSFET(rightBranchX, midY + (bottomY-midY)/2, q4_on, 'Q4 (Low)', direction===1);
+
+            drawMotor(motorX, midY, rpm);
+
+            // 4. Particles
+            drawParticles(isPwmOn, rpm, vinX, leftBranchX, rightBranchX, topY, bottomY, midY);
+        }
+
+        function drawDCSource(x, y, vVal) {
+            ctx.save(); ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#4facfe'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(x, y, 26, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.font = 'bold 13px Segoe UI'; ctx.fillStyle = '#ff4757'; ctx.fillText('+', x - 4, y - 10);
+            ctx.fillStyle = '#2ed573'; ctx.fillText('-', x - 3, y + 18);
+            ctx.fillStyle = '#94a3b8'; ctx.font = '12px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('Vin', x - 40, y + 4); ctx.restore();
+        }
+
+        function drawMOSFET(x, y, isOn, label, isPWMd) {
+            ctx.save(); ctx.translate(x, y);
+            const activeColor = direction === 1 ? '#00f2fe' : '#2ed573';
+            ctx.fillStyle = isOn ? (direction===1?'rgba(0, 242, 254, 0.15)':'rgba(46, 213, 115, 0.15)') : '#1e293b';
+            ctx.strokeStyle = isOn ? activeColor : '#64748b';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.rect(-15, -18, 30, 36); ctx.fill(); ctx.stroke();
+            
+            // Internal Body Diode
+            ctx.strokeStyle = '#475569'; ctx.beginPath();
+            ctx.moveTo(8, -8); ctx.lineTo(8, 8); ctx.moveTo(2, 0); ctx.lineTo(14, 0);
+            ctx.moveTo(8, -8); ctx.lineTo(2, 2); ctx.lineTo(14, 2); ctx.closePath(); ctx.stroke();
+
+            ctx.font = '10px Segoe UI'; ctx.fillStyle = isOn ? activeColor : '#94a3b8';
+            ctx.textAlign = 'center'; ctx.fillText(label, -35, 4);
+            ctx.restore();
+        }
+
+        function drawMotor(x, y, rpm) {
+            ctx.save(); ctx.translate(x, y);
+            
+            // Motor Housing
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = Math.abs(rpm) > 10 ? (direction === 1 ? '#00f2fe' : '#2ed573') : '#64748b';
+            if(Math.abs(rpm) > 10) { ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 15; }
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(0, 0, 30, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Internal Fan (Rotation Animation)
+            ctx.rotate(motorAngle);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            for(let i=0; i<3; i++) {
+                ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0, -20); ctx.stroke();
+                ctx.rotate((Math.PI * 2) / 3);
+            }
+            ctx.rotate(-motorAngle);
+
+            ctx.font = 'bold 16px Segoe UI'; ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('M', 0, 0);
+            
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#94a3b8';
+            ctx.fillText(i18n[currentLang].motorName, 0, 45);
+            ctx.restore();
+        }
+
+        function drawParticles(isPwmOn, rpm, vinX, leftX, rightX, topY, bottomY, midY) {
+            const speed = 0.01;
+            particles.forEach(p => {
+                p.progress += speed;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = [];
+                let pColor = '#64748b';
+
+                if (isPwmOn && dutyCycle > 0) {
+                    pColor = direction === 1 ? '#00f2fe' : '#2ed573';
+                    if (flowMode === 'conv') {
+                        path = direction === 1 
+                            ? [{x:vinX,y:bottomY}, {x:vinX,y:topY}, {x:leftX,y:topY}, {x:leftX,y:midY}, {x:rightX,y:midY}, {x:rightX,y:bottomY}, {x:vinX,y:bottomY}]
+                            : [{x:vinX,y:bottomY}, {x:vinX,y:topY}, {x:rightX,y:topY}, {x:rightX,y:midY}, {x:leftX,y:midY}, {x:leftX,y:bottomY}, {x:vinX,y:bottomY}];
+                    } else {
+                        path = direction === 1 
+                            ? [{x:vinX,y:topY}, {x:vinX,y:bottomY}, {x:rightX,y:bottomY}, {x:rightX,y:midY}, {x:leftX,y:midY}, {x:leftX,y:topY}, {x:vinX,y:topY}]
+                            : [{x:vinX,y:topY}, {x:vinX,y:bottomY}, {x:leftX,y:bottomY}, {x:leftX,y:midY}, {x:rightX,y:midY}, {x:rightX,y:topY}, {x:vinX,y:topY}];
+                    }
+                } else if (dutyCycle > 0 && Math.abs(rpm) > 10) {
+                    pColor = '#ffb703'; // Freewheeling Color
+                    path = direction === 1
+                        ? [{x:leftX,y:midY}, {x:rightX,y:midY}, {x:rightX,y:bottomY}, {x:leftX,y:bottomY}, {x:leftX,y:midY}]
+                        : [{x:rightX,y:midY}, {x:leftX,y:midY}, {x:leftX,y:bottomY}, {x:rightX,y:bottomY}, {x:rightX,y:midY}];
+                    if(flowMode === 'elec') path.reverse();
+                } else return;
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = pColor; ctx.shadowColor = pColor; ctx.shadowBlur = 8;
+                    ctx.fill(); ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0; const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i+1].x - points[i].x; const dy = points[i+1].y - points[i].y;
+                const len = Math.sqrt(dx*dx + dy*dy); lengths.push(len); totalLen += len;
+            }
+            let targetLen = t * totalLen; let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segT = (targetLen - currentLen) / lengths[i];
+                    return { x: points[i].x + (points[i+1].x - points[i].x)*segT, y: points[i].y + (points[i+1].y - points[i].y)*segT };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length-1];
+        }
+
+        function drawPWMScope() {
+            const w = canvasPWM.width; const h = canvasPWM.height;
+            ctxPWM.clearRect(0, 0, w, h);
+            ctxPWM.strokeStyle = 'rgba(255,255,255,0.05)'; ctxPWM.lineWidth = 1; ctxPWM.beginPath();
+            for (let x=0; x<w; x+=20) { ctxPWM.moveTo(x,0); ctxPWM.lineTo(x,h); }
+            for (let y=0; y<h; y+=20) { ctxPWM.moveTo(0,y); ctxPWM.lineTo(w,y); }
+            ctxPWM.stroke();
+
+            const pwmColor = direction === 1 ? '#00f2fe' : '#2ed573';
+            ctxPWM.strokeStyle = pwmColor; ctxPWM.lineWidth = 2; ctxPWM.beginPath();
+            const step = w / maxHistory;
+            for (let i = 0; i < pwmHistory.length; i++) {
+                const x = i * step; const y = pwmHistory[i] === 1 ? h*0.25 : h*0.75;
+                if (i===0) ctxPWM.moveTo(x, y);
+                else {
+                    const prevY = pwmHistory[i-1] === 1 ? h*0.25 : h*0.75;
+                    if (prevY !== y) ctxPWM.lineTo(x, prevY);
+                    ctxPWM.lineTo(x, y);
+                }
+            }
+            ctxPWM.stroke();
+        }
+
+        function drawOUTScope() {
+            const w = canvasOUT.width; const h = canvasOUT.height;
+            ctxOUT.clearRect(0, 0, w, h);
+            ctxOUT.strokeStyle = 'rgba(255,255,255,0.05)'; ctxOUT.lineWidth = 1; ctxOUT.beginPath();
+            for (let x=0; x<w; x+=20) { ctxOUT.moveTo(x,0); ctxOUT.lineTo(x,h); }
+            for (let y=0; y<h; y+=20) { ctxOUT.moveTo(0,y); ctxOUT.lineTo(w,y); }
+            ctxOUT.stroke();
+
+            // Zero line (center)
+            ctxOUT.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctxOUT.setLineDash([4, 4]);
+            ctxOUT.beginPath(); ctxOUT.moveTo(0, h/2); ctxOUT.lineTo(w, h/2); ctxOUT.stroke(); ctxOUT.setLineDash([]);
+
+            ctxOUT.strokeStyle = '#ffb703'; ctxOUT.lineWidth = 2.5; ctxOUT.beginPath();
+            const step = w / maxHistory;
+            for (let i = 0; i < vmotorHistory.length; i++) {
+                const x = i * step;
+                // Map voltage between -Vin and +Vin to canvas height
+                const mappedY = (h/2) - (vmotorHistory[i] / 48) * (h/2 * 0.8); 
+                if (i===0) ctxOUT.moveTo(x, mappedY);
+                else {
+                    const prevMapped = (h/2) - (vmotorHistory[i-1] / 48) * (h/2 * 0.8);
+                    if(Math.abs(prevMapped - mappedY) > 5) ctxOUT.lineTo(x, prevMapped);
+                    ctxOUT.lineTo(x, mappedY);
+                }
+            }
+            ctxOUT.stroke();
+        }
+
+        setLanguage(currentLang);
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>شبیه‌ساز یکسوکننده نیم‌موج سه‌فاز</title>
+<style>
+:root{
+--bg-color:#0a0f1d;
+--panel-bg:rgba(18,26,47,.75);
+--accent-cyan:#00f2fe;
+--accent-blue:#4facfe;
+--accent-gold:#ffb703;
+--text-color:#e2e8f0;
+--border-color:rgba(255,255,255,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+body{background:var(--bg-color);color:var(--text-color);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px;overflow-x:hidden}
+header{text-align:center;margin-bottom:20px}
+header h1{font-size:1.8rem;color:var(--accent-cyan);margin-bottom:6px;text-shadow:0 0 12px rgba(0,242,254,.3)}
+header p{font-size:.95rem;color:#94a3b8}
+.main-container{display:grid;grid-template-columns:320px 1fr;gap:20px;width:100%;max-width:1300px}
+@media(max-width:950px){.main-container{grid-template-columns:1fr}}
+.glass-panel{background:var(--panel-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border-color);border-radius:16px;padding:20px;box-shadow:0 8px 32px 0 rgba(0,0,0,.37)}
+.controls-sidebar{display:flex;flex-direction:column;gap:18px}
+.control-group{display:flex;flex-direction:column;gap:8px}
+.control-group label{font-size:.88rem;display:flex;justify-content:space-between;color:#cbd5e1}
+.control-group label span.val{color:var(--accent-cyan);font-weight:bold;direction:ltr}
+input[type="range"]{appearance:none;width:100%;height:6px;background:#1e293b;border-radius:3px;outline:none}
+input[type="range"]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent-cyan);cursor:pointer;box-shadow:0 0 8px var(--accent-cyan);transition:transform .1s}
+input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.toggle-group{display:flex;background:#1e293b;border-radius:8px;padding:3px;gap:4px}
+.toggle-btn{flex:1;padding:8px;border:none;background:transparent;color:#94a3b8;font-size:.82rem;border-radius:6px;cursor:pointer;transition:all .3s}
+.toggle-btn.active{background:var(--accent-cyan);color:#0f172a;font-weight:bold}
+.simulation-area{display:flex;flex-direction:column;gap:20px}
+.canvas-container{position:relative;width:100%;height:440px;background:rgba(10,15,29,.6);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.05)}
+canvas{width:100%;height:100%;display:block}
+.scopes-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:650px){.scopes-grid{grid-template-columns:1fr}}
+.scope-card{background:rgba(15,23,42,.8);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,.08)}
+.scope-card h3{font-size:.85rem;margin-bottom:8px;color:#94a3b8;display:flex;align-items:center;gap:6px}
+.scope-card h3::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%}
+.scope-ac h3::before{background:#ff4757}
+.scope-dc h3::before{background:var(--accent-gold)}
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:5px}
+.metric-card{background:rgba(255,255,255,.03);border-radius:8px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,.05)}
+.metric-card .title{font-size:.75rem;color:#64748b;margin-bottom:4px}
+.metric-card .val{font-size:1.05rem;font-weight:bold;color:var(--accent-cyan);direction:ltr}
+.info-box{background:rgba(0,242,254,.05);border:1px solid rgba(0,242,254,.15);border-radius:10px;padding:12px;margin-top:8px;font-size:.8rem;color:#94a3b8;line-height:1.7}
+.info-box b{color:var(--accent-cyan)}
+</style>
+</head>
+<body>
+
+<header>
+<h1>یکسوکننده نیم‌موج سه‌فاز (3-Phase Half-Wave)</h1>
+<p>مدار ۳ پالسه — هدایت متناوب فازها با زاویه ۱۲۰ درجه</p>
+</header>
+
+<div class="main-container">
+<aside class="glass-panel controls-sidebar">
+
+<div class="control-group">
+<label>نوع نمایش جریان:</label>
+<div class="toggle-group">
+<button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">قراردادی (+ به −)</button>
+<button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">الکترونی (− به +)</button>
+</div>
+</div>
+
+<div class="control-group">
+<label>ولتاژ پیک شبکه (AC): <span class="val" id="val-vac">24 V</span></label>
+<input type="range" id="slider-vac" min="5" max="50" value="24" step="1">
+</div>
+
+<div class="control-group">
+<label>فرکانس شبکه (AC): <span class="val" id="val-freq">50 Hz</span></label>
+<input type="range" id="slider-freq" min="1" max="100" value="50" step="1">
+</div>
+
+<div class="control-group">
+<label>ظرفیت خازن صافی (C): <span class="val" id="val-cap">470 µF</span></label>
+<input type="range" id="slider-cap" min="0" max="2000" value="470" step="10">
+</div>
+
+<div class="control-group">
+<label>مقاومت لامپ: <span class="val" id="val-res">100 Ω</span></label>
+<input type="range" id="slider-res" min="10" max="500" value="100" step="5">
+</div>
+
+<div class="metrics-grid">
+<div class="metric-card"><div class="title">پیک ورودی</div><div class="val" id="m-vpeak">24.0 V</div></div>
+<div class="metric-card"><div class="title">میانگین DC</div><div class="val" id="m-vdc">0.0 V</div></div>
+<div class="metric-card"><div class="title">ولتاژ ریپل</div><div class="val" id="m-vrip">0.0 V</div></div>
+<div class="metric-card"><div class="title">توان لامپ</div><div class="val" id="m-pwr">0.0 W</div></div>
+<div class="metric-card"><div class="title">شارژ خازن</div><div class="val" id="m-cap">0 %</div></div>
+<div class="metric-card"><div class="title">فرکانس ریپل</div><div class="val" id="m-frip">150 Hz</div></div>
+</div>
+
+<div class="info-box">
+<b>نکته:</b> در یکسوساز سه‌فاز نیم‌موج (۳ پالسه)، ۳ منبع با اختلاف فاز <b>۱۲۰ درجه</b> داریم. در هر لحظه دیودی هدایت می‌کند که به فاز با <b>بیشترین ولتاژ مثبت</b> متصل باشد. به همین دلیل ولتاژ خروجی هیچ‌گاه به صفر نمی‌رسد و فرکانس ریپل <b>۳ برابر</b> فرکانس شبکه است.
+</div>
+</aside>
+
+<main class="simulation-area">
+<div class="glass-panel canvas-container">
+<canvas id="circuitCanvas"></canvas>
+</div>
+<div class="scopes-grid">
+<div class="glass-panel scope-card scope-ac">
+<h3>سیگنال ورودی ۳ فاز (R, S, T)</h3>
+<div style="height:120px;position:relative"><canvas id="scopeAC"></canvas></div>
+</div>
+<div class="glass-panel scope-card scope-dc">
+<h3>ولتاژ روی لامپ (DC Output)</h3>
+<div style="height:120px;position:relative"><canvas id="scopeDC"></canvas></div>
+</div>
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var flowMode='conv';
+var Vac=24, freq=50, capUf=470, Rload=100;
+var VD=0.7, Rch=3, Vcap=0, time=0;
+
+var canvas=document.getElementById('circuitCanvas');
+var ctx=canvas.getContext('2d');
+var canvasAC=document.getElementById('scopeAC');
+var ctxAC=canvasAC.getContext('2d');
+var canvasDC=document.getElementById('scopeDC');
+var ctxDC=canvasDC.getContext('2d');
+
+var acH_A=[], acH_B=[], acH_C=[], dcH=[], rcH=[], maxHist=300;
+
+// ذرات برای ۳ فاز و خازن
+var NP=60, particles=[];
+var types=['a','b','c','cap'];
+for(var i=0;i<NP;i++) {
+  particles.push({progress:Math.random(), branch:types[i%4]});
+}
+
+document.getElementById('slider-vac').addEventListener('input',function(e){
+  Vac=parseFloat(e.target.value);
+  document.getElementById('val-vac').textContent=Vac+' V';
+});
+document.getElementById('slider-freq').addEventListener('input',function(e){
+  freq=parseFloat(e.target.value);
+  document.getElementById('val-freq').textContent=freq+' Hz';
+});
+document.getElementById('slider-cap').addEventListener('input',function(e){
+  capUf=parseFloat(e.target.value);
+  document.getElementById('val-cap').textContent=capUf+' µF';
+});
+document.getElementById('slider-res').addEventListener('input',function(e){
+  Rload=parseFloat(e.target.value);
+  document.getElementById('val-res').textContent=Rload+' Ω';
+});
+window.setFlowMode=function(m){
+  flowMode=m;
+  document.getElementById('btn-conv').classList.toggle('active',m==='conv');
+  document.getElementById('btn-elec').classList.toggle('active',m==='elec');
+};
+
+function resizeAll(){
+  var r=canvas.parentElement.getBoundingClientRect();
+  canvas.width=r.width; canvas.height=r.height;
+  var r2=canvasAC.parentElement.getBoundingClientRect();
+  canvasAC.width=r2.width; canvasAC.height=r2.height;
+  var r3=canvasDC.parentElement.getBoundingClientRect();
+  canvasDC.width=r3.width; canvasDC.height=r3.height;
+}
+window.addEventListener('resize',resizeAll);
+
+function getL(){
+  var w=canvas.width, h=canvas.height;
+  if(w<10)w=600; if(h<10)h=400;
+  return {
+    w:w, h:h,
+    topY:h*0.2, botY:h*0.8, midY:h*0.6, dTopY:h*0.35,
+    xA:w*0.12, xB:w*0.28, xC:w*0.44,
+    capX:w*0.68, lampX:w*0.88
+  };
+}
+
+/* ───── رنگ‌های فازها ───── */
+var colA = '#ff4757'; // Phase R (Red)
+var colB = '#ffb703'; // Phase S (Yellow)
+var colC = '#4facfe'; // Phase T (Blue)
+
+/* ───── تشخیص وضعیت مدار ───── */
+function getCircuitState(va, vb, vc){
+  var vmax = Math.max(va, Math.max(vb, vc));
+  var vr = Math.max(0, vmax - VD);
+  var threshold = capUf>0 ? Vcap+0.02 : 0.02;
+  
+  var condA = (va === vmax) && (vr > threshold);
+  var condB = (vb === vmax) && (vr > threshold);
+  var condC = (vc === vmax) && (vr > threshold);
+  
+  var conducting = condA || condB || condC;
+  var capCharging = conducting && capUf>0;
+  var capDischarging = !conducting && capUf>0 && Vcap>0.3;
+  
+  return {
+    a:condA, b:condB, c:condC, vr:vr,
+    conducting:conducting, capCharging:capCharging, capDischarging:capDischarging
+  };
+}
+
+/* ───── سیم‌کشی پایه + هایلایت ───── */
+function drawWires(l, va, vb, vc){
+  var st=getCircuitState(va, vb, vc);
+
+  /* 1. سیم‌کشی پایه خاکستری */
+  ctx.save();
+  ctx.lineWidth=3;
+  ctx.strokeStyle='#334155';
+  ctx.lineJoin='round';
+  ctx.lineCap='round';
+
+  // DC Bus (Top)
+  ctx.beginPath(); ctx.moveTo(l.xA, l.topY); ctx.lineTo(l.lampX, l.topY); ctx.stroke();
+  // Neutral (Bottom)
+  ctx.beginPath(); ctx.moveTo(l.xA, l.botY); ctx.lineTo(l.lampX, l.botY); ctx.stroke();
+
+  // Vertical lines for phases
+  var phases = [l.xA, l.xB, l.xC];
+  for(var i=0; i<phases.length; i++){
+    ctx.beginPath(); ctx.moveTo(phases[i], l.topY); ctx.lineTo(phases[i], l.botY); ctx.stroke();
+  }
+
+  if(capUf>0){
+    ctx.beginPath(); ctx.moveTo(l.capX, l.topY); ctx.lineTo(l.capX, l.botY); ctx.stroke();
+  }
+
+  ctx.beginPath(); ctx.moveTo(l.lampX, l.topY); ctx.lineTo(l.lampX, l.botY); ctx.stroke();
+  ctx.restore();
+
+  /* 2. هایلایت مسیر فعال */
+  ctx.save();
+  ctx.lineWidth=4;
+  ctx.lineJoin='round';
+  ctx.lineCap='round';
+
+  if(st.conducting){
+    var activeX = st.a ? l.xA : (st.b ? l.xB : l.xC);
+    var activeCol = st.a ? colA : (st.b ? colB : colC);
+
+    // Highlight active phase to load
+    ctx.strokeStyle = activeCol;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(activeX, l.botY);
+    ctx.lineTo(activeX, l.topY);
+    ctx.lineTo(l.lampX, l.topY);
+    ctx.lineTo(l.lampX, l.botY);
+    ctx.lineTo(activeX, l.botY);
+    ctx.stroke();
+    
+    // Highlight capacitor charging
+    if(st.capCharging){
+      ctx.beginPath(); ctx.moveTo(l.capX, l.topY); ctx.lineTo(l.capX, l.botY); ctx.stroke();
+    }
+    ctx.globalAlpha = 1.0;
+  } else if(st.capDischarging){
+    ctx.strokeStyle='rgba(0, 242, 254, 0.6)'; // Cyan for cap discharge
+    ctx.beginPath();
+    ctx.moveTo(l.capX, l.topY);
+    ctx.lineTo(l.lampX, l.topY);
+    ctx.lineTo(l.lampX, l.botY);
+    ctx.lineTo(l.capX, l.botY);
+    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(l.capX, l.topY); ctx.lineTo(l.capX, l.botY); ctx.stroke();
+  }
+  ctx.restore();
+
+  /* 3. گره‌ها */
+  ctx.save();
+  ctx.fillStyle='#64748b';
+  var nodes=[[l.xA,l.topY],[l.xA,l.botY],[l.xB,l.topY],[l.xB,l.botY],[l.xC,l.topY],[l.xC,l.botY],[l.lampX,l.topY],[l.lampX,l.botY]];
+  if(capUf>0){ nodes.push([l.capX,l.topY]); nodes.push([l.capX,l.botY]); }
+  for(var i=0;i<nodes.length;i++){
+    ctx.beginPath(); ctx.arc(nodes[i][0],nodes[i][1],4,0,Math.PI*2); ctx.fill();
+  }
+  
+  // Labels
+  ctx.font='bold 12px Segoe UI';
+  ctx.textAlign='center';
+  ctx.fillStyle='#ff4757'; ctx.fillText('DC +', l.capX-25, l.topY-10);
+  ctx.fillStyle='#2ed573'; ctx.fillText('Neutral / GND', l.capX-25, l.botY+20);
+  ctx.restore();
+}
+
+/* ───── منبع AC ───── */
+function drawPhaseSource(x, y, vVal, label, color, l){
+  ctx.save();
+  ctx.fillStyle='#0f172a';
+  ctx.strokeStyle=color;
+  ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.arc(x,y,22,0,Math.PI*2); ctx.fill(); ctx.stroke();
+
+  ctx.beginPath();
+  ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=1.5;
+  for(var i=-10;i<=10;i++){
+    var px=x+i, py=y+Math.sin((i/10)*Math.PI)*6;
+    if(i===-10)ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  ctx.font='bold 12px Segoe UI';
+  ctx.textAlign='center';
+  ctx.fillStyle=vVal>=0?'#ff4757':'#2ed573'; ctx.fillText(vVal>=0?'+':'−', x, y-26);
+  ctx.fillStyle=vVal>=0?'#2ed573':'#ff4757'; ctx.fillText(vVal>=0?'−':'+', x, y+34);
+
+  ctx.fillStyle=color;
+  ctx.fillText(label, x, y-48);
+  ctx.restore();
+}
+
+/* ───── دیود عمودی ───── */
+function drawDiodeV(x,y,isOn,label,onCol){
+  var sz=12;
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.fillStyle=isOn?onCol:'#1e293b';
+  ctx.strokeStyle=isOn?onCol:'#64748b';
+  ctx.lineWidth=2;
+  if(isOn){ ctx.shadowColor=onCol; ctx.shadowBlur=10; }
+
+  ctx.beginPath(); ctx.moveTo(0,-sz); ctx.lineTo(-sz,sz); ctx.lineTo(sz,sz); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-sz,-sz); ctx.lineTo(sz,-sz); ctx.stroke();
+  ctx.shadowBlur=0;
+  
+  ctx.textAlign='left';
+  ctx.font='bold 11px Segoe UI'; ctx.fillStyle=isOn?onCol:'#94a3b8'; ctx.fillText(label,18,-2);
+  ctx.font='10px Segoe UI'; ctx.fillStyle=isOn?'#10b981':'#ef4444'; ctx.fillText(isOn?'ON ✓':'OFF ✗',18,10);
+  ctx.restore();
+}
+
+/* ───── خازن ───── */
+function drawCapacitor(l, st){
+  var x=l.capX, y=l.midY;
+  ctx.save();
+
+  if(st.capDischarging){
+    ctx.shadowColor='#00f2fe'; ctx.shadowBlur=12; ctx.strokeStyle='#00f2fe';
+  } else if(st.capCharging){
+    ctx.shadowColor='#ff4757'; ctx.shadowBlur=10; ctx.strokeStyle='#ff4757';
+  } else {
+    ctx.strokeStyle='#e2e8f0';
+  }
+
+  ctx.lineWidth=4;
+  ctx.beginPath(); ctx.moveTo(x-20,y-10); ctx.lineTo(x+20,y-10); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x-20,y+10); ctx.lineTo(x+20,y+10); ctx.stroke();
+  ctx.shadowBlur=0;
+
+  ctx.font='bold 12px Segoe UI'; ctx.fillStyle='#ff4757'; ctx.textAlign='center'; ctx.fillText('+',x,y-18);
+  ctx.font='11px Segoe UI';
+  if(st.capDischarging){ ctx.fillStyle='#00f2fe'; ctx.fillText('Discharging',x,y+32); } 
+  else if(st.capCharging){ ctx.fillStyle='#ff4757'; ctx.fillText('Charging',x,y+32); } 
+  else { ctx.fillStyle='#94a3b8'; ctx.fillText('Capacitor',x,y+32); }
+  
+  ctx.fillStyle='#64748b'; ctx.fillText(capUf+' µF',x,y+46);
+  ctx.restore();
+}
+
+/* ───── لامپ ───── */
+function drawLamp(l, vLoad){
+  var x=l.lampX, y=l.midY;
+  var brightness=Math.min(1,Math.max(0,vLoad/Math.max(1,Vac)));
+
+  ctx.save();
+  if(brightness>0.05){
+    var gr=ctx.createRadialGradient(x,y,8,x,y,40+brightness*55);
+    gr.addColorStop(0,'rgba(255,230,120,'+brightness*0.9+')');
+    gr.addColorStop(0.4,'rgba(255,170,0,'+brightness*0.4+')');
+    gr.addColorStop(1,'rgba(255,150,0,0)');
+    ctx.fillStyle=gr;
+    ctx.beginPath(); ctx.arc(x,y,40+brightness*55,0,Math.PI*2); ctx.fill();
+  }
+
+  var R=28;
+  ctx.fillStyle='rgba(255,255,255,'+(0.05+brightness*0.2)+')';
+  ctx.strokeStyle=brightness>0.3?'#ffb703':'#64748b';
+  ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#475569'; ctx.fillRect(x-10,y+R-3,20,12);
+
+  ctx.beginPath();
+  ctx.strokeStyle=brightness>0.1?'rgb(255,'+(200+brightness*55|0)+','+(150*brightness|0)+')':'#475569';
+  ctx.lineWidth=brightness>0.1?3:1.5;
+  ctx.moveTo(x-8,y+R-4); ctx.lineTo(x-6,y-4); ctx.lineTo(x-2,y-12); ctx.lineTo(x+2,y-12); ctx.lineTo(x+6,y-4); ctx.lineTo(x+8,y+R-4);
+  ctx.stroke();
+
+  ctx.font='12px Segoe UI'; ctx.fillStyle='#cbd5e1'; ctx.textAlign='center'; ctx.fillText('Lamp Load', x, y-R-12);
+  ctx.fillStyle='#64748b'; ctx.font='11px Segoe UI'; ctx.fillText(Rload+' Ω', x, y+R+26);
+  ctx.restore();
+}
+
+/* ───── ذرات ───── */
+function buildPath(xStart, l){
+  var p=[
+    {x:xStart, y:l.midY}, {x:xStart, y:l.topY},
+    {x:l.lampX, y:l.topY}, {x:l.lampX, y:l.botY},
+    {x:xStart, y:l.botY}, {x:xStart, y:l.midY}
+  ];
+  return (flowMode==='elec') ? p.slice().reverse() : p;
+}
+
+function drawParticles(l, st){
+  var spd = 0.008;
+  for(var i=0;i<particles.length;i++){
+    var p = particles[i];
+    var path = null;
+    var col = '#ffffff';
+    var isActive = false;
+
+    if(p.branch==='a' && st.a) { path=buildPath(l.xA,l); col=colA; isActive=true; }
+    if(p.branch==='b' && st.b) { path=buildPath(l.xB,l); col=colB; isActive=true; }
+    if(p.branch==='c' && st.c) { path=buildPath(l.xC,l); col=colC; isActive=true; }
+    if(p.branch==='cap' && st.capDischarging){
+      var d=[{x:l.capX,y:l.midY-10},{x:l.capX,y:l.topY},{x:l.lampX,y:l.topY},{x:l.lampX,y:l.botY},{x:l.capX,y:l.botY},{x:l.capX,y:l.midY+10}];
+      path = (flowMode==='elec') ? d.slice().reverse() : d;
+      col = '#00f2fe'; isActive=true;
+    }
+
+    if(isActive && path){
+      p.progress += spd;
+      if(p.progress>=1) p.progress-=1;
+      var pt = getPointAlongPath(path, p.progress);
+      if(pt){
+        ctx.beginPath(); ctx.arc(pt.x,pt.y,4,0,Math.PI*2);
+        ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
+      }
+    }
+  }
+}
+
+function getPointAlongPath(pts,t){
+  if(!pts||pts.length<2) return null;
+  var tot=0, lens=[], i;
+  for(i=0;i<pts.length-1;i++){
+    var dx=pts[i+1].x-pts[i].x, dy=pts[i+1].y-pts[i].y;
+    lens.push(Math.sqrt(dx*dx+dy*dy)); tot+=lens[i];
+  }
+  if(tot<1) return pts[0];
+  var tgt=t*tot, cur=0;
+  for(i=0;i<lens.length;i++){
+    if(cur+lens[i]>=tgt){
+      var s=(tgt-cur)/lens[i]; return {x:pts[i].x+(pts[i+1].x-pts[i].x)*s, y:pts[i].y+(pts[i+1].y-pts[i].y)*s};
+    }
+    cur+=lens[i];
+  }
+  return pts[pts.length-1];
+}
+
+/* ───── اسیلوسکوپ ۳ فاز ───── */
+function draw3PhaseScope(ctxS, cvs, ha, hb, hc, maxVal){
+  var w=cvs.width, h=cvs.height, i;
+  if(w<5||h<5) return;
+  ctxS.clearRect(0,0,w,h);
+
+  ctxS.strokeStyle='rgba(255,255,255,.05)'; ctxS.lineWidth=1;
+  ctxS.beginPath();
+  for(var x=0;x<w;x+=20){ctxS.moveTo(x,0);ctxS.lineTo(x,h);}
+  for(var y2=0;y2<h;y2+=20){ctxS.moveTo(0,y2);ctxS.lineTo(w,y2);}
+  ctxS.stroke();
+
+  var baseY=h/2;
+  ctxS.strokeStyle='rgba(255,255,255,.15)';
+  ctxS.beginPath(); ctxS.moveTo(0,baseY); ctxS.lineTo(w,baseY); ctxS.stroke();
+
+  if(ha.length<2) return;
+  var amp=h*0.42; var step=w/maxHist;
+
+  function drawWave(data, color){
+    ctxS.beginPath(); ctxS.strokeStyle=color; ctxS.lineWidth=2;
+    for(i=0;i<data.length;i++){
+      var xx=i*step, yy=baseY-(data[i]/Math.max(1,maxVal))*amp;
+      if(i===0)ctxS.moveTo(xx,yy); else ctxS.lineTo(xx,yy);
+    }
+    ctxS.stroke();
+  }
+
+  drawWave(ha, colA);
+  drawWave(hb, colB);
+  drawWave(hc, colC);
+}
+
+/* ───── اسیلوسکوپ DC ───── */
+function drawDCScope(ctxS, cvs, data, refData, maxVal, color){
+  var w=cvs.width, h=cvs.height, i;
+  if(w<5||h<5) return;
+  ctxS.clearRect(0,0,w,h);
+
+  ctxS.strokeStyle='rgba(255,255,255,.05)'; ctxS.lineWidth=1;
+  ctxS.beginPath();
+  for(var x=0;x<w;x+=20){ctxS.moveTo(x,0);ctxS.lineTo(x,h);}
+  for(var y2=0;y2<h;y2+=20){ctxS.moveTo(0,y2);ctxS.lineTo(w,y2);}
+  ctxS.stroke();
+
+  var baseY=h-6;
+  ctxS.strokeStyle='rgba(255,255,255,.15)'; ctxS.beginPath(); ctxS.moveTo(0,baseY); ctxS.lineTo(w,baseY); ctxS.stroke();
+
+  if(data.length<2) return;
+  var amp=h*0.85; var step=w/maxHist;
+
+  if(refData.length>1){
+    ctxS.beginPath(); ctxS.strokeStyle='rgba(255,255,255,0.2)'; ctxS.lineWidth=1.5; ctxS.setLineDash([4,4]);
+    for(i=0;i<refData.length;i++){
+      var xx1=i*step, yy1=baseY-(refData[i]/Math.max(1,maxVal))*amp;
+      if(i===0)ctxS.moveTo(xx1,yy1); else ctxS.lineTo(xx1,yy1);
+    }
+    ctxS.stroke(); ctxS.setLineDash([]);
+  }
+
+  ctxS.beginPath(); ctxS.strokeStyle=color; ctxS.lineWidth=2.5;
+  for(i=0;i<data.length;i++){
+    var xx=i*step, yy=baseY-(data[i]/Math.max(1,maxVal))*amp;
+    if(i===0)ctxS.moveTo(xx,yy); else ctxS.lineTo(xx,yy);
+  }
+  ctxS.stroke();
+
+  ctxS.font='10px Segoe UI'; ctxS.fillStyle='#e2b170'; ctxS.textAlign='right'; ctxS.fillText('با خازن',w-6,14);
+  ctxS.fillStyle='rgba(255,255,255,.5)'; ctxS.fillText('بدون خازن',w-6,26);
+}
+
+/* ───── فیزیک ───── */
+function physicsStep(){
+  var stepsPerPeriod=500;
+  var physDt=(1/Math.max(1,freq))/stepsPerPeriod;
+  var stepsPerFrame=Math.max(1,Math.round(0.016/physDt));
+  if(stepsPerFrame>200) stepsPerFrame=200;
+
+  var C=capUf*1e-6;
+  var va, vb, vc, vr;
+  var omega = 2 * Math.PI * freq;
+
+  for(var s=0;s<stepsPerFrame;s++){
+    time+=physDt;
+    va=Vac*Math.sin(omega*time);
+    vb=Vac*Math.sin(omega*time - (2*Math.PI/3)); // -120 deg
+    vc=Vac*Math.sin(omega*time - (4*Math.PI/3)); // -240 deg
+    
+    var vmax = Math.max(va, Math.max(vb, vc));
+    vr = Math.max(0, vmax - VD);
+
+    if(C>0){
+      if(vr>Vcap) Vcap+=(vr-Vcap)*(1-Math.exp(-physDt/(Rch*C)));
+      else Vcap*=Math.exp(-physDt/(Rload*C));
+    } else {
+      Vcap=vr;
+    }
+  }
+  return {va:va, vb:vb, vc:vc, vr:vr, vLoad:Vcap};
+}
+
+/* ───── حلقه اصلی ───── */
+function animate(){
+  var ph=physicsStep();
+
+  acH_A.push(ph.va); acH_B.push(ph.vb); acH_C.push(ph.vc);
+  dcH.push(ph.vLoad); rcH.push(ph.vr);
+  
+  if(acH_A.length>maxHist){ acH_A.shift(); acH_B.shift(); acH_C.shift(); }
+  if(dcH.length>maxHist) dcH.shift();
+  if(rcH.length>maxHist) rcH.shift();
+
+  var vpo = Math.max(0, Vac-VD);
+  var vdcAvg = capUf>0 ? Vcap : (vpo * 3 * Math.sqrt(3) / (2*Math.PI)); // Theoretical Avg for 3-phase half-wave
+  
+  var last = dcH.length>100 ? dcH.slice(-100) : dcH;
+  var vmx=-Infinity, vmn=Infinity;
+  for(var i=0;i<last.length;i++){if(last[i]>vmx)vmx=last[i];if(last[i]<vmn)vmn=last[i];}
+  var vRip=(vmx>vmn)?(vmx-vmn):0;
+  
+  var pwr=Vcap*Vcap/Rload;
+  var capPct=Vac>0?Math.round(Vcap/Vac*100):0;
+
+  document.getElementById('m-vpeak').textContent=Vac.toFixed(1)+' V';
+  document.getElementById('m-vdc').textContent=vdcAvg.toFixed(1)+' V';
+  document.getElementById('m-vrip').textContent=vRip.toFixed(2)+' V';
+  document.getElementById('m-pwr').textContent=pwr.toFixed(1)+' W';
+  document.getElementById('m-cap').textContent=capPct+' %';
+  document.getElementById('m-frip').textContent=(freq*3)+' Hz';
+
+  var l=getL();
+  var st=getCircuitState(ph.va, ph.vb, ph.vc);
+  
+  ctx.clearRect(0,0,l.w,l.h);
+  drawWires(l, ph.va, ph.vb, ph.vc);
+  
+  drawPhaseSource(l.xA, l.midY, ph.va, 'Phase R', colA, l);
+  drawPhaseSource(l.xB, l.midY, ph.vb, 'Phase S', colB, l);
+  drawPhaseSource(l.xC, l.midY, ph.vc, 'Phase T', colC, l);
+  
+  drawDiodeV(l.xA, l.dTopY, st.a, 'D1', colA);
+  drawDiodeV(l.xB, l.dTopY, st.b, 'D2', colB);
+  drawDiodeV(l.xC, l.dTopY, st.c, 'D3', colC);
+
+  if(capUf>0) drawCapacitor(l, st);
+  drawLamp(l, ph.vLoad);
+  drawParticles(l, st);
+
+  draw3PhaseScope(ctxAC, canvasAC, acH_A, acH_B, acH_C, Vac*1.2);
+  drawDCScope(ctxDC, canvasDC, dcH, rcH, Vac*1.2, '#ffb703');
+
+  requestAnimationFrame(animate);
+}
+
+function start(){ resizeAll(); requestAnimationFrame(animate); }
+if(document.readyState==='complete') start();
+else window.addEventListener('load',start);
+
+})();
+</script>
+</body>
+</html>

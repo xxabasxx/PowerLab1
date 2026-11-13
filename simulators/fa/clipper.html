@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شبیه‌ساز مدار برش‌دهنده (Diode Clipper)</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 440px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-card h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .scope-in h3::before { background: var(--accent-blue); }
+        .scope-out h3::before { background: var(--accent-gold); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.on {
+            background: var(--accent-red);
+            box-shadow: 0 0 10px var(--accent-red);
+        }
+
+        .status-dot.off {
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>شبیه‌ساز مدار برش‌دهنده (Diode Clipper)</h1>
+        <p>بررسی فرم‌دهی موج با استفاده از دیود و منبع بایاس DC</p>
+    </header>
+
+    <div class="main-container">
+        <!-- پنل تنظیمات -->
+        <aside class="glass-panel controls-sidebar">
+            
+            <div class="control-group">
+                <label>نوع جریان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">قراردادی (+ به -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">الکترونی (- به +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>نوع برش (جهت دیود):</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-clip-pos" onclick="setClipMode('pos')">برش مثبت</button>
+                    <button class="toggle-btn" id="btn-clip-neg" onclick="setClipMode('neg')">برش منفی</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span>دامنه ورودی (V_peak):</span> <span class="val" id="val-vin">10 V</span></label>
+                <input type="range" id="slider-vin" min="5" max="20" value="10" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span>ولتاژ بایاس DC (V_bias):</span> <span class="val" id="val-vbias">4 V</span></label>
+                <input type="range" id="slider-vbias" min="0" max="15" value="4" step="0.5">
+            </div>
+
+            <div class="control-group">
+                <label><span>فرکانس ورودی AC:</span> <span class="val" id="val-freq">1 Hz</span></label>
+                <input type="range" id="slider-freq" min="0.2" max="10" value="1" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label><span>مقاومت بار (R_load):</span> <span class="val" id="val-res">10 kΩ</span></label>
+                <input type="range" id="slider-res" min="1" max="50" value="10" step="1">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">وضعیت دیود: خاموش (عبور موج)</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title">ولتاژ لحظه‌ای خروجی</div>
+                    <div class="val" id="m-vout">0.00 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">ولتاژ لحظه‌ای ورودی</div>
+                    <div class="val" id="m-vin">0.00 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">سطح برش (شامل 0.7V)</div>
+                    <div class="val" id="m-clip-level" style="color:var(--accent-gold)">+4.7 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">جریان شاخه دیود</div>
+                    <div class="val" id="m-diode-i">0.0 mA</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ناحیه شبیه‌سازی -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-in">
+                    <h3>سیگنال ورودی AC (V_in)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeIN"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-out">
+                    <h3>سیگنال خروجی برش خورده (V_out)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeOUT"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ================= متغیرهای فیزیکی =================
+        let flowMode = 'conv';
+        let clipMode = 'pos'; // pos (دیود رو به پایین), neg (دیود رو به بالا)
+        let Vin_peak = 10;
+        let V_bias = 4;
+        let freqAC = 1;
+        let R_load = 10; // kOhm
+        const R_series = 1; // kOhm
+        const V_diode_drop = 0.7; // افت ولتاژ دیود
+
+        // بوم‌ها
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasIN = document.getElementById('scopeIN');
+        const ctxIN = canvasIN.getContext('2d');
+        const canvasOUT = document.getElementById('scopeOUT');
+        const ctxOUT = canvasOUT.getContext('2d');
+
+        // رویدادهای اسلایدر و دکمه‌ها
+        document.getElementById('slider-vin').addEventListener('input', (e) => {
+            Vin_peak = parseFloat(e.target.value);
+            document.getElementById('val-vin').innerText = Vin_peak + ' V';
+        });
+        document.getElementById('slider-vbias').addEventListener('input', (e) => {
+            V_bias = parseFloat(e.target.value);
+            document.getElementById('val-vbias').innerText = V_bias + ' V';
+        });
+        document.getElementById('slider-freq').addEventListener('input', (e) => {
+            freqAC = parseFloat(e.target.value);
+            document.getElementById('val-freq').innerText = freqAC + ' Hz';
+        });
+        document.getElementById('slider-res').addEventListener('input', (e) => {
+            R_load = parseFloat(e.target.value);
+            document.getElementById('val-res').innerText = R_load + ' kΩ';
+        });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        function setClipMode(mode) {
+            clipMode = mode;
+            document.getElementById('btn-clip-pos').classList.toggle('active', mode === 'pos');
+            document.getElementById('btn-clip-neg').classList.toggle('active', mode === 'neg');
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            const rectIN = canvasIN.parentElement.getBoundingClientRect();
+            canvasIN.width = rectIN.width;
+            canvasIN.height = rectIN.height;
+
+            const rectOUT = canvasOUT.parentElement.getBoundingClientRect();
+            canvasOUT.width = rectOUT.width;
+            canvasOUT.height = rectOUT.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        // آرایه‌های اسیلوسکوپ
+        const inHistory = [];
+        const outHistory = [];
+        const maxHistory = 300;
+
+        // ذرات
+        const particles = [];
+        for (let i = 0; i < 50; i++) {
+            particles.push({
+                progress: Math.random(),
+                branch: (i % 3 === 0) ? 'diode' : 'load'
+            });
+        }
+
+        let time = 0;
+
+        // ================= حلقه اصلی انیمیشن =================
+        function animate() {
+            time += 0.015 * freqAC;
+
+            const V_in_inst = Vin_peak * Math.sin(time * Math.PI * 2);
+
+            let V_out_inst = 0;
+            let isDiodeOn = false;
+            let clipThreshold = 0;
+            let diodeCurrent = 0;
+
+            const V_unclipped = V_in_inst * (R_load / (R_series + R_load));
+
+            if (clipMode === 'pos') {
+                clipThreshold = V_bias + V_diode_drop;
+                if (V_unclipped > clipThreshold) {
+                    isDiodeOn = true;
+                    V_out_inst = clipThreshold;
+                    diodeCurrent = (V_in_inst - clipThreshold) / R_series;
+                } else {
+                    isDiodeOn = false;
+                    V_out_inst = V_unclipped;
+                    diodeCurrent = 0;
+                }
+            } else {
+                clipThreshold = -V_bias - V_diode_drop;
+                if (V_unclipped < clipThreshold) {
+                    isDiodeOn = true;
+                    V_out_inst = clipThreshold;
+                    diodeCurrent = Math.abs((V_in_inst - clipThreshold) / R_series);
+                } else {
+                    isDiodeOn = false;
+                    V_out_inst = V_unclipped;
+                    diodeCurrent = 0;
+                }
+            }
+
+            // بروزرسانی UI
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+
+            if (isDiodeOn) {
+                dot.className = 'status-dot on';
+                txt.innerText = 'وضعیت دیود: روشن (در حال برش موج)';
+            } else {
+                dot.className = 'status-dot off';
+                txt.innerText = 'وضعیت دیود: خاموش (عبور موج)';
+            }
+
+            document.getElementById('m-vin').innerText = V_in_inst.toFixed(2) + ' V';
+            document.getElementById('m-vout').innerText = V_out_inst.toFixed(2) + ' V';
+            document.getElementById('m-clip-level').innerText = (clipThreshold > 0 ? '+' : '') + clipThreshold.toFixed(1) + ' V';
+            document.getElementById('m-diode-i').innerText = diodeCurrent.toFixed(1) + ' mA';
+
+            inHistory.push(V_in_inst);
+            outHistory.push(V_out_inst);
+            if (inHistory.length > maxHistory) inHistory.shift();
+            if (outHistory.length > maxHistory) outHistory.shift();
+
+            drawCircuit(V_in_inst, V_out_inst, isDiodeOn);
+            drawScope(ctxIN, canvasIN, inHistory, 'rgba(79, 172, 254, 1)', null);
+            drawScope(ctxOUT, canvasOUT, outHistory, 'rgba(255, 183, 3, 1)', clipThreshold);
+
+            requestAnimationFrame(animate);
+        }
+
+        // ================= رسم مدار روی Canvas =================
+        function drawCircuit(vin, vout, isDiodeOn) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+
+            const sourceX = w * 0.15;
+            const rsStartX = w * 0.25;
+            const rsEndX = w * 0.45;
+            const diodeX = w * 0.60;
+            const loadX = w * 0.85;
+
+            const topY = h * 0.30;
+            const bottomY = h * 0.70;
+            const midY = (topY + bottomY) / 2;
+
+            // 1. رسم سیم‌های ثابت پایه (خاکستری تیره)
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#334155';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(sourceX, topY); ctx.lineTo(loadX, topY);
+            ctx.moveTo(sourceX, bottomY); ctx.lineTo(loadX, bottomY);
+            ctx.moveTo(sourceX, topY); ctx.lineTo(sourceX, bottomY);
+            ctx.moveTo(diodeX, topY); ctx.lineTo(diodeX, bottomY);
+            ctx.moveTo(loadX, topY); ctx.lineTo(loadX, bottomY);
+            ctx.stroke();
+
+            // 2. هایلایت و تغییر رنگ سیم‌های فعال
+            ctx.lineWidth = 4;
+            if (Math.abs(vin) > 0.2) {
+                if (isDiodeOn) {
+                    // جریان برش از طریق دیود (رنگ قرمز)
+                    ctx.strokeStyle = 'rgba(255, 71, 87, 0.7)';
+                    ctx.shadowColor = '#ff4757';
+                    ctx.shadowBlur = 12;
+                    ctx.beginPath();
+                    ctx.moveTo(sourceX, bottomY);
+                    ctx.lineTo(sourceX, topY);
+                    ctx.lineTo(diodeX, topY);
+                    ctx.lineTo(diodeX, bottomY);
+                    ctx.lineTo(sourceX, bottomY);
+                    ctx.stroke();
+                } else {
+                    // جریان عادی از طریق بار (رنگ فیروزه‌ای برای سیکل مثبت، سبز برای سیکل منفی)
+                    let isForward = (vin > 0);
+                    if (flowMode === 'elec') isForward = !isForward;
+                    
+                    const activeColor = isForward ? 'rgba(0, 242, 254, 0.7)' : 'rgba(46, 213, 115, 0.7)';
+                    ctx.strokeStyle = activeColor;
+                    ctx.shadowColor = isForward ? '#00f2fe' : '#2ed573';
+                    ctx.shadowBlur = 12;
+                    ctx.beginPath();
+                    ctx.moveTo(sourceX, bottomY);
+                    ctx.lineTo(sourceX, topY);
+                    ctx.lineTo(loadX, topY);
+                    ctx.lineTo(loadX, bottomY);
+                    ctx.lineTo(sourceX, bottomY);
+                    ctx.stroke();
+                }
+            }
+            ctx.shadowBlur = 0; // ریست کردن افکت نوری
+
+            // 3. رسم قطعات
+            drawACSource(sourceX, midY, vin);
+            drawResistor(rsStartX, topY, 'مقاومت سری Rs');
+            drawDiodeBranch(diodeX, topY, bottomY, isDiodeOn);
+            drawResistorLoad(loadX, midY, vout);
+
+            drawGround(sourceX, bottomY);
+            drawGround(diodeX, bottomY);
+            drawGround(loadX, bottomY);
+
+            // 4. ذرات
+            drawParticles(vin, isDiodeOn, sourceX, rsStartX, rsEndX, diodeX, loadX, topY, bottomY);
+        }
+
+        function drawACSource(x, y, vInst) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#4facfe';
+            ctx.shadowBlur = Math.abs(vInst); 
+            ctx.beginPath();
+            ctx.arc(x, y, 26, 0, Math.PI * 2);
+            ctx.fill(); ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            ctx.beginPath();
+            ctx.moveTo(x - 12, y);
+            ctx.bezierCurveTo(x - 6, y - 15, x, y - 15, x, y);
+            ctx.bezierCurveTo(x, y + 15, x + 6, y + 15, x + 12, y);
+            ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('AC In', x - 45, y + 4);
+
+            ctx.font = 'bold 16px Segoe UI';
+            if (vInst > 0.5) {
+                ctx.fillStyle = '#ff4757'; ctx.fillText('+', x, y - 35);
+                ctx.fillStyle = '#2ed573'; ctx.fillText('-', x, y + 45);
+            } else if (vInst < -0.5) {
+                ctx.fillStyle = '#2ed573'; ctx.fillText('-', x, y - 35);
+                ctx.fillStyle = '#ff4757'; ctx.fillText('+', x, y + 45);
+            }
+            ctx.restore();
+        }
+
+        function drawResistor(x, y, label) {
+            ctx.save();
+            const w = 40; const h = 12;
+            ctx.translate(x + w/2 + 10, y);
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2.5;
+
+            ctx.beginPath();
+            ctx.moveTo(-w/2 - 10, 0); ctx.lineTo(-w/2, 0);
+            const zigs = 5; const step = w / zigs;
+            for(let i=0; i<zigs; i++) {
+                ctx.lineTo(-w/2 + step*i + step/2, i%2===0 ? -h : h);
+            }
+            ctx.lineTo(w/2, 0); ctx.lineTo(w/2 + 10, 0);
+            ctx.stroke();
+
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '11px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, 0, -20);
+            ctx.restore();
+        }
+
+        function drawResistorLoad(x, y, vOut) {
+            ctx.save();
+            ctx.translate(x, y);
+            const h_res = 40; const w_res = 12;
+
+            ctx.strokeStyle = Math.abs(vOut) > 1 ? '#ffb703' : '#64748b';
+            if (Math.abs(vOut) > 1) {
+                ctx.shadowColor = '#ffb703';
+                ctx.shadowBlur = 10;
+            }
+            ctx.lineWidth = 2.5;
+
+            ctx.beginPath();
+            ctx.moveTo(0, -h_res/2 - 10); ctx.lineTo(0, -h_res/2);
+            const zigs = 5; const step = h_res / zigs;
+            for(let i=0; i<zigs; i++) {
+                ctx.lineTo(i%2===0 ? -w_res : w_res, -h_res/2 + step*i + step/2);
+            }
+            ctx.lineTo(0, h_res/2); ctx.lineTo(0, h_res/2 + 10);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '11px Segoe UI';
+            ctx.textAlign = 'left';
+            ctx.fillText('بار Rl', 15, -10);
+            ctx.fillText(R_load + ' kΩ', 15, 10);
+            ctx.restore();
+        }
+
+        function drawDiodeBranch(x, topY, bottomY, isDiodeOn) {
+            ctx.save();
+            ctx.translate(x, topY + 40);
+            const size = 14;
+            const isPos = (clipMode === 'pos');
+            
+            ctx.fillStyle = isDiodeOn ? '#ff4757' : '#1e293b';
+            ctx.strokeStyle = isDiodeOn ? '#ff4757' : '#64748b';
+            if (isDiodeOn) {
+                ctx.shadowColor = '#ff4757'; ctx.shadowBlur = 15;
+            }
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            if (isPos) { ctx.moveTo(-size, -size); ctx.lineTo(size, -size); ctx.lineTo(0, size); } 
+            else { ctx.moveTo(-size, size); ctx.lineTo(size, size); ctx.lineTo(0, -size); }
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+
+            ctx.beginPath();
+            if (isPos) { ctx.moveTo(-size, size); ctx.lineTo(size, size); } 
+            else { ctx.moveTo(-size, -size); ctx.lineTo(size, -size); }
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.font = '11px Segoe UI';
+            ctx.fillStyle = isDiodeOn ? '#ff4757' : '#94a3b8';
+            ctx.textAlign = 'left';
+            ctx.fillText('دیود', 20, 0);
+            
+            ctx.translate(0, 60);
+            ctx.strokeStyle = '#00f2fe';
+            ctx.lineWidth = 3;
+            
+            ctx.beginPath();
+            if (isPos) {
+                ctx.moveTo(-15, -5); ctx.lineTo(15, -5);
+                ctx.moveTo(-8, 5); ctx.lineTo(8, 5);
+            } else {
+                ctx.moveTo(-8, -5); ctx.lineTo(8, -5);
+                ctx.moveTo(-15, 5); ctx.lineTo(15, 5);
+            }
+            ctx.stroke();
+            ctx.fillStyle = '#00f2fe';
+            ctx.fillText(V_bias + 'V', 20, 0);
+            ctx.restore();
+        }
+
+        function drawGround(x, y) {
+            ctx.save();
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x, y); ctx.lineTo(x, y + 15);
+            ctx.moveTo(x - 12, y + 15); ctx.lineTo(x + 12, y + 15);
+            ctx.moveTo(x - 6, y + 20); ctx.lineTo(x + 6, y + 20);
+            ctx.moveTo(x - 2, y + 25); ctx.lineTo(x + 2, y + 25);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawParticles(vin, isDiodeOn, srcX, rsStartX, rsEndX, diodeX, loadX, topY, bottomY) {
+            const speed = 0.005 + (Math.abs(vin) * 0.001);
+            if (Math.abs(vin) < 0.2) return;
+
+            let isForward = (vin > 0);
+            if (flowMode === 'elec') isForward = !isForward;
+
+            particles.forEach(p => {
+                p.progress += speed;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = [];
+                let pColor = isForward ? '#00f2fe' : '#2ed573';
+
+                const pathLoad = [
+                    {x: srcX, y: bottomY}, {x: srcX, y: topY},
+                    {x: rsStartX, y: topY}, {x: rsEndX, y: topY},
+                    {x: diodeX, y: topY}, {x: loadX, y: topY},
+                    {x: loadX, y: bottomY}, {x: diodeX, y: bottomY},
+                    {x: srcX, y: bottomY}
+                ];
+
+                const pathDiode = [
+                    {x: srcX, y: bottomY}, {x: srcX, y: topY},
+                    {x: rsStartX, y: topY}, {x: rsEndX, y: topY},
+                    {x: diodeX, y: topY}, {x: diodeX, y: bottomY},
+                    {x: srcX, y: bottomY}
+                ];
+
+                if (p.branch === 'diode') {
+                    if (isDiodeOn) {
+                        path = pathDiode;
+                        pColor = '#ff4757'; 
+                    } else {
+                        path = pathLoad;
+                    }
+                } else {
+                    path = pathLoad;
+                }
+
+                if (!isForward) path = [...path].reverse();
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
+                    ctx.fillStyle = pColor;
+                    ctx.shadowColor = pColor;
+                    ctx.shadowBlur = 8;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0;
+            const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i + 1].x - points[i].x;
+                const dy = points[i + 1].y - points[i].y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                lengths.push(len);
+                totalLen += len;
+            }
+
+            let targetLen = t * totalLen;
+            let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segmentT = (targetLen - currentLen) / lengths[i];
+                    const p1 = points[i];
+                    const p2 = points[i + 1];
+                    return { x: p1.x + (p2.x - p1.x) * segmentT, y: p1.y + (p2.y - p1.y) * segmentT };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        function drawScope(context, canvasObj, data, lineColor, clipLevel) {
+            const w = canvasObj.width; const h = canvasObj.height;
+            context.clearRect(0, 0, w, h);
+
+            context.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            context.lineWidth = 1;
+            context.beginPath();
+            for (let x = 0; x < w; x += 20) { context.moveTo(x, 0); context.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { context.moveTo(0, y); context.lineTo(w, y); }
+            context.stroke();
+
+            const midY = h / 2;
+            context.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            context.beginPath();
+            context.moveTo(0, midY); context.lineTo(w, midY);
+            context.stroke();
+
+            if (clipLevel !== null) {
+                const clipY = midY - (clipLevel / 20) * (h / 2);
+                if(clipY > 0 && clipY < h) {
+                    context.strokeStyle = 'rgba(255, 71, 87, 0.5)';
+                    context.setLineDash([4, 4]);
+                    context.beginPath();
+                    context.moveTo(0, clipY); context.lineTo(w, clipY);
+                    context.stroke();
+                    context.setLineDash([]);
+                }
+            }
+
+            context.strokeStyle = lineColor;
+            context.lineWidth = 2.5;
+            context.beginPath();
+
+            const step = w / maxHistory;
+            for (let i = 0; i < data.length; i++) {
+                const x = i * step;
+                const y = midY - (data[i] / 20) * (h / 2);
+                if (i === 0) context.moveTo(x, y);
+                else context.lineTo(x, y);
+            }
+            context.stroke();
+        }
+
+        requestAnimationFrame(animate);
+
+    </script>
+</body>
+</html>

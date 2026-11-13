@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Uninterruptible Power Supply (UPS) Simulator</title>
+    <style>
+        /* --- Golden Template Styles --- */
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; overflow-x: hidden; }
+        header { text-align: center; margin-bottom: 20px; }
+        header h1 { font-size: 1.8rem; color: var(--accent-cyan); margin-bottom: 6px; text-shadow: 0 0 12px rgba(0, 242, 254, 0.3); }
+        header p { font-size: 0.95rem; color: #94a3b8; }
+        .main-container { display: grid; grid-template-columns: 320px 1fr; gap: 20px; width: 100%; max-width: 1300px; }
+        @media (max-width: 950px) { .main-container { grid-template-columns: 1fr; } }
+        .glass-panel { background: var(--panel-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        .controls-sidebar { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { display: flex; flex-direction: column; gap: 6px; }
+        .control-group label { font-size: 0.85rem; display: flex; justify-content: space-between; color: #cbd5e1; }
+        .control-group label span.val { color: var(--accent-cyan); font-weight: bold; direction: ltr; }
+        input[type="range"] { appearance: none; width: 100%; height: 6px; background: #1e293b; border-radius: 3px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent-cyan); cursor: pointer; box-shadow: 0 0 8px var(--accent-cyan); transition: transform 0.1s; }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+        .toggle-group { display: flex; background: #1e293b; border-radius: 8px; padding: 3px; gap: 4px; }
+        .toggle-btn { flex: 1; padding: 8px; border: none; background: transparent; color: #94a3b8; font-size: 0.82rem; border-radius: 6px; cursor: pointer; transition: all 0.3s; }
+        .toggle-btn.active { background: var(--accent-cyan); color: #0f172a; font-weight: bold; }
+        .toggle-btn.alert.active { background: var(--accent-red); color: #fff; box-shadow: 0 0 10px var(--accent-red); }
+        .simulation-area { display: flex; flex-direction: column; gap: 20px; }
+        .canvas-container { position: relative; width: 100%; height: 440px; background: rgba(10, 15, 29, 0.6); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
+        canvas { width: 100%; height: 100%; display: block; }
+        .scopes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 650px) { .scopes-grid { grid-template-columns: 1fr; } }
+        .scope-card { background: rgba(15, 23, 42, 0.8); border-radius: 10px; padding: 12px; border: 1px solid rgba(255, 255, 255, 0.08); }
+        .scope-card h3 { font-size: 0.85rem; margin-bottom: 8px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
+        .scope-card h3::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+        .scope-pwm h3::before { background: var(--accent-cyan); }
+        .scope-out h3::before { background: var(--accent-gold); }
+        .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 5px; }
+        .metric-card { background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .metric-card .title { font-size: 0.75rem; color: #64748b; margin-bottom: 4px; }
+        .metric-card .val { font-size: 1.05rem; font-weight: bold; color: var(--accent-cyan); direction: ltr; }
+        .state-indicator { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; background: rgba(255,255,255,0.04); border-radius: 8px; font-size: 0.85rem; font-weight: bold; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #64748b; }
+        .status-dot.on { background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
+        .status-dot.batt { background: var(--accent-gold); box-shadow: 0 0 10px var(--accent-gold); }
+        .status-dot.off { background: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="txt-title">Uninterruptible Power Supply (UPS) Simulator</h1>
+        <p id="txt-subtitle">Analysis of Inverter, Battery Charger & Transfer Relay during Power Outage</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Control Panel -->
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group" style="display: none;">
+                <label id="lbl-lang">Language / زبان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn lang-btn" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی</button>
+                    <button class="toggle-btn lang-btn active" id="btn-lang-en" onclick="setLanguage('en')">English</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-flow">Current Flow:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">Conventional (+ to -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">Electron (- to +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-grid">Grid Power Status:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-grid-on" onclick="setGridState(true)">Connected (Normal)</button>
+                    <button class="toggle-btn alert" id="btn-grid-off" onclick="setGridState(false)">Power Outage</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-loadpwr">Load Power Demand:</span> <span class="val" id="val-load">500 W</span></label>
+                <input type="range" id="slider-load" min="100" max="2000" value="500" step="50">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-battcap">Battery Capacity (AH):</span> <span class="val" id="val-battcap">100 AH</span></label>
+                <input type="range" id="slider-battcap" min="20" max="200" value="100" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-battlvl">Initial Battery Charge:</span> <span class="val" id="val-battlvl">80 %</span></label>
+                <input type="range" id="slider-battlvl" min="0" max="100" value="80" step="1">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">State: Line Mode (Grid Powering Load)</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title" id="lbl-vload">Load Voltage (V_AC)</div>
+                    <div class="val" id="m-vload">220 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-bcharge">Battery Level (%)</div>
+                    <div class="val" id="m-bcharge">80.0 %</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-ipwr">Inverter Status</div>
+                    <div class="val" style="color:var(--accent-gold)" id="m-ipwr">Standby</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-btime">Est. Backup Time</div>
+                    <div class="val" style="color:var(--accent-green)" id="m-btime">~ 1.5 Hr</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Simulation Area & Oscilloscopes -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-pwm">
+                    <h3 id="lbl-scope-grid">Grid AC Waveform</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopePWM"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-out">
+                    <h3 id="lbl-scope-load">Load AC Waveform</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeOUT"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Bilingual Dictionary according to Golden Rule
+        const i18n = {
+            fa: {
+                title: "شبیه‌ساز منبع تغذیه بدون وقفه (UPS)",
+                subtitle: "تحلیل عملکرد اینورتر، شارژر باتری و رله انتقال در زمان قطع برق",
+                flowLabel: "نوع جریان:",
+                convFlow: "قراردادی (+ به -)",
+                elecFlow: "الکترونی (- به +)",
+                gridLabel: "وضعیت برق شبکه (Grid):",
+                gridOn: "متصل (Normal)",
+                gridOff: "قطع برق (Outage)",
+                loadPwrLabel: "توان مصرفی بار (Load):",
+                battCapLabel: "ظرفیت باتری (AH):",
+                battLvlLabel: "شارژ اولیه باتری:",
+                statusLine: "حالت: Line Mode (تغذیه از برق شهر)",
+                statusBatt: "حالت: Battery Mode (تغذیه از اینورتر)",
+                statusFail: "حالت: خاموش (باتری خالی شد!)",
+                vLoadLabel: "ولتاژ بار (V_AC)",
+                bChargeLabel: "درصد باتری",
+                iPwrLabel: "وضعیت اینورتر",
+                bTimeLabel: "زمان تخمینی بک‌آپ",
+                scopeGrid: "شکل موج برق شهر (Grid AC)",
+                scopeLoad: "شکل موج تحویلی به بار (Load AC)",
+                rectName: "یکسوکننده",
+                invName: "اینورتر",
+                battName: "باتری",
+                relayName: "رله انتقال",
+                loadName: "بار AC"
+            },
+            en: {
+                title: "Uninterruptible Power Supply (UPS) Simulator",
+                subtitle: "Analysis of Inverter, Battery Charger & Transfer Relay during Power Outage",
+                flowLabel: "Current Flow:",
+                convFlow: "Conventional (+ to -)",
+                elecFlow: "Electron (- to +)",
+                gridLabel: "Grid Power Status:",
+                gridOn: "Connected (Normal)",
+                gridOff: "Power Outage",
+                loadPwrLabel: "Load Power Demand:",
+                battCapLabel: "Battery Capacity (AH):",
+                battLvlLabel: "Initial Battery Charge:",
+                statusLine: "State: Line Mode (Grid Powering Load)",
+                statusBatt: "State: Battery Mode (Inverter Active)",
+                statusFail: "State: System OFF (Battery Dead!)",
+                vLoadLabel: "Load Voltage (V_AC)",
+                bChargeLabel: "Battery Level (%)",
+                iPwrLabel: "Inverter Status",
+                bTimeLabel: "Est. Backup Time",
+                scopeGrid: "Grid AC Waveform",
+                scopeLoad: "Load AC Waveform",
+                rectName: "Rectifier",
+                invName: "Inverter",
+                battName: "Battery",
+                relayName: "Transfer Relay",
+                loadName: "AC Load"
+            }
+        };
+
+        let currentLang = 'en';
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('lang') === 'fa') currentLang = 'fa';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+            
+            const t = i18n[lang];
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('lbl-flow').innerText = t.flowLabel;
+            document.getElementById('btn-conv').innerText = t.convFlow;
+            document.getElementById('btn-elec').innerText = t.elecFlow;
+            document.getElementById('lbl-grid').innerText = t.gridLabel;
+            document.getElementById('btn-grid-on').innerText = t.gridOn;
+            document.getElementById('btn-grid-off').innerText = t.gridOff;
+            document.getElementById('lbl-loadpwr').innerText = t.loadPwrLabel;
+            document.getElementById('lbl-battcap').innerText = t.battCapLabel;
+            document.getElementById('lbl-battlvl').innerText = t.battLvlLabel;
+            document.getElementById('lbl-vload').innerText = t.vLoadLabel;
+            document.getElementById('lbl-bcharge').innerText = t.bChargeLabel;
+            document.getElementById('lbl-ipwr').innerText = t.iPwrLabel;
+            document.getElementById('lbl-btime').innerText = t.bTimeLabel;
+            document.getElementById('lbl-scope-grid').innerText = t.scopeGrid;
+            document.getElementById('lbl-scope-load').innerText = t.scopeLoad;
+        }
+
+        // Circuit Physical Variables
+        let flowMode = 'conv';
+        let isGridOn = true;
+        let loadPower = 500; // Watts
+        let battCapacity = 100; // AH
+        let battLevel = 80; // %
+        
+        const gridVoltageRMS = 220;
+        const gridFreq = 50;
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasPWM = document.getElementById('scopePWM');
+        const ctxPWM = canvasPWM.getContext('2d');
+        const canvasOUT = document.getElementById('scopeOUT');
+        const ctxOUT = canvasOUT.getContext('2d');
+
+        // UI Controls
+        document.getElementById('slider-load').addEventListener('input', (e) => { loadPower = parseFloat(e.target.value); document.getElementById('val-load').innerText = loadPower + ' W'; });
+        document.getElementById('slider-battcap').addEventListener('input', (e) => { battCapacity = parseFloat(e.target.value); document.getElementById('val-battcap').innerText = battCapacity + ' AH'; });
+        document.getElementById('slider-battlvl').addEventListener('input', (e) => { battLevel = parseFloat(e.target.value); document.getElementById('val-battlvl').innerText = battLevel + ' %'; });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        function setGridState(state) {
+            isGridOn = state;
+            document.getElementById('btn-grid-on').classList.toggle('active', state);
+            document.getElementById('btn-grid-off').classList.toggle('active', !state);
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width; canvas.height = rect.height;
+            const rectPWM = canvasPWM.parentElement.getBoundingClientRect();
+            canvasPWM.width = rectPWM.width; canvasPWM.height = rectPWM.height;
+            const rectOUT = canvasOUT.parentElement.getBoundingClientRect();
+            canvasOUT.width = rectOUT.width; canvasOUT.height = rectOUT.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        const gridHistory = [];
+        const loadHistory = [];
+        const maxHistory = 300;
+
+        const particles = [];
+        for (let i = 0; i < 50; i++) particles.push({ progress: Math.random() });
+
+        let time = 0;
+
+        function animate() {
+            time += 0.05; // Simulation wave speed
+
+            // Generate AC Waveform
+            const instGridWave = isGridOn ? Math.sin(time) * gridVoltageRMS * 1.414 : 0;
+            
+            let loadPowered = false;
+            let instLoadWave = 0;
+
+            // UPS Logic
+            if (isGridOn) {
+                // Line Mode
+                loadPowered = true;
+                instLoadWave = instGridWave;
+                if (battLevel < 100) battLevel += 0.05; // Charge battery
+            } else {
+                // Battery Mode
+                if (battLevel > 0) {
+                    loadPowered = true;
+                    instLoadWave = Math.sin(time) * gridVoltageRMS * 1.414; // Inverter generates AC wave
+                    // Discharge battery proportionally to load
+                    const dischargeRate = (loadPower / (battCapacity * 12)) * 0.1; 
+                    battLevel -= dischargeRate;
+                } else {
+                    battLevel = 0;
+                    loadPowered = false;
+                }
+            }
+
+            // Update UI
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const t = i18n[currentLang];
+
+            if (isGridOn) {
+                dot.className = 'status-dot on'; txt.innerText = t.statusLine;
+                document.getElementById('m-ipwr').innerText = 'Standby / Charging';
+                document.getElementById('m-ipwr').style.color = 'var(--accent-cyan)';
+            } else if (battLevel > 0) {
+                dot.className = 'status-dot batt'; txt.innerText = t.statusBatt;
+                document.getElementById('m-ipwr').innerText = 'Active (' + loadPower + 'W)';
+                document.getElementById('m-ipwr').style.color = 'var(--accent-gold)';
+            } else {
+                dot.className = 'status-dot off'; txt.innerText = t.statusFail;
+                document.getElementById('m-ipwr').innerText = 'OFF (Dead Batt)';
+                document.getElementById('m-ipwr').style.color = 'var(--accent-red)';
+            }
+
+            document.getElementById('m-vload').innerText = loadPowered ? '220 V' : '0 V';
+            document.getElementById('m-bcharge').innerText = battLevel.toFixed(1) + ' %';
+            
+            if (battLevel > 0) {
+                const hours = (battLevel/100) * (battCapacity * 12) / loadPower; // Backup formula
+                document.getElementById('m-btime').innerText = '~ ' + hours.toFixed(1) + ' Hr';
+            } else {
+                document.getElementById('m-btime').innerText = '0.0 Hr';
+            }
+
+            // Save Oscilloscope History
+            gridHistory.push(instGridWave);
+            loadHistory.push(instLoadWave);
+            if (gridHistory.length > maxHistory) gridHistory.shift();
+            if (loadHistory.length > maxHistory) loadHistory.shift();
+
+            drawCircuit(isGridOn, loadPowered, battLevel);
+            drawScopes();
+
+            requestAnimationFrame(animate);
+        }
+
+        // --- Draw Circuit According to Golden Rule ---
+        function drawCircuit(isGrid, isLoadPowered, bLvl) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width; const h = canvas.height;
+
+            const gridX = w * 0.12;
+            const rectX = w * 0.35;
+            const invX = w * 0.60;
+            const relayX = w * 0.78;
+            const loadX = w * 0.92;
+            
+            const topY = h * 0.30;   // Bypass line
+            const midY = h * 0.55;   // UPS core (Rect, Batt, Inv)
+            const bottomY = h * 0.85; // Ground/Neutral
+            
+            const battY = h * 0.75;  // Battery sits below core
+            const coreCenter = (rectX + invX) / 2;
+
+            // 1. Base Wiring (Dark Gray)
+            ctx.lineWidth = 3; ctx.strokeStyle = '#334155'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            
+            // Bypass (Grid to Relay)
+            ctx.beginPath(); ctx.moveTo(gridX, topY); ctx.lineTo(relayX, topY); ctx.stroke();
+            
+            // Neutral (Grid to Load bottom)
+            ctx.beginPath(); ctx.moveTo(gridX, bottomY); ctx.lineTo(loadX, bottomY); ctx.stroke();
+            
+            // Grid to Rectifier
+            ctx.beginPath(); ctx.moveTo(gridX, topY); ctx.lineTo(gridX, midY); ctx.lineTo(rectX, midY); ctx.stroke();
+            
+            // Rectifier to Inverter
+            ctx.beginPath(); ctx.moveTo(rectX, midY); ctx.lineTo(invX, midY); ctx.stroke();
+            
+            // Inverter to Relay
+            ctx.beginPath(); ctx.moveTo(invX, midY); ctx.lineTo(relayX, midY); ctx.stroke();
+            
+            // Relay to Load
+            ctx.beginPath(); ctx.moveTo(relayX, (topY+midY)/2); ctx.lineTo(loadX, (topY+midY)/2); ctx.lineTo(loadX, bottomY); ctx.stroke();
+
+            // Battery connection
+            ctx.beginPath(); ctx.moveTo(coreCenter, midY); ctx.lineTo(coreCenter, battY); ctx.stroke();
+
+            // 2. Active Path Highlight
+            ctx.lineWidth = 4;
+            if (isGrid) {
+                // Line Mode: Grid -> Bypass -> Load & Grid -> Rectifier -> Battery
+                ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)';
+                ctx.beginPath(); 
+                ctx.moveTo(gridX, bottomY); ctx.lineTo(gridX, topY); ctx.lineTo(relayX, topY); // Bypass
+                ctx.moveTo(relayX, topY); ctx.lineTo(relayX, (topY+midY)/2); ctx.lineTo(loadX, (topY+midY)/2); ctx.lineTo(loadX, bottomY); // To Load
+                ctx.stroke();
+
+                if (bLvl < 100) { // Charging path
+                    ctx.strokeStyle = 'rgba(46, 213, 115, 0.6)';
+                    ctx.beginPath(); ctx.moveTo(gridX, topY); ctx.lineTo(gridX, midY); ctx.lineTo(rectX, midY); ctx.lineTo(coreCenter, midY); ctx.lineTo(coreCenter, battY); ctx.stroke();
+                }
+            } else if (isLoadPowered) {
+                // Battery Mode: Battery -> Inverter -> Relay -> Load
+                ctx.strokeStyle = 'rgba(255, 183, 3, 0.6)';
+                ctx.beginPath();
+                ctx.moveTo(coreCenter, battY); ctx.lineTo(coreCenter, midY); ctx.lineTo(invX, midY); ctx.lineTo(relayX, midY);
+                ctx.moveTo(relayX, midY); ctx.lineTo(relayX, (topY+midY)/2); ctx.lineTo(loadX, (topY+midY)/2); ctx.lineTo(loadX, bottomY);
+                ctx.stroke();
+            }
+
+            // 3. Draw Elements
+            drawACSource(gridX, (topY+bottomY)/2, isGrid);
+            drawPowerBlock(rectX, midY, '~', '=', i18n[currentLang].rectName, isGrid && bLvl < 100);
+            drawPowerBlock(invX, midY, '=', '~', i18n[currentLang].invName, !isGrid && isLoadPowered);
+            drawBattery(coreCenter, battY, bLvl);
+            drawRelay(relayX, topY, midY, isGrid);
+            drawLoad(loadX, (topY+bottomY)/2, isLoadPowered);
+
+            // 4. Moving Particles
+            drawParticles(isGrid, isLoadPowered, bLvl, gridX, rectX, coreCenter, invX, relayX, loadX, topY, midY, bottomY, battY);
+        }
+
+        function drawACSource(x, y, isOn) {
+            ctx.save(); ctx.fillStyle = '#0f172a'; ctx.strokeStyle = isOn ? '#00f2fe' : '#64748b'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(x, y, 26, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.strokeStyle = isOn ? '#00f2fe' : '#64748b';
+            ctx.beginPath(); // Sine wave icon
+            ctx.moveTo(x - 12, y); ctx.bezierCurveTo(x - 6, y - 15, x, y - 15, x, y); ctx.bezierCurveTo(x, y + 15, x + 6, y + 15, x + 12, y); ctx.stroke();
+            ctx.fillStyle = '#94a3b8'; ctx.font = '12px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('Grid AC', x - 45, y + 4); ctx.restore();
+        }
+
+        function drawPowerBlock(x, y, inSym, outSym, label, isActive) {
+            ctx.save(); ctx.translate(x, y);
+            const color = isActive ? (outSym === '=' ? '#2ed573' : '#ffb703') : '#64748b';
+            ctx.fillStyle = isActive ? (outSym === '=' ? 'rgba(46,213,115,0.1)' : 'rgba(255,183,3,0.1)') : '#1e293b';
+            ctx.strokeStyle = color; ctx.lineWidth = 2;
+            
+            ctx.beginPath(); ctx.rect(-25, -20, 50, 40); ctx.fill(); ctx.stroke();
+            
+            ctx.beginPath(); ctx.moveTo(-25, 20); ctx.lineTo(25, -20); ctx.stroke(); // Diagonal line
+            
+            ctx.font = 'bold 16px Segoe UI'; ctx.fillStyle = color;
+            ctx.fillText(inSym, -12, -4); ctx.fillText(outSym, 12, 12);
+            
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center';
+            ctx.fillText(label, 0, 35);
+            ctx.restore();
+        }
+
+        function drawBattery(x, y, level) {
+            ctx.save(); ctx.translate(x, y);
+            ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 2;
+            
+            // Body
+            ctx.fillRect(-20, -15, 40, 30); ctx.strokeRect(-20, -15, 40, 30);
+            // Terminals
+            ctx.fillRect(-10, -20, 8, 5); ctx.fillRect(2, -20, 8, 5);
+            
+            // Level indicator
+            const fillW = (level / 100) * 36;
+            let fillColor = '#2ed573';
+            if (level < 50) fillColor = '#ffb703';
+            if (level < 20) fillColor = '#ff4757';
+            
+            ctx.fillStyle = fillColor;
+            ctx.fillRect(-18, -13, fillW, 26);
+            
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].battName, 0, 30);
+            ctx.restore();
+        }
+
+        function drawRelay(x, topY, midY, isGrid) {
+            ctx.save(); ctx.translate(x, (topY+midY)/2);
+            
+            ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.setLineDash([4,4]);
+            ctx.moveTo(-15, -40); ctx.lineTo(-15, 40); ctx.lineTo(15, 40); ctx.lineTo(15, -40); ctx.closePath(); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Contacts
+            ctx.fillStyle = '#e2e8f0';
+            ctx.beginPath(); ctx.arc(0, -25, 4, 0, Math.PI*2); ctx.fill(); // Top contact
+            ctx.beginPath(); ctx.arc(0, 25, 4, 0, Math.PI*2); ctx.fill(); // Bottom contact
+            ctx.beginPath(); ctx.arc(15, 0, 4, 0, Math.PI*2); ctx.fill(); // Output contact
+            
+            // Switch Arm
+            ctx.strokeStyle = isGrid ? '#00f2fe' : '#ffb703'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(15, 0); 
+            ctx.lineTo(0, isGrid ? -25 : 25); ctx.stroke();
+
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].relayName, 0, 55);
+            ctx.restore();
+        }
+
+        function drawLoad(x, y, isPowered) {
+            ctx.save(); ctx.translate(x, y);
+            ctx.fillStyle = '#1e293b'; ctx.strokeStyle = isPowered ? '#00f2fe' : '#64748b'; ctx.lineWidth = 2.5;
+            
+            if(isPowered) { ctx.shadowColor = '#00f2fe'; ctx.shadowBlur = 15; }
+            
+            ctx.beginPath(); ctx.moveTo(0, -25); ctx.lineTo(15, 0); ctx.lineTo(0, 25); ctx.lineTo(-15, 0); ctx.closePath();
+            ctx.fill(); ctx.stroke();
+            ctx.shadowBlur = 0;
+            
+            ctx.font = '12px Segoe UI'; ctx.fillStyle = '#e2e8f0'; ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].loadName, 0, 45);
+            ctx.restore();
+        }
+
+        function drawParticles(isGrid, isLoadPowered, bLvl, gridX, rectX, coreC, invX, relayX, loadX, topY, midY, bottomY, battY) {
+            const speed = 0.008;
+            particles.forEach(p => {
+                p.progress += speed;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = []; let pColor = '#64748b';
+
+                if (isGrid) {
+                    // Particles split between Bypass and Charger
+                    if (p.progress < 0.5 || bLvl >= 100) {
+                        pColor = '#00f2fe'; // Bypass to load
+                        path = [{x:gridX,y:bottomY}, {x:gridX,y:topY}, {x:relayX,y:topY}, {x:relayX,y:(topY+midY)/2}, {x:loadX,y:(topY+midY)/2}, {x:loadX,y:bottomY}, {x:gridX,y:bottomY}];
+                    } else {
+                        pColor = '#2ed573'; // Charger to battery
+                        path = [{x:gridX,y:bottomY}, {x:gridX,y:topY}, {x:gridX,y:midY}, {x:coreC,y:midY}, {x:coreC,y:battY}];
+                    }
+                } else if (isLoadPowered) {
+                    pColor = '#ffb703'; // Battery to Load
+                    path = [{x:coreC,y:battY}, {x:coreC,y:midY}, {x:relayX,y:midY}, {x:relayX,y:(topY+midY)/2}, {x:loadX,y:(topY+midY)/2}, {x:loadX,y:bottomY}, {x:gridX,y:bottomY}]; 
+                } else return;
+
+                if (flowMode === 'elec') path.reverse();
+
+                const t = (p.progress * 2) % 1;
+                const pt = getPointAlongPath(path, t);
+                if (pt) {
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = pColor; ctx.shadowColor = pColor; ctx.shadowBlur = 8;
+                    ctx.fill(); ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0; const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i+1].x - points[i].x; const dy = points[i+1].y - points[i].y;
+                const len = Math.sqrt(dx*dx + dy*dy); lengths.push(len); totalLen += len;
+            }
+            let targetLen = t * totalLen; let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segT = (targetLen - currentLen) / lengths[i];
+                    return { x: points[i].x + (points[i+1].x - points[i].x)*segT, y: points[i].y + (points[i+1].y - points[i].y)*segT };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length-1];
+        }
+
+        function drawScopes() {
+            // Scope 1: Grid
+            const w1 = canvasPWM.width; const h1 = canvasPWM.height;
+            ctxPWM.clearRect(0, 0, w1, h1); drawGrid(ctxPWM, w1, h1);
+            
+            ctxPWM.strokeStyle = isGridOn ? '#00f2fe' : '#64748b'; ctxPWM.lineWidth = 2; ctxPWM.beginPath();
+            const step1 = w1 / maxHistory;
+            for (let i = 0; i < gridHistory.length; i++) {
+                const x = i * step1;
+                const y = (h1/2) - (gridHistory[i] / 400) * (h1/2 * 0.8);
+                if (i===0) ctxPWM.moveTo(x, y); else ctxPWM.lineTo(x, y);
+            }
+            ctxPWM.stroke();
+
+            // Scope 2: Load
+            const w2 = canvasOUT.width; const h2 = canvasOUT.height;
+            ctxOUT.clearRect(0, 0, w2, h2); drawGrid(ctxOUT, w2, h2);
+            
+            ctxOUT.strokeStyle = (isGridOn || battLevel > 0) ? (isGridOn ? '#00f2fe' : '#ffb703') : '#64748b'; 
+            ctxOUT.lineWidth = 2.5; ctxOUT.beginPath();
+            const step2 = w2 / maxHistory;
+            for (let i = 0; i < loadHistory.length; i++) {
+                const x = i * step2;
+                const y = (h2/2) - (loadHistory[i] / 400) * (h2/2 * 0.8);
+                if (i===0) ctxOUT.moveTo(x, y); else ctxOUT.lineTo(x, y);
+            }
+            ctxOUT.stroke();
+        }
+
+        function drawGrid(ctx, w, h) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1; ctx.beginPath();
+            for (let x=0; x<w; x+=20) { ctx.moveTo(x,0); ctx.lineTo(x,h); }
+            for (let y=0; y<h; y+=20) { ctx.moveTo(0,y); ctx.lineTo(w,y); }
+            ctx.stroke();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.setLineDash([4, 4]);
+            ctx.beginPath(); ctx.moveTo(0, h/2); ctx.lineTo(w, h/2); ctx.stroke(); ctx.setLineDash([]);
+        }
+
+        setLanguage(currentLang);
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

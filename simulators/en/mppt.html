@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Solar Maximum Power Point Tracking (MPPT) Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; overflow-x: hidden; }
+        header { text-align: center; margin-bottom: 20px; }
+        header h1 { font-size: 1.8rem; color: var(--accent-cyan); margin-bottom: 6px; text-shadow: 0 0 12px rgba(0, 242, 254, 0.3); }
+        header p { font-size: 0.95rem; color: #94a3b8; }
+        .main-container { display: grid; grid-template-columns: 320px 1fr; gap: 20px; width: 100%; max-width: 1300px; }
+        @media (max-width: 950px) { .main-container { grid-template-columns: 1fr; } }
+        .glass-panel { background: var(--panel-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        .controls-sidebar { display: flex; flex-direction: column; gap: 16px; }
+        .control-group { display: flex; flex-direction: column; gap: 6px; }
+        .control-group label { font-size: 0.85rem; display: flex; justify-content: space-between; color: #cbd5e1; }
+        .control-group label span.val { color: var(--accent-cyan); font-weight: bold; direction: ltr; }
+        input[type="range"] { appearance: none; width: 100%; height: 6px; background: #1e293b; border-radius: 3px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent-cyan); cursor: pointer; box-shadow: 0 0 8px var(--accent-cyan); transition: transform 0.1s; }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+        .toggle-group { display: flex; background: #1e293b; border-radius: 8px; padding: 3px; gap: 4px; }
+        .toggle-btn { flex: 1; padding: 8px; border: none; background: transparent; color: #94a3b8; font-size: 0.82rem; border-radius: 6px; cursor: pointer; transition: all 0.3s; }
+        .toggle-btn.active { background: var(--accent-cyan); color: #0f172a; font-weight: bold; }
+        
+        .action-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 71, 87, 0.15);
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+            font-weight: bold;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        .action-btn:hover {
+            background: var(--accent-red);
+            color: #fff;
+            box-shadow: 0 0 15px rgba(255, 71, 87, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .simulation-area { display: flex; flex-direction: column; gap: 20px; }
+        .canvas-container { position: relative; width: 100%; height: 440px; background: rgba(10, 15, 29, 0.6); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
+        canvas { width: 100%; height: 100%; display: block; }
+        .scopes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 650px) { .scopes-grid { grid-template-columns: 1fr; } }
+        .scope-card { background: rgba(15, 23, 42, 0.8); border-radius: 10px; padding: 12px; border: 1px solid rgba(255, 255, 255, 0.08); }
+        .scope-card h3 { font-size: 0.85rem; margin-bottom: 8px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
+        .scope-card h3::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+        .scope-pwm h3::before { background: var(--accent-cyan); }
+        .scope-out h3::before { background: var(--accent-gold); }
+        .metrics-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 5px; }
+        .metric-card { background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .metric-card .title { font-size: 0.75rem; color: #64748b; margin-bottom: 4px; }
+        .metric-card .val { font-size: 1.05rem; font-weight: bold; color: var(--accent-cyan); direction: ltr; }
+        .state-indicator { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px; background: rgba(255,255,255,0.04); border-radius: 8px; font-size: 0.85rem; font-weight: bold; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #64748b; }
+        .status-dot.on { background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
+        .status-dot.tracking { background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green); }
+        .status-dot.full { background: var(--accent-gold); box-shadow: 0 0 10px var(--accent-gold); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="txt-title">Solar Maximum Power Point Tracking (MPPT) Simulator</h1>
+        <p id="txt-subtitle">P&O Algorithm Simulation + Overcharge Protection + Auto Charge/Cut-off Cycle</p>
+    </header>
+
+    <div class="main-container">
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group" style="display: none;">
+                <label id="lbl-lang">Language / زبان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn lang-btn active" id="btn-lang-en" onclick="setLanguage('en')">English</button>
+                    <button class="toggle-btn lang-btn" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-flow">Current Flow:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">Conventional (+ to -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">Electron (- to +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-mode">MPPT Mode:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-auto" onclick="setMpptMode(true)">Auto (P&O)</button>
+                    <button class="toggle-btn" id="btn-manual" onclick="setMpptMode(false)">Manual (D)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-irrad">Solar Irradiance (G):</span> <span class="val" id="val-irrad">800 W/m²</span></label>
+                <input type="range" id="slider-irrad" min="100" max="1000" value="800" step="50">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-speed">Charge / Discharge Speed:</span> <span class="val" id="val-speed">20 x</span></label>
+                <input type="range" id="slider-speed" min="1" max="60" value="20" step="1">
+            </div>
+
+            <div class="control-group" id="group-manual-d" style="opacity: 0.5; pointer-events: none;">
+                <label><span id="lbl-duty">Manual Duty Cycle (D):</span> <span class="val" id="val-duty">50 %</span></label>
+                <input type="range" id="slider-duty" min="10" max="90" value="50" step="1">
+            </div>
+
+            <button class="action-btn" id="btn-discharge" onclick="dischargeBattery()">
+                ⚡ Instant Battery Discharge (0%)
+            </button>
+
+            <div class="state-indicator">
+                <div class="status-dot tracking" id="status-dot"></div>
+                <span id="status-text">State: Tracking MPP Peak...</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title" id="lbl-p-pv">Solar Power (P_pv)</div>
+                    <div class="val" style="color:var(--accent-gold)" id="m-ppv">0.0 W</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-v-pv">Panel Voltage (V_pv)</div>
+                    <div class="val" id="m-vpv">0.0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-eff">MPPT Efficiency</div>
+                    <div class="val" id="m-eff">0.0 %</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-batt">Battery Charge (%)</div>
+                    <div class="val" style="color:var(--accent-green)" id="m-batt">10.0 %</div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-pwm">
+                    <h3 id="lbl-scope-pv">P-V Curve & Active Operating Point (MPP Tracking)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopePV"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-out">
+                    <h3 id="lbl-scope-duty">Duty Cycle & Power Tracking History (Duty Cycle)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeDuty"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const i18n = {
+            fa: {
+                title: "شبیه‌ساز ردیاب نقطه بیشینه توان خورشیدی (Solar MPPT)",
+                subtitle: "شبیه‌سازی الگوریتم P&O + حفاظت شارژ بیش از حد + چرخه خودکار شارژ/قطع",
+                flowLabel: "نوع جریان:",
+                convFlow: "قراردادی (+ به -)",
+                elecFlow: "الکترونی (- به +)",
+                modeLabel: "حالت ردیابی (MPPT Mode):",
+                autoBtn: "خودکار (P&O)",
+                manualBtn: "دستی (Manual)",
+                irradLabel: "شدت تابش خورشید (G):",
+                speedLabel: "سرعت شارژ / تخلیه:",
+                dutyLabel: "چرخه کاری دستی (Duty Cycle):",
+                dischargeBtn: "⚡ تخلیه ناگهانی باتری (۰٪)",
+                statusLocked: "حالت: قفل روی MPP • در حال شارژ باتری",
+                statusTracking: "حالت: در حال ردیابی نقطه بیشینه...",
+                statusFull: "حالت: باتری پر • شارژ قطع شد (منتظر تخلیه)",
+                pPvLabel: "توان خورشیدی (P_pv)",
+                vPvLabel: "ولتاژ پنل (V_pv)",
+                effLabel: "بازدهی MPPT",
+                battLabel: "درصد شارژ باتری",
+                scopePv: "منحنی P-V و نقطه کاری فعلی (MPP Tracking)",
+                scopeDuty: "تغییرات چرخه کاری و ردیابی توان (Duty Cycle)",
+                solarName: "آرایه خورشیدی",
+                mpptName: "کنترلر MPPT",
+                battName: "باتری ۱۲ ولت"
+            },
+            en: {
+                title: "Solar MPPT Tracker Simulator",
+                subtitle: "P&O Algorithm Simulation + Overcharge Protection + Auto Charge/Cut-off Cycle",
+                flowLabel: "Current Flow:",
+                convFlow: "Conventional (+ to -)",
+                elecFlow: "Electron (- to +)",
+                modeLabel: "MPPT Mode:",
+                autoBtn: "Auto (P&O)",
+                manualBtn: "Manual (D)",
+                irradLabel: "Solar Irradiance (G):",
+                speedLabel: "Charge / Discharge Speed:",
+                dutyLabel: "Manual Duty Cycle (D):",
+                dischargeBtn: "⚡ Instant Battery Discharge (0%)",
+                statusLocked: "State: Locked on MPP • Charging Battery",
+                statusTracking: "State: Tracking MPP Peak...",
+                statusFull: "State: Battery Full • Charge Cut-off (Waiting to drain)",
+                pPvLabel: "Solar Power (P_pv)",
+                vPvLabel: "Panel Voltage (V_pv)",
+                effLabel: "MPPT Efficiency",
+                battLabel: "Battery Charge (%)",
+                scopePv: "P-V Curve & Active Operating Point (MPP Tracking)",
+                scopeDuty: "Duty Cycle & Power Tracking History",
+                solarName: "Solar Array",
+                mpptName: "MPPT Controller",
+                battName: "12V Battery"
+            }
+        };
+
+        let currentLang = 'en';
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('lang') === 'fa') currentLang = 'fa';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+            
+            const t = i18n[lang];
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('lbl-flow').innerText = t.flowLabel;
+            document.getElementById('btn-conv').innerText = t.convFlow;
+            document.getElementById('btn-elec').innerText = t.elecFlow;
+            document.getElementById('lbl-mode').innerText = t.modeLabel;
+            document.getElementById('btn-auto').innerText = t.autoBtn;
+            document.getElementById('btn-manual').innerText = t.manualBtn;
+            document.getElementById('lbl-irrad').innerText = t.irradLabel;
+            document.getElementById('lbl-speed').innerText = t.speedLabel;
+            document.getElementById('lbl-duty').innerText = t.dutyLabel;
+            document.getElementById('btn-discharge').innerText = t.dischargeBtn;
+            document.getElementById('lbl-p-pv').innerText = t.pPvLabel;
+            document.getElementById('lbl-v-pv').innerText = t.vPvLabel;
+            document.getElementById('lbl-eff').innerText = t.effLabel;
+            document.getElementById('lbl-batt').innerText = t.battLabel;
+            document.getElementById('lbl-scope-pv').innerText = t.scopePv;
+            document.getElementById('lbl-scope-duty').innerText = t.scopeDuty;
+        }
+
+        let flowMode = 'conv';
+        let isAutoMPPT = true;
+        let irradiance = 800;
+        let tempC = 25;
+        let dutyCycle = 0.55;
+        let chargeSpeed = 20;
+        
+        let p_prev = 0;
+        let v_prev = 0;
+        let deltaD = 0.01;
+
+        // Battery Logic State
+        let batteryLevel = 15;
+        let isBatteryFull = false;
+        const RESUME_LEVEL = 90;   // Automatically resume charging below 90%
+        const FULL_LEVEL = 100;
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasPV = document.getElementById('scopePV');
+        const ctxPV = canvasPV.getContext('2d');
+        const canvasDuty = document.getElementById('scopeDuty');
+        const ctxDuty = canvasDuty.getContext('2d');
+
+        document.getElementById('slider-irrad').addEventListener('input', (e) => {
+            irradiance = parseFloat(e.target.value);
+            document.getElementById('val-irrad').innerText = irradiance + ' W/m²';
+        });
+        document.getElementById('slider-speed').addEventListener('input', (e) => {
+            chargeSpeed = parseFloat(e.target.value);
+            document.getElementById('val-speed').innerText = chargeSpeed + ' x';
+        });
+        document.getElementById('slider-duty').addEventListener('input', (e) => {
+            if(!isAutoMPPT && !isBatteryFull) {
+                dutyCycle = parseFloat(e.target.value) / 100;
+                document.getElementById('val-duty').innerText = e.target.value + ' %';
+            }
+        });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        function setMpptMode(auto) {
+            isAutoMPPT = auto;
+            document.getElementById('btn-auto').classList.toggle('active', auto);
+            document.getElementById('btn-manual').classList.toggle('active', !auto);
+            const manualGroup = document.getElementById('group-manual-d');
+            manualGroup.style.opacity = auto ? '0.5' : '1.0';
+            manualGroup.style.pointerEvents = auto ? 'none' : 'auto';
+        }
+
+        // Instant Discharge + Full System Reset
+        function dischargeBattery() {
+            batteryLevel = 0;
+            isBatteryFull = false;
+            dutyCycle = 0.55;          // Re-init search point for fast P&O recovery
+            p_prev = 0;
+            v_prev = 0;
+            
+            const btn = document.getElementById('btn-discharge');
+            btn.style.transform = 'scale(0.96)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 180);
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width; canvas.height = rect.height;
+            const rectPV = canvasPV.parentElement.getBoundingClientRect();
+            canvasPV.width = rectPV.width; canvasPV.height = rectPV.height;
+            const rectDuty = canvasDuty.parentElement.getBoundingClientRect();
+            canvasDuty.width = rectDuty.width; canvasDuty.height = rectDuty.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        const dutyHistory = [];
+        const maxHistory = 300;
+        const particles = [];
+        for (let i = 0; i < 45; i++) particles.push({ progress: Math.random() });
+
+        let time = 0;
+
+        function getSolarPV_IV(V_val, G, T) {
+            const V_oc_ref = 44.0;
+            const I_sc_ref = 9.5;
+            const Voc = V_oc_ref - 0.13 * (T - 25);
+            const Isc = (I_sc_ref + 0.004 * (T - 25)) * (G / 1000);
+            if (V_val >= Voc) return 0;
+            const a = 1.2, Vt = 1.5;
+            return Math.max(0, Isc * (1 - Math.exp((V_val - Voc) / (a * Vt))));
+        }
+
+        function animate() {
+            time += 0.016;
+
+            // ========== Battery State Machine ==========
+            if (isBatteryFull) {
+                // Higher self-discharge while cut-off to show dynamic cycle
+                batteryLevel -= 0.015 * (chargeSpeed / 10);
+                
+                if (batteryLevel <= RESUME_LEVEL) {
+                    // —— Auto Wake-up ——
+                    isBatteryFull = false;
+                    dutyCycle = 0.52;      // Smart re-init
+                    p_prev = 0;
+                    v_prev = 0;
+                }
+            } else {
+                // Mild ambient self-discharge
+                batteryLevel -= 0.002 * (chargeSpeed / 20);
+            }
+
+            if (batteryLevel < 0) batteryLevel = 0;
+            if (batteryLevel > 100) batteryLevel = 100;
+
+            // ========== PV Panel & Converter Calculations ==========
+            const V_batt = 14.0;
+            let V_pv = V_batt / Math.max(0.12, dutyCycle);
+            let I_pv = getSolarPV_IV(V_pv, irradiance, tempC);
+            let P_pv = V_pv * I_pv;
+
+            // Find theoretical MPP for accuracy metric
+            let P_mpp_max = 0;
+            for (let v = 0; v <= 48; v += 0.4) {
+                const p = v * getSolarPV_IV(v, irradiance, tempC);
+                if (p > P_mpp_max) P_mpp_max = p;
+            }
+
+            // ========== MPPT Control or Cut-off ==========
+            if (isBatteryFull) {
+                // Complete charge cut-off
+                dutyCycle = Math.max(0.10, dutyCycle - 0.025);
+                V_pv = V_batt / Math.max(0.12, dutyCycle);
+                I_pv = getSolarPV_IV(V_pv, irradiance, tempC);
+                P_pv = V_pv * I_pv;
+            } else {
+                // Perturb & Observe (P&O) Algorithm
+                if (isAutoMPPT) {
+                    const dP = P_pv - p_prev;
+                    const dV = V_pv - v_prev;
+
+                    if (Math.abs(dP) > 0.08) {
+                        if (dP > 0) {
+                            dutyCycle += (dV > 0 ? -deltaD : deltaD);
+                        } else {
+                            dutyCycle += (dV > 0 ? deltaD : -deltaD);
+                        }
+                    }
+                    dutyCycle = Math.max(0.15, Math.min(0.82, dutyCycle));
+                }
+
+                // Charge Battery
+                if (P_pv > 2) {
+                    batteryLevel += P_pv * 0.00006 * chargeSpeed;
+                }
+
+                // Full Cut-off Threshold
+                if (batteryLevel >= FULL_LEVEL) {
+                    batteryLevel = 100;
+                    isBatteryFull = true;
+                }
+            }
+
+            p_prev = P_pv;
+            v_prev = V_pv;
+
+            // UI Sync
+            document.getElementById('val-duty').innerText = Math.round(dutyCycle * 100) + ' %';
+            document.getElementById('slider-duty').value = Math.round(dutyCycle * 100);
+
+            let mpptEfficiency = (P_mpp_max > 1) ? (P_pv / P_mpp_max) * 100 : 0;
+            if (isBatteryFull) mpptEfficiency = 0;
+
+            // ========== Status Updates ==========
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const t = i18n[currentLang];
+
+            if (isBatteryFull) {
+                dot.className = 'status-dot full';
+                txt.innerText = t.statusFull;
+                document.getElementById('m-batt').style.color = 'var(--accent-gold)';
+            } else {
+                document.getElementById('m-batt').style.color = 'var(--accent-green)';
+                if (mpptEfficiency > 96.5) {
+                    dot.className = 'status-dot on';
+                    txt.innerText = t.statusLocked;
+                } else {
+                    dot.className = 'status-dot tracking';
+                    txt.innerText = t.statusTracking;
+                }
+            }
+
+            document.getElementById('m-ppv').innerText = P_pv.toFixed(1) + ' W';
+            document.getElementById('m-vpv').innerText = V_pv.toFixed(1) + ' V';
+            document.getElementById('m-eff').innerText = Math.min(99.8, mpptEfficiency).toFixed(1) + ' %';
+            document.getElementById('m-batt').innerText = batteryLevel.toFixed(1) + ' %';
+
+            dutyHistory.push(dutyCycle * 100);
+            if (dutyHistory.length > maxHistory) dutyHistory.shift();
+
+            drawCircuit(P_pv, batteryLevel, isBatteryFull);
+            drawPVScope(V_pv, P_pv, P_mpp_max);
+            drawDutyScope();
+
+            requestAnimationFrame(animate);
+        }
+
+        // ——— Draw Circuit Diagram ———
+        function drawCircuit(pPv, bLevel, isFull) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width, h = canvas.height;
+
+            const panelX = w * 0.15;
+            const mpptX  = w * 0.50;
+            const battX  = w * 0.85;
+            const topY = h * 0.25, bottomY = h * 0.75, midY = (topY + bottomY) / 2;
+
+            ctx.lineWidth = 3; ctx.strokeStyle = '#334155'; ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(panelX, topY); ctx.lineTo(battX, topY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(panelX, bottomY); ctx.lineTo(battX, bottomY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(panelX, topY); ctx.lineTo(panelX, bottomY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(battX, topY); ctx.lineTo(battX, bottomY); ctx.stroke();
+
+            // Active Power Line
+            if (pPv > 1.5 && !isFull) {
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = 'rgba(0, 242, 254, 0.65)';
+                ctx.beginPath();
+                ctx.moveTo(panelX, bottomY); ctx.lineTo(panelX, topY);
+                ctx.lineTo(battX, topY); ctx.lineTo(battX, bottomY); ctx.lineTo(panelX, bottomY);
+                ctx.stroke();
+            }
+
+            drawSolarPanelArray(panelX, midY, irradiance, !isFull && pPv > 1);
+            drawMPPTController(mpptX, midY, isAutoMPPT, !isFull);
+            drawDynamicBattery(battX, midY, bLevel, !isFull && pPv > 1.5);
+            drawParticles(panelX, mpptX, battX, topY, bottomY, pPv, isFull);
+        }
+
+        function drawSolarPanelArray(x, y, rad, isActive) {
+            ctx.save(); ctx.translate(x, y);
+            if (isActive) {
+                ctx.fillStyle = 'rgba(255, 183, 3, 0.18)';
+                ctx.beginPath(); ctx.arc(-55, -45, (rad/1000)*36, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.fillStyle = isActive ? '#ffb703' : '#64748b';
+            ctx.beginPath(); ctx.arc(-55, -45, 12, 0, Math.PI*2); ctx.fill();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = isActive ? '#4facfe' : '#64748b';
+            ctx.lineWidth = 2.5;
+            ctx.fillRect(-25, -35, 50, 70); ctx.strokeRect(-25, -35, 50, 70);
+
+            ctx.strokeStyle = isActive ? 'rgba(0,242,254,0.45)' : '#334155';
+            ctx.beginPath();
+            ctx.moveTo(-25,-12); ctx.lineTo(25,-12);
+            ctx.moveTo(-25,12); ctx.lineTo(25,12);
+            ctx.moveTo(0,-35); ctx.lineTo(0,35); ctx.stroke();
+
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].solarName, 0, 55);
+            ctx.restore();
+        }
+
+        function drawMPPTController(x, y, isAuto, isActive) {
+            ctx.save(); ctx.translate(x, y);
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = isActive ? (isAuto ? '#2ed573' : '#ffb703') : '#64748b';
+            ctx.lineWidth = 2.5;
+            ctx.fillRect(-48, -32, 96, 64); ctx.strokeRect(-48, -32, 96, 64);
+
+            ctx.font = 'bold 13px Segoe UI';
+            ctx.fillStyle = isActive ? (isAuto ? '#2ed573' : '#ffb703') : '#64748b';
+            ctx.textAlign = 'center';
+            ctx.fillText(isActive ? 'DC-DC MPPT' : 'CUT-OFF', 0, -5);
+
+            ctx.font = '10px Segoe UI'; ctx.fillStyle = '#94a3b8';
+            ctx.fillText(isAuto ? 'P&O Algorithm' : 'Manual Mode', 0, 14);
+
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#cbd5e1';
+            ctx.fillText(i18n[currentLang].mpptName, 0, 50);
+            ctx.restore();
+        }
+
+        function drawDynamicBattery(x, y, level, isCharging) {
+            ctx.save(); ctx.translate(x, y);
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = isCharging ? '#00f2fe' : (level >= 99 ? '#ffb703' : '#e2e8f0');
+            ctx.lineWidth = 2.5;
+
+            if (isCharging) { ctx.shadowColor = '#00f2fe'; ctx.shadowBlur = 16; }
+            else if (level >= 99) { ctx.shadowColor = '#ffb703'; ctx.shadowBlur = 14; }
+
+            ctx.fillRect(-22, -32, 44, 64);
+            ctx.strokeRect(-22, -32, 44, 64);
+            ctx.shadowBlur = 0;
+
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillRect(-11, -38, 22, 7);
+
+            const fillH = (level / 100) * 58;
+            let fillColor = '#2ed573';
+            if (level < 45) fillColor = '#ffb703';
+            if (level < 18) fillColor = '#ff4757';
+
+            ctx.fillStyle = fillColor;
+            ctx.fillRect(-19, 30 - fillH, 38, fillH);
+
+            ctx.font = 'bold 13px Segoe UI';
+            ctx.fillStyle = level > 40 ? '#0f172a' : '#f1f5f9';
+            ctx.textAlign = 'center';
+            ctx.fillText(Math.round(level) + '%', 0, 6);
+
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#94a3b8';
+            ctx.fillText(i18n[currentLang].battName, 0, 52);
+            ctx.restore();
+        }
+
+        function drawParticles(panelX, mpptX, battX, topY, bottomY, pPv, isFull) {
+            if (pPv < 1.5 || isFull) return;
+            const speed = 0.009;
+            particles.forEach(p => {
+                p.progress += speed;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = flowMode === 'conv' ? [
+                    {x:panelX, y:bottomY}, {x:panelX, y:topY},
+                    {x:mpptX, y:topY}, {x:battX, y:topY},
+                    {x:battX, y:bottomY}, {x:panelX, y:bottomY}
+                ] : [
+                    {x:panelX, y:topY}, {x:panelX, y:bottomY},
+                    {x:battX, y:bottomY}, {x:battX, y:topY}, {x:panelX, y:topY}
+                ];
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 4.2, 0, Math.PI*2);
+                    ctx.fillStyle = '#00f2fe';
+                    ctx.shadowColor = '#00f2fe';
+                    ctx.shadowBlur = 9;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0, lengths = [];
+            for (let i = 0; i < points.length-1; i++) {
+                const dx = points[i+1].x - points[i].x;
+                const dy = points[i+1].y - points[i].y;
+                const len = Math.hypot(dx, dy);
+                lengths.push(len); totalLen += len;
+            }
+            let target = t * totalLen, cur = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (cur + lengths[i] >= target) {
+                    const segT = (target - cur) / lengths[i];
+                    return {
+                        x: points[i].x + (points[i+1].x - points[i].x) * segT,
+                        y: points[i].y + (points[i+1].y - points[i].y) * segT
+                    };
+                }
+                cur += lengths[i];
+            }
+            return points[points.length-1];
+        }
+
+        function drawPVScope(vActive, pActive, pMax) {
+            const w = canvasPV.width, h = canvasPV.height;
+            ctxPV.clearRect(0, 0, w, h);
+            drawScopeGrid(ctxPV, w, h);
+
+            ctxPV.strokeStyle = 'rgba(255,255,255,0.28)';
+            ctxPV.lineWidth = 1.6;
+            ctxPV.beginPath();
+            const maxV = 46, maxP = Math.max(280, pMax * 1.15);
+            for (let v = 0; v <= maxV; v += 0.5) {
+                const p = v * getSolarPV_IV(v, irradiance, tempC);
+                const x = (v / maxV) * w;
+                const y = h - (p / maxP) * (h * 0.82) - 8;
+                if (v === 0) ctxPV.moveTo(x, y); else ctxPV.lineTo(x, y);
+            }
+            ctxPV.stroke();
+
+            if (!isBatteryFull && pActive > 1) {
+                const ax = (vActive / maxV) * w;
+                const ay = h - (pActive / maxP) * (h * 0.82) - 8;
+                ctxPV.fillStyle = '#ffb703';
+                ctxPV.shadowColor = '#ffb703';
+                ctxPV.shadowBlur = 14;
+                ctxPV.beginPath(); ctxPV.arc(ax, ay, 6.5, 0, Math.PI*2); ctxPV.fill();
+                ctxPV.shadowBlur = 0;
+            }
+        }
+
+        function drawDutyScope() {
+            const w = canvasDuty.width, h = canvasDuty.height;
+            ctxDuty.clearRect(0, 0, w, h);
+            drawScopeGrid(ctxDuty, w, h);
+
+            ctxDuty.strokeStyle = '#2ed573';
+            ctxDuty.lineWidth = 2.2;
+            ctxDuty.beginPath();
+            const step = w / maxHistory;
+            for (let i = 0; i < dutyHistory.length; i++) {
+                const x = i * step;
+                const y = h - (dutyHistory[i] / 100) * (h * 0.78) - 8;
+                if (i === 0) ctxDuty.moveTo(x, y); else ctxDuty.lineTo(x, y);
+            }
+            ctxDuty.stroke();
+        }
+
+        function drawScopeGrid(c, w, h) {
+            c.strokeStyle = 'rgba(255,255,255,0.05)';
+            c.lineWidth = 1;
+            c.beginPath();
+            for (let x = 0; x < w; x += 20) { c.moveTo(x,0); c.lineTo(x,h); }
+            for (let y = 0; y < h; y += 20) { c.moveTo(0,y); c.lineTo(w,y); }
+            c.stroke();
+        }
+
+        setLanguage(currentLang);
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

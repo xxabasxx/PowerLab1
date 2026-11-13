@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>شبیه‌ساز اینورتر سه‌فاز (Three-Phase VSI)</title>
+<style>
+:root{--bg-color:#0a0f1d;--panel-bg:rgba(18,26,47,0.75);--accent-cyan:#00f2fe;--accent-blue:#4facfe;--accent-gold:#ffb703;--accent-green:#2ed573;--accent-red:#ff4757;--accent-purple:#a78bfa;--text-color:#e2e8f0;--border-color:rgba(255,255,255,0.12)}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+body{background-color:var(--bg-color);color:var(--text-color);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px;overflow-x:hidden}
+header{text-align:center;margin-bottom:20px}
+header h1{font-size:1.8rem;color:var(--accent-cyan);margin-bottom:6px;text-shadow:0 0 12px rgba(0,242,254,0.3)}
+header p{font-size:.95rem;color:#94a3b8}
+.main-container{display:grid;grid-template-columns:320px 1fr;gap:20px;width:100%;max-width:1300px}
+@media(max-width:950px){.main-container{grid-template-columns:1fr}}
+.glass-panel{background:var(--panel-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border-color);border-radius:16px;padding:20px;box-shadow:0 8px 32px 0 rgba(0,0,0,0.37)}
+.controls-sidebar{display:flex;flex-direction:column;gap:16px}
+.control-group{display:flex;flex-direction:column;gap:6px}
+.control-group label{font-size:.85rem;display:flex;justify-content:space-between;color:#cbd5e1}
+.control-group label span.val{color:var(--accent-cyan);font-weight:bold;direction:ltr}
+input[type=range]{appearance:none;width:100%;height:6px;background:#1e293b;border-radius:3px;outline:none}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent-cyan);cursor:pointer;box-shadow:0 0 8px var(--accent-cyan);transition:transform .1s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.toggle-group{display:flex;background:#1e293b;border-radius:8px;padding:3px;gap:4px}
+.toggle-btn{flex:1;padding:8px;border:none;background:transparent;color:#94a3b8;font-size:.82rem;border-radius:6px;cursor:pointer;transition:all .3s}
+.toggle-btn.active{background:var(--accent-cyan);color:#0f172a;font-weight:bold}
+.lang-btn{background:rgba(255,255,255,0.05);border:1px solid var(--border-color);color:var(--accent-cyan);font-weight:bold}
+.simulation-area{display:flex;flex-direction:column;gap:20px}
+.canvas-container{position:relative;width:100%;height:480px;background:rgba(10,15,29,0.6);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,0.05)}
+canvas{width:100%;height:100%;display:block}
+.scopes-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:650px){.scopes-grid{grid-template-columns:1fr}}
+.scope-card{background:rgba(15,23,42,0.8);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,0.08)}
+.scope-card h3{font-size:.85rem;margin-bottom:8px;color:#94a3b8;display:flex;align-items:center;gap:6px}
+.scope-card h3::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%}
+.scope-pwm h3::before{background:var(--accent-cyan)}
+.scope-gate h3::before{background:var(--accent-purple)}
+.scope-cap h3::before{background:var(--accent-red)}
+.scope-out h3::before{background:var(--accent-gold)}
+.metrics-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:5px}
+.metric-card{background:rgba(255,255,255,0.03);border-radius:8px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,0.05)}
+.metric-card .title{font-size:.75rem;color:#64748b;margin-bottom:4px}
+.metric-card .val{font-size:1.05rem;font-weight:bold;color:var(--accent-cyan);direction:ltr}
+.state-indicator{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px;background:rgba(255,255,255,0.04);border-radius:8px;font-size:.82rem;font-weight:bold}
+.status-dot{width:10px;height:10px;border-radius:50%;background:#64748b}
+</style>
+</head>
+<body>
+
+<header>
+  <h1 id="txt-title">اینورتر سه‌فاز (Three-Phase VSI)</h1>
+  <p id="txt-subtitle">شبیه‌سازی تعاملی — SPWM سینوسی، SVM برداری، شش‌پله</p>
+</header>
+
+<div class="main-container">
+  <aside class="glass-panel controls-sidebar">
+
+    <div class="control-group" style="display:none">
+      <label id="lbl-lang">زبان / Language:</label>
+      <div class="toggle-group">
+        <button class="toggle-btn lang-btn active" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی (FA)</button>
+        <button class="toggle-btn lang-btn" id="btn-lang-en" onclick="setLanguage('en')">English (EN)</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label id="lbl-flow">نوع جریان:</label>
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="btn-conv" onclick="setFlow('conv')">قراردادی (+ به -)</button>
+        <button class="toggle-btn" id="btn-elec" onclick="setFlow('elec')">الکترونی (- به +)</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label id="lbl-mod-title">حالت مدولاسیون:</label>
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="btn-spwm" onclick="setModMode('spwm')">SPWM</button>
+        <button class="toggle-btn" id="btn-svm" onclick="setModMode('svm')">SVM</button>
+        <button class="toggle-btn" id="btn-six" onclick="setModMode('sixstep')">شش‌پله</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label><span id="lbl-vdc">ولتاژ باس DC (V_dc):</span><span class="val" id="val-vdc">300 V</span></label>
+      <input type="range" id="slider-vdc" min="100" max="600" step="10" value="300">
+    </div>
+    <div class="control-group">
+      <label><span id="lbl-f1">فرکانس خروجی (f₁):</span><span class="val" id="val-f1">50 Hz</span></label>
+      <input type="range" id="slider-f1" min="10" max="100" step="1" value="50">
+    </div>
+    <div class="control-group" id="grp-fsw">
+      <label><span id="lbl-fsw">فرکانس حامل (f_sw):</span><span class="val" id="val-fsw">2.0 kHz</span></label>
+      <input type="range" id="slider-fsw" min="0.5" max="5" step="0.1" value="2.0">
+    </div>
+    <div class="control-group" id="grp-ma">
+      <label><span id="lbl-ma">شاخص مدولاسیون (mₐ):</span><span class="val" id="val-ma">0.80</span></label>
+      <input type="range" id="slider-ma" min="0.1" max="1.2" step="0.05" value="0.80">
+    </div>
+    <div class="control-group">
+      <label><span id="lbl-cap">خازن باس DC (C_dc):</span><span class="val" id="val-cap">2200 µF</span></label>
+      <input type="range" id="slider-cap" min="100" max="10000" step="100" value="2200">
+    </div>
+    <div class="control-group">
+      <label><span id="lbl-res">مقاومت بار هر فاز (R):</span><span class="val" id="val-res">10 Ω</span></label>
+      <input type="range" id="slider-res" min="2" max="50" step="1" value="10">
+    </div>
+    <div class="control-group">
+      <label><span id="lbl-ind">اندوکتانس بار هر فاز (L):</span><span class="val" id="val-ind">50 mH</span></label>
+      <input type="range" id="slider-ind" min="1" max="200" step="1" value="50">
+    </div>
+    <div class="control-group">
+      <label><span id="lbl-dt">زمان مرده (Dead-Time):</span><span class="val" id="val-dt">4.0 µs</span></label>
+      <input type="range" id="slider-dt" min="0" max="20" step="0.5" value="4">
+    </div>
+
+    <div class="state-indicator">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">—</span>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric-card"><div class="title" id="m-lbl-vrms">V_LL RMS</div><div class="val" id="m-vrms">—</div></div>
+      <div class="metric-card"><div class="title" id="m-lbl-v1">V₁ (اساسی)</div><div class="val" id="m-v1">—</div></div>
+      <div class="metric-card"><div class="title" id="m-lbl-irms">I_phase RMS</div><div class="val" id="m-irms">—</div></div>
+      <div class="metric-card"><div class="title" id="m-lbl-p">توان کل (3φ)</div><div class="val" id="m-p">—</div></div>
+      <div class="metric-card"><div class="title" id="m-lbl-thd">THD (V_LL)</div><div class="val" id="m-thd">—</div></div>
+      <div class="metric-card"><div class="title" id="m-lbl-pf">ضریب توان</div><div class="val" id="m-pf">—</div></div>
+      <div class="metric-card"><div class="title" id="m-lbl-vc">V_Cdc</div><div class="val" id="m-vc">—</div></div>
+      <div class="metric-card"><div class="title" id="m-lbl-dvc">ΔV_Cdc</div><div class="val" id="m-dvc">—</div></div>
+    </div>
+  </aside>
+
+  <main class="simulation-area">
+    <div class="glass-panel canvas-container">
+      <canvas id="cv-main"></canvas>
+    </div>
+    <div class="scopes-grid">
+      <div class="glass-panel scope-card scope-pwm">
+        <h3 id="sc-t-mod">مدولاسیون (سیگنال مرجع و حامل)</h3>
+        <div style="height:130px;position:relative"><canvas id="cv-mod"></canvas></div>
+      </div>
+      <div class="glass-panel scope-card scope-gate">
+        <h3 id="sc-t-gate">سیگنال گیت (S1–S6)</h3>
+        <div style="height:130px;position:relative"><canvas id="cv-gate"></canvas></div>
+      </div>
+      <div class="glass-panel scope-card scope-cap">
+        <h3 id="sc-t-cap">باس DC (V_Cdc و i_dc)</h3>
+        <div style="height:130px;position:relative"><canvas id="cv-cap"></canvas></div>
+      </div>
+      <div class="glass-panel scope-card scope-out">
+        <h3 id="sc-t-out">خروجی V_AB و I_A</h3>
+        <div style="height:130px;position:relative"><canvas id="cv-out"></canvas></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ================================================================
+   THREE-PHASE VSI INVERTER — matching buck converter code style
+   ================================================================ */
+
+const i18n = {
+  fa:{
+    title:'اینورتر سه‌فاز (Three-Phase VSI)',
+    subtitle:'شبیه‌سازی تعاملی — SPWM سینوسی، SVM برداری، شش‌پله',
+    langLabel:'زبان / Language:',
+    flowLabel:'نوع جریان:',
+    convFlow:'قراردادی (+ به -)', elecFlow:'الکترونی (- به +)',
+    modLabel:'حالت مدولاسیون:',
+    spwm:'SPWM', svm:'SVM', six:'شش‌پله',
+    lblVdc:'ولتاژ باس DC (V_dc):', lblF1:'فرکانس خروجی (f₁):',
+    lblFsw:'فرکانس حامل (f_sw):', lblMa:'شاخص مدولاسیون (mₐ):',
+    lblCap:'خازن باس DC (C_dc):', lblRes:'مقاومت بار هر فاز (R):',
+    lblInd:'اندوکتانس بار هر فاز (L):', lblDt:'زمان مرده (Dead-Time):',
+    stActive:'فعال', stZero:'بردار صفر', stDead:'زمان مرده',
+    mVrms:'V_LL RMS', mV1:'V₁ (اساسی)', mIrms:'I_phase RMS',
+    mP:'توان کل (3φ)', mThd:'THD (V_LL)', mPf:'ضریب توان',
+    mVc:'V_Cdc', mDvc:'ΔV_Cdc',
+    scMod:'مدولاسیون (سیگنال مرجع و حامل)',
+    scGate:'سیگنال گیت (S1–S6)',
+    scCap:'باس DC (V_Cdc و i_dc)',
+    scOut:'خروجی V_AB و I_A',
+    legA:'ساق A', legB:'ساق B', legC:'ساق C',
+    dcSrc:'منبع DC', capLbl:'خازن C_dc', loadLbl:'بار Y'
+  },
+  en:{
+    title:'Three-Phase Inverter (VSI)',
+    subtitle:'Interactive simulation — Sinusoidal SPWM, SVM, Six-Step',
+    langLabel:'Language / زبان:',
+    flowLabel:'Current Flow:',
+    convFlow:'Conventional (+ to -)', elecFlow:'Electron (- to +)',
+    modLabel:'Modulation Mode:',
+    spwm:'SPWM', svm:'SVM', six:'Six-Step',
+    lblVdc:'DC Bus Voltage (V_dc):', lblF1:'Output Frequency (f₁):',
+    lblFsw:'Carrier Frequency (f_sw):', lblMa:'Modulation Index (mₐ):',
+    lblCap:'DC Bus Capacitor (C_dc):', lblRes:'Load Resistance per phase (R):',
+    lblInd:'Load Inductance per phase (L):', lblDt:'Dead-Time:',
+    stActive:'Active', stZero:'Zero Vector', stDead:'Dead-Time',
+    mVrms:'V_LL RMS', mV1:'V₁ (Fund.)', mIrms:'I_phase RMS',
+    mP:'Total Power (3φ)', mThd:'THD (V_LL)', mPf:'Power Factor',
+    mVc:'V_Cdc', mDvc:'ΔV_Cdc',
+    scMod:'Modulation (Reference & Carrier)',
+    scGate:'Gate Signals (S1–S6)',
+    scCap:'DC Bus (V_Cdc & i_dc)',
+    scOut:'Output V_AB & I_A',
+    legA:'Leg A', legB:'Leg B', legC:'Leg C',
+    dcSrc:'DC Source', capLbl:'Cap C_dc', loadLbl:'Y Load'
+  }
+};
+
+let currentLang='fa';
+const urlParams=new URLSearchParams(window.location.search);
+if(urlParams.get('lang')==='en') currentLang='en';
+
+function setLanguage(lang){
+  currentLang=lang;
+  document.documentElement.lang=lang;
+  document.documentElement.dir=lang==='fa'?'rtl':'ltr';
+  document.getElementById('btn-lang-fa').classList.toggle('active',lang==='fa');
+  document.getElementById('btn-lang-en').classList.toggle('active',lang==='en');
+  const t=i18n[lang];
+  document.getElementById('txt-title').innerText=t.title;
+  document.getElementById('txt-subtitle').innerText=t.subtitle;
+  document.getElementById('lbl-lang').innerText=t.langLabel;
+  document.getElementById('lbl-flow').innerText=t.flowLabel;
+  document.getElementById('btn-conv').innerText=t.convFlow;
+  document.getElementById('btn-elec').innerText=t.elecFlow;
+  document.getElementById('lbl-mod-title').innerText=t.modLabel;
+  document.getElementById('btn-spwm').innerText=t.spwm;
+  document.getElementById('btn-svm').innerText=t.svm;
+  document.getElementById('btn-six').innerText=t.six;
+  document.getElementById('lbl-vdc').innerText=t.lblVdc;
+  document.getElementById('lbl-f1').innerText=t.lblF1;
+  document.getElementById('lbl-fsw').innerText=t.lblFsw;
+  document.getElementById('lbl-ma').innerText=t.lblMa;
+  document.getElementById('lbl-cap').innerText=t.lblCap;
+  document.getElementById('lbl-res').innerText=t.lblRes;
+  document.getElementById('lbl-ind').innerText=t.lblInd;
+  document.getElementById('lbl-dt').innerText=t.lblDt;
+  document.getElementById('m-lbl-vrms').innerText=t.mVrms;
+  document.getElementById('m-lbl-v1').innerText=t.mV1;
+  document.getElementById('m-lbl-irms').innerText=t.mIrms;
+  document.getElementById('m-lbl-p').innerText=t.mP;
+  document.getElementById('m-lbl-thd').innerText=t.mThd;
+  document.getElementById('m-lbl-pf').innerText=t.mPf;
+  document.getElementById('m-lbl-vc').innerText=t.mVc;
+  document.getElementById('m-lbl-dvc').innerText=t.mDvc;
+  document.getElementById('sc-t-mod').innerText=t.scMod;
+  document.getElementById('sc-t-gate').innerText=t.scGate;
+  document.getElementById('sc-t-cap').innerText=t.scCap;
+  document.getElementById('sc-t-out').innerText=t.scOut;
+}
+
+// ---------- state ----------
+let flowMode='conv', modMode='spwm';
+function setFlow(m){
+  flowMode=m;
+  document.getElementById('btn-conv').classList.toggle('active',m==='conv');
+  document.getElementById('btn-elec').classList.toggle('active',m==='elec');
+}
+function setModMode(m){
+  modMode=m;
+  document.getElementById('btn-spwm').classList.toggle('active',m==='spwm');
+  document.getElementById('btn-svm').classList.toggle('active',m==='svm');
+  document.getElementById('btn-six').classList.toggle('active',m==='sixstep');
+  document.getElementById('grp-fsw').style.display=(m!=='sixstep')?'':'none';
+  document.getElementById('grp-ma').style.display=(m!=='sixstep')?'':'none';
+}
+
+// ---------- sliders (same pattern as buck) ----------
+let Vdc=300, f1=50, fsw=2000, ma=0.80, Cap=2200e-6, R_load=10, L_load=50e-3, deadUs=4;
+
+document.getElementById('slider-vdc').addEventListener('input',e=>{
+  Vdc=+e.target.value; document.getElementById('val-vdc').innerText=Vdc+' V'; vC=Vdc;
+});
+document.getElementById('slider-f1').addEventListener('input',e=>{
+  f1=+e.target.value; document.getElementById('val-f1').innerText=f1+' Hz';
+});
+document.getElementById('slider-fsw').addEventListener('input',e=>{
+  fsw=+e.target.value*1000; document.getElementById('val-fsw').innerText=(+e.target.value).toFixed(1)+' kHz';
+});
+document.getElementById('slider-ma').addEventListener('input',e=>{
+  ma=+e.target.value; document.getElementById('val-ma').innerText=ma.toFixed(2);
+});
+document.getElementById('slider-cap').addEventListener('input',e=>{
+  Cap=+e.target.value*1e-6; document.getElementById('val-cap').innerText=e.target.value+' µF';
+});
+document.getElementById('slider-res').addEventListener('input',e=>{
+  R_load=+e.target.value; document.getElementById('val-res').innerText=R_load+' Ω';
+});
+document.getElementById('slider-ind').addEventListener('input',e=>{
+  L_load=Math.max(+e.target.value,0.5)*1e-3; document.getElementById('val-ind').innerText=e.target.value+' mH';
+});
+document.getElementById('slider-dt').addEventListener('input',e=>{
+  deadUs=+e.target.value; document.getElementById('val-dt').innerText=deadUs.toFixed(1)+' µs';
+});
+
+// ---------- canvases ----------
+const cvMain=document.getElementById('cv-main');
+const cvMod=document.getElementById('cv-mod');
+const cvGate=document.getElementById('cv-gate');
+const cvCap=document.getElementById('cv-cap');
+const cvOut=document.getElementById('cv-out');
+let ctx, ctxMod, ctxGate, ctxCap, ctxOut;
+
+function resizeCanvases(){
+  [cvMain,cvMod,cvGate,cvCap,cvOut].forEach(c=>{
+    const r=c.parentElement.getBoundingClientRect();
+    c.width=r.width; c.height=r.height;
+  });
+  ctx=cvMain.getContext('2d');
+  ctxMod=cvMod.getContext('2d');
+  ctxGate=cvGate.getContext('2d');
+  ctxCap=cvCap.getContext('2d');
+  ctxOut=cvOut.getContext('2d');
+}
+window.addEventListener('resize',resizeCanvases);
+setTimeout(resizeCanvases,50);
+
+// ---------- constants ----------
+const SLOW=80, SUBSTEPS=80, WIN=800, maxHist=860;
+const R_src=0.5, PI=Math.PI, TAU=2*PI, D120=TAU/3;
+
+// ---------- simulation state ----------
+let iA=0,iB=0,iC=0,vC=300;
+let simTime=0,phase=0,carrierPhase=0;
+let lastEdge=[-1e9,-1e9,-1e9], prevCmd=[0,0,0];
+let sLeg=[0,0,0], devLeg=['none','none','none'];
+let gates=[0,0,0,0,0,0], deadLeg=[false,false,false];
+let vAB=0, iDC=0;
+
+// history
+let hVAB=new Float32Array(maxHist), hIA=new Float32Array(maxHist);
+let hG=[]; for(let g=0;g<6;g++) hG.push(new Uint8Array(maxHist));
+let hRefA=new Float32Array(maxHist),hRefB=new Float32Array(maxHist),hRefC=new Float32Array(maxHist);
+let hTri=new Float32Array(maxHist);
+let hVC=new Float32Array(maxHist),hIDC=new Float32Array(maxHist);
+let hIdx=0, hCount=0;
+
+// analysis
+let Vrms=0,V1rms=0,Irms=0,Pact=0,THD=0,PF=0,vcRipple=0;
+let iPeakDisp=1, idcPeakDisp=1;
+
+function analyze(){
+  const n=Math.min(hCount,WIN); if(n<20) return;
+  let sv2=0,si2=0,sp=0,a1=0,b1=0,vcMin=1e9,vcMax=-1e9,ipk=0,idcpk=0;
+  for(let k=0;k<n;k++){
+    const idx=(hIdx-n+k+maxHist)%maxHist;
+    const v=hVAB[idx],i=hIA[idx],vc=hVC[idx],id=hIDC[idx];
+    sv2+=v*v; si2+=i*i; sp+=v*i;
+    const th=TAU*2*k/WIN;
+    a1+=v*Math.cos(th); b1+=v*Math.sin(th);
+    if(vc<vcMin)vcMin=vc; if(vc>vcMax)vcMax=vc;
+    if(Math.abs(i)>ipk)ipk=Math.abs(i);
+    if(Math.abs(id)>idcpk)idcpk=Math.abs(id);
+  }
+  Vrms=Math.sqrt(sv2/n); Irms=Math.sqrt(si2/n);
+  Pact=sp/n*1.5;
+  const V1p=2*Math.sqrt(a1*a1+b1*b1)/n;
+  V1rms=V1p/Math.SQRT2;
+  THD=V1rms>0.1?Math.sqrt(Math.max(0,Vrms*Vrms-V1rms*V1rms))/V1rms*100:0;
+  PF=(Vrms*Irms>0.1)?Math.min(1,Math.abs(Pact)/(Math.sqrt(3)*Vrms*Irms)):0;
+  vcRipple=vcMax-vcMin;
+  iPeakDisp+=(Math.max(ipk,0.2)-iPeakDisp)*0.08;
+  idcPeakDisp+=(Math.max(idcpk,0.2)-idcPeakDisp)*0.08;
+}
+
+// ---------- physics ----------
+function simStep(dt){
+  const deadSec=deadUs*1e-6;
+  simTime+=dt;
+  phase+=dt*f1; if(phase>=1) phase-=1;
+  carrierPhase+=dt*fsw; if(carrierPhase>=1) carrierPhase-=1;
+
+  const th=TAU*phase;
+  const sinA=Math.sin(th), sinB=Math.sin(th-D120), sinC=Math.sin(th+D120);
+  const tri=4*Math.abs(carrierPhase-0.5)-1;
+  let refA=0,refB=0,refC=0, cmd=[0,0,0];
+
+  if(modMode==='spwm'){
+    refA=ma*sinA; refB=ma*sinB; refC=ma*sinC;
+    cmd[0]=refA>tri?1:0; cmd[1]=refB>tri?1:0; cmd[2]=refC>tri?1:0;
+  }else if(modMode==='svm'){
+    const rA=ma*sinA,rB=ma*sinB,rC=ma*sinC;
+    const vOff=-(Math.max(rA,rB,rC)+Math.min(rA,rB,rC))/2;
+    refA=rA+vOff; refB=rB+vOff; refC=rC+vOff;
+    cmd[0]=refA>tri?1:0; cmd[1]=refB>tri?1:0; cmd[2]=refC>tri?1:0;
+  }else{
+    refA=sinA; refB=sinB; refC=sinC;
+    cmd[0]=sinA>=0?1:0; cmd[1]=sinB>=0?1:0; cmd[2]=sinC>=0?1:0;
+  }
+
+  for(let leg=0;leg<3;leg++){
+    if(cmd[leg]!==prevCmd[leg]){lastEdge[leg]=simTime;prevCmd[leg]=cmd[leg];}
+    deadLeg[leg]=(simTime-lastEdge[leg])<deadSec;
+  }
+
+  gates[0]=cmd[0]&&!deadLeg[0]?1:0; gates[1]=!cmd[0]&&!deadLeg[0]?1:0;
+  gates[2]=cmd[1]&&!deadLeg[1]?1:0; gates[3]=!cmd[1]&&!deadLeg[1]?1:0;
+  gates[4]=cmd[2]&&!deadLeg[2]?1:0; gates[5]=!cmd[2]&&!deadLeg[2]?1:0;
+
+  const dn=[['S1','D1','S2','D2'],['S3','D3','S4','D4'],['S5','D5','S6','D6']];
+  const iLegs=[iA,iB,iC], vPole=[0,0,0];
+  for(let leg=0;leg<3;leg++){
+    const gT=gates[leg*2],gB=gates[leg*2+1],i=iLegs[leg];
+    if(gT){sLeg[leg]=1;devLeg[leg]=i>=0?dn[leg][0]:dn[leg][1];vPole[leg]=vC;}
+    else if(gB){sLeg[leg]=0;devLeg[leg]=i<=0?dn[leg][2]:dn[leg][3];vPole[leg]=0;}
+    else{
+      if(i>0){sLeg[leg]=0;devLeg[leg]=dn[leg][3];vPole[leg]=0;}
+      else if(i<0){sLeg[leg]=1;devLeg[leg]=dn[leg][1];vPole[leg]=vC;}
+      else{sLeg[leg]=0;devLeg[leg]='none';vPole[leg]=0;}
+    }
+  }
+
+  const vN=(vPole[0]+vPole[1]+vPole[2])/3;
+  iA+=dt*(vPole[0]-vN-R_load*iA)/L_load;
+  iB+=dt*(vPole[1]-vN-R_load*iB)/L_load;
+  iC+=dt*(vPole[2]-vN-R_load*iC)/L_load;
+
+  vAB=vPole[0]-vPole[1];
+  iDC=iA*sLeg[0]+iB*sLeg[1]+iC*sLeg[2];
+  const iSrc=(Vdc-vC)/R_src;
+  vC+=dt*(iSrc-iDC)/Cap;
+  if(vC<0)vC=0; if(vC>Vdc*1.6)vC=Vdc*1.6;
+
+  hVAB[hIdx]=vAB; hIA[hIdx]=iA;
+  for(let g=0;g<6;g++) hG[g][hIdx]=gates[g];
+  hRefA[hIdx]=refA; hRefB[hIdx]=refB; hRefC[hIdx]=refC;
+  hTri[hIdx]=tri; hVC[hIdx]=vC; hIDC[hIdx]=iDC;
+  hIdx=(hIdx+1)%maxHist;
+  if(hCount<maxHist) hCount++;
+}
+
+// ---------- particles ----------
+const phaseParticles=[[],[],[]];
+for(let p=0;p<3;p++) for(let i=0;i<14;i++) phaseParticles[p].push({t:Math.random()});
+const srcParticles=[]; for(let i=0;i<10;i++) srcParticles.push({t:Math.random()});
+
+function getPointAlongPath(pts,t){
+  t=((t%1)+1)%1;
+  let total=0; const segs=[];
+  for(let i=0;i<pts.length-1;i++){
+    const dx=pts[i+1].x-pts[i].x, dy=pts[i+1].y-pts[i].y;
+    segs.push(Math.sqrt(dx*dx+dy*dy)); total+=segs[segs.length-1];
+  }
+  if(total<1)return pts[0];
+  let target=t*total, acc=0;
+  for(let i=0;i<segs.length;i++){
+    if(acc+segs[i]>=target){
+      const f=(target-acc)/segs[i];
+      return{x:pts[i].x+(pts[i+1].x-pts[i].x)*f, y:pts[i].y+(pts[i+1].y-pts[i].y)*f};
+    }
+    acc+=segs[i];
+  }
+  return pts[pts.length-1];
+}
+
+// ---------- draw main circuit ----------
+function drawCircuit(){
+  const w=cvMain.width, h=cvMain.height;
+  ctx.clearRect(0,0,w,h);
+  if(w<10||h<10) return;
+
+  // layout
+  const dcX=w*0.06, capX=w*0.14;
+  const legAX=w*0.30, legBX=w*0.48, legCX=w*0.66;
+  const loadX=w*0.84, starX=w*0.92;
+  const topY=h*0.14, midY=h*0.46, botY=h*0.78;
+  const y1=(topY+midY)/2, y2=(midY+botY)/2;
+  const legXs=[legAX,legBX,legCX];
+  const legCols=['#00f2fe','#ffb703','#2ed573'];
+  const phLabels=['A','B','C'];
+  const iLegs=[iA,iB,iC];
+  const devN=[['S1','D1','S2','D2'],['S3','D3','S4','D4'],['S5','D5','S6','D6']];
+
+  // --- 1. base wiring (dark grey, same as buck) ---
+  ctx.lineWidth=3; ctx.strokeStyle='#334155'; ctx.lineJoin='round'; ctx.lineCap='round';
+  // top rail
+  ctx.beginPath(); ctx.moveTo(dcX,topY); ctx.lineTo(legCX+20,topY); ctx.stroke();
+  // bottom rail
+  ctx.beginPath(); ctx.moveTo(dcX,botY); ctx.lineTo(legCX+20,botY); ctx.stroke();
+
+  // --- 2. active path highlight ---
+  const sBits=''+sLeg[0]+sLeg[1]+sLeg[2];
+  const isZero=(sBits==='000'||sBits==='111');
+  if(!isZero){
+    ctx.lineWidth=4;
+    ctx.strokeStyle='rgba(0,242,254,0.5)';
+    ctx.shadowColor='rgba(0,242,254,0.4)'; ctx.shadowBlur=12;
+    ctx.beginPath(); ctx.moveTo(capX,topY); ctx.lineTo(legCX+20,topY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(capX,botY); ctx.lineTo(legCX+20,botY); ctx.stroke();
+    ctx.shadowBlur=0;
+  }
+
+  // --- 3. DC source (circle, same as buck) ---
+  ctx.fillStyle='#0f172a'; ctx.strokeStyle='#4facfe'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.arc(dcX,midY,26,0,TAU); ctx.fill(); ctx.stroke();
+  ctx.font='bold 13px Segoe UI'; ctx.textAlign='center';
+  ctx.fillStyle='#ff4757'; ctx.fillText('+',dcX-4,midY-10);
+  ctx.fillStyle='#2ed573'; ctx.fillText('-',dcX-3,midY+18);
+  ctx.fillStyle='#94a3b8'; ctx.font='11px Segoe UI';
+  ctx.fillText('V_dc',dcX,midY+38);
+  ctx.fillText(Vdc+'V',dcX,midY+52);
+
+  // DC source wires
+  ctx.strokeStyle='#334155'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(dcX,topY); ctx.lineTo(dcX,midY-26); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(dcX,midY+26); ctx.lineTo(dcX,botY); ctx.stroke();
+
+  // --- 4. DC bus capacitor (same style as buck) ---
+  ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=4;
+  ctx.beginPath();
+  ctx.moveTo(capX-14,midY-10); ctx.lineTo(capX+14,midY-10);
+  ctx.moveTo(capX-14,midY+10); ctx.lineTo(capX+14,midY+10);
+  ctx.stroke();
+  ctx.strokeStyle='#334155'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(capX,topY); ctx.lineTo(capX,midY-10); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(capX,midY+10); ctx.lineTo(capX,botY); ctx.stroke();
+  ctx.fillStyle='#94a3b8'; ctx.font='11px Segoe UI'; ctx.textAlign='center';
+  ctx.fillText('C_dc',capX,midY+30);
+
+  // --- 5. source particles (same glow as buck) ---
+  const srcPath=[{x:dcX,y:botY},{x:dcX,y:midY+26},{x:dcX,y:midY-26},{x:dcX,y:topY},{x:capX,y:topY},{x:capX,y:midY-10},{x:capX,y:midY+10},{x:capX,y:botY},{x:dcX,y:botY}];
+  const sSpeed=0.0018+Math.min(0.006,Math.abs(Pact)/40000);
+  srcParticles.forEach(pp=>{
+    pp.t=(pp.t+sSpeed)%1;
+    const pt=getPointAlongPath(srcPath,pp.t);
+    ctx.beginPath(); ctx.arc(pt.x,pt.y,4,0,TAU);
+    ctx.fillStyle='rgba(255,71,87,0.85)';
+    ctx.shadowColor='#ff4757'; ctx.shadowBlur=8;
+    ctx.fill(); ctx.shadowBlur=0;
+  });
+
+  // --- 6. three legs with IGBT+Diode symbols ---
+  for(let leg=0;leg<3;leg++){
+    const lx=legXs[leg];
+    const col=legCols[leg];
+    const dn=devN[leg];
+    const gT=gates[leg*2], gB=gates[leg*2+1];
+    const topOn=(devLeg[leg]===dn[0]||devLeg[leg]===dn[1]);
+    const botOn=(devLeg[leg]===dn[2]||devLeg[leg]===dn[3]);
+
+    // vertical wire
+    ctx.strokeStyle='#334155'; ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(lx,topY); ctx.lineTo(lx,botY); ctx.stroke();
+
+    // --- top switch (MOSFET-style box, same as buck) ---
+    drawSwitchBox(lx,y1,dn[0],gT,(devLeg[leg]===dn[0]),col);
+    // anti-parallel diode top
+    drawDiodeSymbol(lx+24,y1,dn[1],(devLeg[leg]===dn[1]),col);
+
+    // --- bottom switch ---
+    drawSwitchBox(lx,y2,dn[2],gB,(devLeg[leg]===dn[2]),col);
+    // anti-parallel diode bottom
+    drawDiodeSymbol(lx+24,y2,dn[3],(devLeg[leg]===dn[3]),col);
+
+    // output tap dot
+    ctx.fillStyle=col;
+    ctx.shadowColor=col; ctx.shadowBlur=6;
+    ctx.beginPath(); ctx.arc(lx,midY,5,0,TAU); ctx.fill();
+    ctx.shadowBlur=0;
+
+    // output wire (90-deg) to load
+    const loadY=midY+(leg-1)*32;
+    ctx.strokeStyle=col; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.moveTo(lx,midY); ctx.lineTo(loadX-30,midY);
+    ctx.lineTo(loadX-30,loadY); ctx.lineTo(loadX-18,loadY); ctx.stroke();
+
+    // phase label
+    ctx.fillStyle=col; ctx.font='bold 13px Segoe UI'; ctx.textAlign='center';
+    ctx.fillText(phLabels[leg],lx,botY+20);
+
+    // PWM Gen box (same as buck MOSFET gate box)
+    ctx.fillStyle='#0f172a';
+    ctx.fillRect(lx-22,botY+26,44,18);
+    ctx.strokeStyle=(gT||gB)?col:'#475569'; ctx.lineWidth=1.5;
+    ctx.strokeRect(lx-22,botY+26,44,18);
+    ctx.font='9px Segoe UI'; ctx.fillStyle='#e2e8f0'; ctx.textAlign='center';
+    ctx.fillText('PWM '+(leg*2+1)+'/'+(leg*2+2),lx,botY+38);
+
+    // phase current particles on output wire (with glow)
+    const pPath=[{x:lx,y:midY},{x:loadX-30,y:midY},{x:loadX-30,y:loadY},{x:loadX-18,y:loadY}];
+    const pSpeed=0.0025+Math.min(0.016,Math.abs(iLegs[leg])*0.0012);
+    const dir=(flowMode==='elec')?-1:1;
+    phaseParticles[leg].forEach(pp=>{
+      const sign=Math.sign(iLegs[leg]||0.01);
+      pp.t=((pp.t+pSpeed*dir*sign)%1+1)%1;
+      const pt=getPointAlongPath(pPath,pp.t);
+      ctx.beginPath(); ctx.arc(pt.x,pt.y,4,0,TAU);
+      ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=8;
+      ctx.fill(); ctx.shadowBlur=0;
+    });
+  }
+
+  // --- 7. star-connected RL load (same style as buck resistor+inductor) ---
+  const loadYs=[midY-32,midY,midY+32];
+  for(let leg=0;leg<3;leg++){
+    const ly=loadYs[leg], col=legCols[leg];
+    const x1=loadX-18, x2=starX;
+
+    // resistor box (same as buck loadResistor)
+    ctx.fillStyle='#1e293b'; ctx.strokeStyle=col; ctx.lineWidth=2;
+    ctx.fillRect(x1,ly-10,16,20);
+    ctx.strokeRect(x1,ly-10,16,20);
+
+    // inductor coils
+    ctx.strokeStyle=col; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x1+16,ly);
+    for(let i=0;i<3;i++) ctx.arc(x1+20+i*7,ly,3.5,PI,0);
+    ctx.stroke();
+
+    // wire to star
+    ctx.strokeStyle=col; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x1+38,ly); ctx.lineTo(starX,ly);
+    ctx.lineTo(starX,midY); ctx.stroke();
+  }
+
+  // star neutral
+  ctx.fillStyle='#e2e8f0';
+  ctx.shadowColor='#e2e8f0'; ctx.shadowBlur=6;
+  ctx.beginPath(); ctx.arc(starX,midY,6,0,TAU); ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.font='bold 12px Segoe UI'; ctx.textAlign='center';
+  ctx.fillText('N',starX,midY+22);
+
+  // junction dots on rails
+  ctx.fillStyle='#e2e8f0';
+  legXs.forEach(lx=>{
+    ctx.beginPath(); ctx.arc(lx,topY,3,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(lx,botY,3,0,TAU); ctx.fill();
+  });
+  ctx.beginPath(); ctx.arc(capX,topY,3,0,TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(capX,botY,3,0,TAU); ctx.fill();
+
+  // --- status ---
+  const t=i18n[currentLang];
+  const anyDead=deadLeg[0]||deadLeg[1]||deadLeg[2];
+  let stText, dotClass;
+  if(anyDead){ stText=t.stDead; dotClass='off'; }
+  else if(isZero){ stText=t.stZero+' ('+sBits+')'; dotClass=''; }
+  else{ stText=t.stActive+' V'+sBits+' | '+devLeg.join('+'); dotClass='on'; }
+  const dot=document.getElementById('status-dot');
+  dot.className='status-dot'+(dotClass?' '+dotClass:'');
+  if(anyDead){dot.style.background='#ff4757';dot.style.boxShadow='0 0 10px #ff4757';}
+  else if(isZero){dot.style.background='#a78bfa';dot.style.boxShadow='0 0 10px #a78bfa';}
+  else{dot.style.background='#00f2fe';dot.style.boxShadow='0 0 10px #00f2fe';}
+  document.getElementById('status-text').innerText=stText;
+}
+
+// switch box (MOSFET-like, same as buck)
+function drawSwitchBox(x,y,label,gateOn,conducting,col){
+  ctx.save();
+  ctx.fillStyle=conducting?'rgba(0,242,254,0.15)':'#1e293b';
+  ctx.strokeStyle=conducting?col:'#64748b';
+  ctx.lineWidth=2;
+  ctx.fillRect(x-16,y-14,32,28);
+  ctx.strokeRect(x-16,y-14,32,28);
+
+  if(conducting){
+    ctx.shadowColor=col; ctx.shadowBlur=12;
+    ctx.strokeRect(x-16,y-14,32,28);
+    ctx.shadowBlur=0;
+  }
+
+  ctx.font='bold 10px Segoe UI'; ctx.textAlign='center';
+  ctx.fillStyle=conducting?col:'#94a3b8';
+  ctx.fillText(label,x,y+4);
+  ctx.restore();
+}
+
+// diode symbol (triangle, same as buck freewheeling diode)
+function drawDiodeSymbol(x,y,label,isActive,col){
+  ctx.save();
+  const size=8;
+  ctx.fillStyle=isActive?'rgba(255,183,3,0.5)':'#1e293b';
+  ctx.strokeStyle=isActive?'#ffb703':'#64748b';
+  ctx.lineWidth=1.5;
+
+  ctx.beginPath();
+  ctx.moveTo(x,y-size); ctx.lineTo(x-size,y+size); ctx.lineTo(x+size,y+size);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x-size,y-size); ctx.lineTo(x+size,y-size); ctx.stroke();
+
+  if(isActive){
+    ctx.shadowColor='#ffb703'; ctx.shadowBlur=10;
+    ctx.beginPath();
+    ctx.moveTo(x,y-size); ctx.lineTo(x-size,y+size); ctx.lineTo(x+size,y+size);
+    ctx.closePath(); ctx.stroke();
+    ctx.shadowBlur=0;
+  }
+
+  ctx.font='8px Segoe UI'; ctx.textAlign='center';
+  ctx.fillStyle=isActive?'#ffb703':'#64748b';
+  ctx.fillText(label,x,y-size-4);
+  ctx.restore();
+}
+
+// ---------- scopes (same grid style as buck) ----------
+function drawScopeGrid(c,w,h){
+  c.strokeStyle='rgba(255,255,255,0.05)'; c.lineWidth=1;
+  c.beginPath();
+  for(let x=0;x<w;x+=20){c.moveTo(x,0);c.lineTo(x,h);}
+  for(let y=0;y<h;y+=20){c.moveTo(0,y);c.lineTo(w,y);}
+  c.stroke();
+}
+
+function drawScopeMod(){
+  const w=cvMod.width,h=cvMod.height; ctxMod.clearRect(0,0,w,h);
+  drawScopeGrid(ctxMod,w,h);
+  const n=Math.min(hCount,maxHist); if(n<2) return;
+  const mid=h/2;
+
+  // carrier
+  ctxMod.strokeStyle='rgba(255,255,255,0.2)'; ctxMod.lineWidth=1;
+  ctxMod.beginPath();
+  for(let i=0;i<n;i++){
+    const idx=(hIdx-n+i+maxHist)%maxHist;
+    const x=i/n*w, y=mid-hTri[idx]*mid*0.85;
+    i===0?ctxMod.moveTo(x,y):ctxMod.lineTo(x,y);
+  }
+  ctxMod.stroke();
+
+  // three refs
+  const refs=[hRefA,hRefB,hRefC], cols=['#00f2fe','#ffb703','#2ed573'], lbls=['A','B','C'];
+  refs.forEach((buf,j)=>{
+    ctxMod.strokeStyle=cols[j]; ctxMod.lineWidth=2;
+    ctxMod.beginPath();
+    for(let i=0;i<n;i++){
+      const idx=(hIdx-n+i+maxHist)%maxHist;
+      const x=i/n*w, y=mid-buf[idx]*mid*0.85;
+      i===0?ctxMod.moveTo(x,y):ctxMod.lineTo(x,y);
+    }
+    ctxMod.stroke();
+    ctxMod.fillStyle=cols[j]; ctxMod.font='10px Segoe UI'; ctxMod.textAlign='left';
+    ctxMod.fillText(lbls[j],4+j*20,14);
+  });
+}
+
+function drawScopeGate(){
+  const w=cvGate.width,h=cvGate.height; ctxGate.clearRect(0,0,w,h);
+  drawScopeGrid(ctxGate,w,h);
+  const n=Math.min(hCount,maxHist); if(n<2) return;
+  const cols=['#00f2fe','#4facfe','#ffb703','#fb8500','#2ed573','#7bed9f'];
+  const labels=['S1','S2','S3','S4','S5','S6'];
+  for(let g=0;g<6;g++){
+    const hi=h*(0.04+g*0.155), lo=h*(0.12+g*0.155);
+    ctxGate.strokeStyle=cols[g]; ctxGate.lineWidth=1.5;
+    ctxGate.beginPath();
+    for(let i=0;i<n;i++){
+      const idx=(hIdx-n+i+maxHist)%maxHist;
+      const x=i/n*w, y=hG[g][idx]?hi:lo;
+      if(i===0)ctxGate.moveTo(x,y); else{
+        const prevIdx=(hIdx-n+i-1+maxHist)%maxHist;
+        const prevY=hG[g][prevIdx]?hi:lo;
+        if(prevY!==y) ctxGate.lineTo(x,prevY);
+        ctxGate.lineTo(x,y);
+      }
+    }
+    ctxGate.stroke();
+    ctxGate.fillStyle=cols[g]; ctxGate.font='9px Segoe UI'; ctxGate.textAlign='left';
+    ctxGate.fillText(labels[g],3,hi+3);
+  }
+}
+
+function drawScopeCap(){
+  const w=cvCap.width,h=cvCap.height; ctxCap.clearRect(0,0,w,h);
+  drawScopeGrid(ctxCap,w,h);
+  const n=Math.min(hCount,maxHist); if(n<2) return;
+  const mid=h/2, maxDev=Math.max(Vdc*0.12,5);
+
+  ctxCap.strokeStyle='#ff4757'; ctxCap.lineWidth=2;
+  ctxCap.beginPath();
+  for(let i=0;i<n;i++){
+    const idx=(hIdx-n+i+maxHist)%maxHist;
+    const x=i/n*w, y=mid-(hVC[idx]-Vdc)/maxDev*mid*0.8;
+    i===0?ctxCap.moveTo(x,y):ctxCap.lineTo(x,y);
+  }
+  ctxCap.stroke();
+
+  ctxCap.strokeStyle='#a78bfa'; ctxCap.lineWidth=1.2;
+  ctxCap.beginPath();
+  for(let i=0;i<n;i++){
+    const idx=(hIdx-n+i+maxHist)%maxHist;
+    const x=i/n*w, y=mid-hIDC[idx]/Math.max(idcPeakDisp,1)*mid*0.7;
+    i===0?ctxCap.moveTo(x,y):ctxCap.lineTo(x,y);
+  }
+  ctxCap.stroke();
+
+  ctxCap.fillStyle='#ff4757'; ctxCap.font='10px Segoe UI'; ctxCap.textAlign='left';
+  ctxCap.fillText('V_Cdc',4,14);
+  ctxCap.fillStyle='#a78bfa'; ctxCap.fillText('i_dc',4,28);
+  ctxCap.fillStyle='#e2e8f0'; ctxCap.textAlign='right';
+  ctxCap.fillText('ΔV='+vcRipple.toFixed(1)+'V',w-4,14);
+}
+
+function drawScopeOut(){
+  const w=cvOut.width,h=cvOut.height; ctxOut.clearRect(0,0,w,h);
+  drawScopeGrid(ctxOut,w,h);
+  const n=Math.min(hCount,maxHist); if(n<2) return;
+  const mid=h/2, vScale=h*0.40/Math.max(Vdc,1);
+
+  // ideal line (dashed, same as buck output scope)
+  ctxOut.strokeStyle='rgba(255,255,255,0.2)'; ctxOut.setLineDash([4,4]);
+  ctxOut.beginPath(); ctxOut.moveTo(0,mid); ctxOut.lineTo(w,mid); ctxOut.stroke();
+  ctxOut.setLineDash([]);
+
+  // V_AB
+  ctxOut.strokeStyle='#ffb703'; ctxOut.lineWidth=2;
+  ctxOut.beginPath();
+  for(let i=0;i<n;i++){
+    const idx=(hIdx-n+i+maxHist)%maxHist;
+    const x=i/n*w, y=mid-hVAB[idx]*vScale;
+    i===0?ctxOut.moveTo(x,y):ctxOut.lineTo(x,y);
+  }
+  ctxOut.stroke();
+
+  // I_A
+  ctxOut.strokeStyle='#2ed573'; ctxOut.lineWidth=1.5;
+  ctxOut.beginPath();
+  for(let i=0;i<n;i++){
+    const idx=(hIdx-n+i+maxHist)%maxHist;
+    const x=i/n*w, y=mid-hIA[idx]/Math.max(iPeakDisp,0.5)*mid*0.7;
+    i===0?ctxOut.moveTo(x,y):ctxOut.lineTo(x,y);
+  }
+  ctxOut.stroke();
+
+  ctxOut.fillStyle='#ffb703'; ctxOut.font='10px Segoe UI'; ctxOut.textAlign='left';
+  ctxOut.fillText('V_AB',4,14);
+  ctxOut.fillStyle='#2ed573'; ctxOut.fillText('I_A',4,28);
+}
+
+// ---------- metrics ----------
+function updateMetrics(){
+  document.getElementById('m-vrms').innerText=Vrms.toFixed(1)+' V';
+  document.getElementById('m-v1').innerText=V1rms.toFixed(1)+' V';
+  document.getElementById('m-irms').innerText=Irms.toFixed(2)+' A';
+  document.getElementById('m-p').innerText=Pact.toFixed(0)+' W';
+  document.getElementById('m-thd').innerText=THD.toFixed(1)+' %';
+  document.getElementById('m-pf').innerText=PF.toFixed(3);
+  document.getElementById('m-vc').innerText=vC.toFixed(1)+' V';
+  document.getElementById('m-dvc').innerText=vcRipple.toFixed(1)+' V';
+}
+
+// ---------- main loop ----------
+let frameCount=0;
+function animate(){
+  const dtFrame=1/60/SLOW;
+  const dtStep=dtFrame/SUBSTEPS;
+  for(let s=0;s<SUBSTEPS;s++) simStep(dtStep);
+
+  frameCount++;
+  if(frameCount%3===0) analyze();
+  if(frameCount%6===0) updateMetrics();
+
+  drawCircuit();
+  drawScopeMod();
+  drawScopeGate();
+  drawScopeCap();
+  drawScopeOut();
+
+  requestAnimationFrame(animate);
+}
+
+// ---------- init ----------
+setLanguage(currentLang);
+setModMode('spwm');
+resizeCanvases();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>

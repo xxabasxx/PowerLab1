@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voltage Doubler Simulator</title>
+<style>
+:root{
+--bg-color:#0a0f1d;
+--panel-bg:rgba(18,26,47,.75);
+--accent-cyan:#00f2fe;
+--accent-blue:#4facfe;
+--accent-gold:#ffb703;
+--accent-purple:#a78bfa;
+--text-color:#e2e8f0;
+--border-color:rgba(255,255,255,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+body{background:var(--bg-color);color:var(--text-color);display:flex;flex-direction:column;align-items:center;min-height:100vh;padding:20px;overflow-x:hidden}
+header{text-align:center;margin-bottom:20px}
+header h1{font-size:1.8rem;color:var(--accent-cyan);margin-bottom:6px;text-shadow:0 0 12px rgba(0,242,254,.3)}
+header p{font-size:.95rem;color:#94a3b8}
+.main-container{display:grid;grid-template-columns:320px 1fr;gap:20px;width:100%;max-width:1300px}
+@media(max-width:950px){.main-container{grid-template-columns:1fr}}
+.glass-panel{background:var(--panel-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border-color);border-radius:16px;padding:20px;box-shadow:0 8px 32px 0 rgba(0,0,0,.37)}
+.controls-sidebar{display:flex;flex-direction:column;gap:18px}
+.control-group{display:flex;flex-direction:column;gap:8px}
+.control-group label{font-size:.88rem;display:flex;justify-content:space-between;color:#cbd5e1}
+.control-group label span.val{color:var(--accent-cyan);font-weight:bold;direction:ltr}
+input[type="range"]{appearance:none;width:100%;height:6px;background:#1e293b;border-radius:3px;outline:none}
+input[type="range"]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent-cyan);cursor:pointer;box-shadow:0 0 8px var(--accent-cyan);transition:transform .1s}
+input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.toggle-group{display:flex;background:#1e293b;border-radius:8px;padding:3px;gap:4px}
+.toggle-btn{flex:1;padding:8px;border:none;background:transparent;color:#94a3b8;font-size:.82rem;border-radius:6px;cursor:pointer;transition:all .3s}
+.toggle-btn.active{background:var(--accent-cyan);color:#0f172a;font-weight:bold}
+.simulation-area{display:flex;flex-direction:column;gap:20px}
+.canvas-container{position:relative;width:100%;height:440px;background:rgba(10,15,29,.6);border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.05)}
+canvas{width:100%;height:100%;display:block}
+.scopes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.scope-card{background:rgba(15,23,42,.8);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,.08)}
+.scope-card h3{font-size:.85rem;margin-bottom:8px;color:#94a3b8;display:flex;align-items:center;gap:6px}
+.scope-card h3::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%}
+.scope-ac h3::before{background:#ff4757}
+.scope-node h3::before{background:var(--accent-purple)}
+.scope-dc h3::before{background:var(--accent-gold)}
+.metrics-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:5px}
+.metric-card{background:rgba(255,255,255,.03);border-radius:8px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,.05)}
+.metric-card .title{font-size:.75rem;color:#64748b;margin-bottom:4px}
+.metric-card .val{font-size:1.05rem;font-weight:bold;color:var(--accent-cyan);direction:ltr}
+.info-box{background:rgba(0,242,254,.05);border:1px solid rgba(0,242,254,.15);border-radius:10px;padding:12px;margin-top:8px;font-size:.8rem;color:#94a3b8;line-height:1.7}
+.info-box b{color:var(--accent-cyan)}
+.info-box i{color:var(--accent-purple);font-style:normal}
+</style>
+</head>
+<body>
+
+<header>
+<h1>Voltage Doubler with Lamp Load</h1>
+<p>Villard / Greinacher circuit — DC output is nearly twice the AC peak input</p>
+</header>
+
+<div class="main-container">
+<aside class="glass-panel controls-sidebar">
+
+<div class="control-group">
+<label>Current Flow Display:</label>
+<div class="toggle-group">
+<button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">Conventional (+ to −)</button>
+<button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">Electron (− to +)</button>
+</div>
+</div>
+
+<div class="control-group">
+<label>Input Peak Voltage (AC): <span class="val" id="val-vac">12 V</span></label>
+<input type="range" id="slider-vac" min="3" max="30" value="12" step="1">
+</div>
+
+<div class="control-group">
+<label>Input Frequency (AC): <span class="val" id="val-freq">50 Hz</span></label>
+<input type="range" id="slider-freq" min="1" max="100" value="50" step="1">
+</div>
+
+<div class="control-group">
+<label>Coupling Capacitor (C1): <span class="val" id="val-c1">100 µF</span></label>
+<input type="range" id="slider-c1" min="10" max="2200" value="100" step="10">
+</div>
+
+<div class="control-group">
+<label>Smoothing Capacitor (C2): <span class="val" id="val-c2">470 µF</span></label>
+<input type="range" id="slider-c2" min="10" max="2200" value="470" step="10">
+</div>
+
+<div class="control-group">
+<label>Lamp Resistance: <span class="val" id="val-res">100 Ω</span></label>
+<input type="range" id="slider-res" min="10" max="500" value="100" step="5">
+</div>
+
+<div class="metrics-grid">
+<div class="metric-card"><div class="title">Input Peak</div><div class="val" id="m-vpeak">12.0 V</div></div>
+<div class="metric-card"><div class="title">Node A Peak</div><div class="val" id="m-vnode">0.0 V</div></div>
+<div class="metric-card"><div class="title">DC Output</div><div class="val" id="m-vout">0.0 V</div></div>
+<div class="metric-card"><div class="title">Gain Factor</div><div class="val" id="m-gain">×0.00</div></div>
+<div class="metric-card"><div class="title">Ripple Voltage</div><div class="val" id="m-vrip">0.0 V</div></div>
+<div class="metric-card"><div class="title">Lamp Power</div><div class="val" id="m-pwr">0.0 W</div></div>
+</div>
+
+<div class="info-box">
+<b>Note:</b> This circuit uses <b>two diodes</b> and <b>two capacitors</b>. During the negative half-cycle, diode <b>D1</b> conducts and charges the series capacitor <b>C1</b> up to about <i>Vp − 0.7</i> (clamp phase). During the positive half-cycle, the stored voltage of C1 <b>adds</b> to the source, pushing node <i>A</i> up to roughly <i>2Vp − 0.7</i>; then <b>D2</b> conducts and charges the smoothing capacitor <b>C2</b> (pump phase). The final output equals <b>2Vp − 1.4</b> volts. Because charging happens only once per cycle, the <b>ripple frequency equals the input frequency</b> and the ripple is larger than in a bridge rectifier.
+</div>
+</aside>
+
+<main class="simulation-area">
+<div class="glass-panel canvas-container">
+<canvas id="circuitCanvas"></canvas>
+</div>
+<div class="scopes-grid">
+<div class="glass-panel scope-card scope-ac">
+<h3>AC Input Signal (AC Source)</h3>
+<div style="height:120px;position:relative"><canvas id="scopeAC"></canvas></div>
+</div>
+<div class="glass-panel scope-card scope-node">
+<h3>Node A Voltage (Pumped Node)</h3>
+<div style="height:120px;position:relative"><canvas id="scopeNODE"></canvas></div>
+</div>
+<div class="glass-panel scope-card scope-dc">
+<h3>Lamp Voltage (DC Output)</h3>
+<div style="height:120px;position:relative"><canvas id="scopeDC"></canvas></div>
+</div>
+</div>
+</main>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+var flowMode='conv';
+var Vac=12, freq=50, c1Uf=100, c2Uf=470, Rload=100;
+var VD=0.7, Rd=8, Vc1=0, Vc2=0, time=0;
+var d1On=false, d2On=false, nodeA=0;
+
+var canvas=document.getElementById('circuitCanvas');
+var ctx=canvas.getContext('2d');
+var canvasAC=document.getElementById('scopeAC');
+var ctxAC=canvasAC.getContext('2d');
+var canvasNO=document.getElementById('scopeNODE');
+var ctxNO=canvasNO.getContext('2d');
+var canvasDC=document.getElementById('scopeDC');
+var ctxDC=canvasDC.getContext('2d');
+
+var acH=[], naH=[], dcH=[], maxHist=300;
+
+var NP=42, particles=[];
+for(var i=0;i<NP;i++) particles.push({progress:Math.random(), branch:(i%3===0)?'cap':'load'});
+
+document.getElementById('slider-vac').addEventListener('input',function(e){
+  Vac=parseFloat(e.target.value);
+  document.getElementById('val-vac').textContent=Vac+' V';
+});
+document.getElementById('slider-freq').addEventListener('input',function(e){
+  freq=parseFloat(e.target.value);
+  document.getElementById('val-freq').textContent=freq+' Hz';
+});
+document.getElementById('slider-c1').addEventListener('input',function(e){
+  c1Uf=parseFloat(e.target.value);
+  document.getElementById('val-c1').textContent=c1Uf+' µF';
+});
+document.getElementById('slider-c2').addEventListener('input',function(e){
+  c2Uf=parseFloat(e.target.value);
+  document.getElementById('val-c2').textContent=c2Uf+' µF';
+});
+document.getElementById('slider-res').addEventListener('input',function(e){
+  Rload=parseFloat(e.target.value);
+  document.getElementById('val-res').textContent=Rload+' Ω';
+});
+window.setFlowMode=function(m){
+  flowMode=m;
+  document.getElementById('btn-conv').classList.toggle('active',m==='conv');
+  document.getElementById('btn-elec').classList.toggle('active',m==='elec');
+};
+
+function resizeAll(){
+  var r=canvas.parentElement.getBoundingClientRect();
+  canvas.width=r.width; canvas.height=r.height;
+  var r2=canvasAC.parentElement.getBoundingClientRect();
+  canvasAC.width=r2.width; canvasAC.height=r2.height;
+  var r3=canvasNO.parentElement.getBoundingClientRect();
+  canvasNO.width=r3.width; canvasNO.height=r3.height;
+  var r4=canvasDC.parentElement.getBoundingClientRect();
+  canvasDC.width=r4.width; canvasDC.height=r4.height;
+}
+window.addEventListener('resize',resizeAll);
+
+function getL(){
+  var w=canvas.width, h=canvas.height;
+  if(w<10)w=600; if(h<10)h=400;
+  return {
+    w:w, h:h,
+    topY:h*0.20, botY:h*0.82, midY:h*0.51,
+    srcX:w*0.12, c1X:w*0.27, aX:w*0.43,
+    d2X:w*0.56, bX:w*0.70, lampX:w*0.88
+  };
+}
+
+/* ───── Circuit State Detection ───── */
+function getCircuitState(){
+  var discharging = (!d1On && !d2On && Vc2>0.3);
+  return {d1:d1On, d2:d2On, discharging:discharging};
+}
+function activeColor(st){
+  if(st.d2) return '#00f2fe';
+  if(st.d1) return '#4facfe';
+  return '#ffb703';
+}
+
+/* ───── Base Wiring + Active Path Highlight ───── */
+function drawWires(l){
+  var st=getCircuitState();
+
+  /* 1. Base gray wiring */
+  ctx.save();
+  ctx.lineWidth=3;
+  ctx.strokeStyle='#334155';
+  ctx.lineJoin='round';
+  ctx.lineCap='round';
+
+  /* Top rail — with gap for series capacitor C1 */
+  ctx.beginPath();
+  ctx.moveTo(l.srcX,l.topY); ctx.lineTo(l.c1X-8,l.topY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(l.c1X+8,l.topY); ctx.lineTo(l.lampX,l.topY);
+  ctx.stroke();
+
+  /* Bottom rail (ground) */
+  ctx.beginPath();
+  ctx.moveTo(l.srcX,l.botY); ctx.lineTo(l.lampX,l.botY);
+  ctx.stroke();
+
+  /* Source branch */
+  ctx.beginPath();
+  ctx.moveTo(l.srcX,l.topY); ctx.lineTo(l.srcX,l.botY);
+  ctx.stroke();
+
+  /* D1 branch at node A */
+  ctx.beginPath();
+  ctx.moveTo(l.aX,l.topY); ctx.lineTo(l.aX,l.botY);
+  ctx.stroke();
+
+  /* Smoothing capacitor C2 branch — with gap */
+  ctx.beginPath();
+  ctx.moveTo(l.bX,l.topY); ctx.lineTo(l.bX,l.midY-10);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(l.bX,l.midY+10); ctx.lineTo(l.bX,l.botY);
+  ctx.stroke();
+
+  /* Lamp branch */
+  ctx.beginPath();
+  ctx.moveTo(l.lampX,l.topY); ctx.lineTo(l.lampX,l.botY);
+  ctx.stroke();
+  ctx.restore();
+
+  /* 2. Active path highlight */
+  ctx.save();
+  ctx.lineWidth=4;
+  ctx.lineJoin='round';
+  ctx.lineCap='round';
+
+  if(st.d1){
+    /* Clamp phase: ground → D1 → A → C1 → source */
+    ctx.strokeStyle='rgba(79, 172, 254, 0.6)';
+    ctx.beginPath();
+    ctx.moveTo(l.srcX,l.midY);
+    ctx.lineTo(l.srcX,l.botY);
+    ctx.lineTo(l.aX,l.botY);
+    ctx.lineTo(l.aX,l.topY);
+    ctx.lineTo(l.srcX,l.topY);
+    ctx.lineTo(l.srcX,l.midY);
+    ctx.stroke();
+  } else if(st.d2){
+    /* Pump phase: source → C1 → A → D2 → B → load → ground */
+    ctx.strokeStyle='rgba(0, 242, 254, 0.6)';
+    ctx.beginPath();
+    ctx.moveTo(l.srcX,l.midY);
+    ctx.lineTo(l.srcX,l.topY);
+    ctx.lineTo(l.lampX,l.topY);
+    ctx.lineTo(l.lampX,l.botY);
+    ctx.lineTo(l.srcX,l.botY);
+    ctx.lineTo(l.srcX,l.midY);
+    ctx.stroke();
+
+    ctx.strokeStyle='rgba(0, 242, 254, 0.4)';
+    ctx.beginPath();
+    ctx.moveTo(l.bX,l.topY); ctx.lineTo(l.bX,l.botY);
+    ctx.stroke();
+  } else if(st.discharging){
+    ctx.strokeStyle='rgba(255, 183, 3, 0.6)';
+    ctx.beginPath();
+    ctx.moveTo(l.bX,l.topY);
+    ctx.lineTo(l.lampX,l.topY);
+    ctx.lineTo(l.lampX,l.botY);
+    ctx.lineTo(l.bX,l.botY);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(l.bX,l.topY); ctx.lineTo(l.bX,l.botY);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  /* 3. Nodes */
+  ctx.save();
+  ctx.fillStyle='#64748b';
+  var nodes=[[l.srcX,l.topY],[l.srcX,l.botY],[l.aX,l.topY],[l.aX,l.botY],
+             [l.bX,l.topY],[l.bX,l.botY],[l.lampX,l.topY],[l.lampX,l.botY]];
+  for(var i=0;i<nodes.length;i++){
+    ctx.beginPath(); ctx.arc(nodes[i][0],nodes[i][1],4,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+
+  /* 4. Labels */
+  ctx.save();
+  ctx.font='bold 12px Segoe UI';
+  ctx.textAlign='center';
+  ctx.fillStyle='#ff4757'; ctx.fillText('DC +', (l.bX+l.lampX)/2, l.topY-10);
+  ctx.fillStyle='#2ed573'; ctx.fillText('GND', (l.bX+l.lampX)/2, l.botY+20);
+
+  ctx.font='bold 11px Segoe UI';
+  ctx.fillStyle='#a78bfa';
+  ctx.fillText('A', l.aX+16, l.topY-10);
+  ctx.fillStyle='#94a3b8';
+  ctx.fillText('B', l.bX-16, l.topY-10);
+  ctx.restore();
+}
+
+/* ───── AC Source (vertical) ───── */
+function drawACSource(l, vac){
+  var x=l.srcX, y=l.midY;
+  ctx.save();
+
+  ctx.fillStyle='#0f172a';
+  ctx.strokeStyle='#4facfe';
+  ctx.lineWidth=3;
+  ctx.beginPath();
+  ctx.arc(x,y,28,0,Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  ctx.beginPath();
+  ctx.strokeStyle='#e2e8f0'; ctx.lineWidth=2;
+  for(var i=-14;i<=14;i++){
+    var px=x+i, py=y+Math.sin((i/14)*Math.PI)*9;
+    if(i===-14)ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.stroke();
+
+  ctx.font='bold 14px Segoe UI';
+  ctx.textAlign='center';
+  ctx.fillStyle=vac>=0?'#ff4757':'#2ed573';
+  ctx.fillText(vac>=0?'+':'−', x+40, y-26);
+  ctx.fillStyle=vac>=0?'#2ed573':'#ff4757';
+  ctx.fillText(vac>=0?'−':'+', x+40, y+34);
+
+  ctx.font='12px Segoe UI';
+  ctx.fillStyle='#94a3b8';
+  ctx.fillText('AC Source', x, l.topY-24);
+  ctx.restore();
+}
+
+/* ───── Vertical Diode (conducts upward) ───── */
+function drawDiodeV(x,y,isOn,label,side,onCol){
+  var sz=15;
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.fillStyle=isOn?onCol:'#1e293b';
+  ctx.strokeStyle=isOn?onCol:'#64748b';
+  ctx.lineWidth=2;
+  if(isOn){ ctx.shadowColor=onCol; ctx.shadowBlur=10; }
+
+  ctx.beginPath();
+  ctx.moveTo(0,-sz);
+  ctx.lineTo(-sz,sz);
+  ctx.lineTo(sz,sz);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(-sz,-sz); ctx.lineTo(sz,-sz);
+  ctx.stroke();
+  ctx.shadowBlur=0;
+  ctx.restore();
+
+  ctx.save();
+  var lx=x+side*(sz+10);
+  ctx.textAlign=(side<0)?'right':'left';
+  ctx.font='bold 11px Segoe UI';
+  ctx.fillStyle=isOn?onCol:'#94a3b8';
+  ctx.fillText(label,lx,y-1);
+  ctx.font='10px Segoe UI';
+  ctx.fillStyle=isOn?'#10b981':'#ef4444';
+  ctx.fillText(isOn?'ON ✓':'OFF ✗',lx,y+13);
+  ctx.restore();
+}
+
+/* ───── Horizontal Diode (conducts to the right) ───── */
+function drawDiodeH(x,y,isOn,label,onCol){
+  var sz=15;
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.fillStyle=isOn?onCol:'#1e293b';
+  ctx.strokeStyle=isOn?onCol:'#64748b';
+  ctx.lineWidth=2;
+  if(isOn){ ctx.shadowColor=onCol; ctx.shadowBlur=10; }
+
+  ctx.beginPath();
+  ctx.moveTo(sz,0);
+  ctx.lineTo(-sz,-sz);
+  ctx.lineTo(-sz,sz);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(sz,-sz); ctx.lineTo(sz,sz);
+  ctx.stroke();
+  ctx.shadowBlur=0;
+  ctx.restore();
+
+  ctx.save();
+  ctx.textAlign='center';
+  ctx.font='bold 11px Segoe UI';
+  ctx.fillStyle=isOn?onCol:'#94a3b8';
+  ctx.fillText(label,x,y-26);
+  ctx.font='10px Segoe UI';
+  ctx.fillStyle=isOn?'#10b981':'#ef4444';
+  ctx.fillText(isOn?'ON ✓':'OFF ✗',x,y-14);
+  ctx.restore();
+}
+
+function drawDiodes(l){
+  var st=getCircuitState();
+
+  drawDiodeV(l.aX, l.midY, st.d1, 'D1', -1, '#4facfe');
+  drawDiodeH(l.d2X, l.topY, st.d2, 'D2', '#00f2fe');
+
+  ctx.save();
+  ctx.textAlign='left';
+  ctx.font='bold 12px Segoe UI';
+  ctx.fillStyle='#64748b';
+  ctx.fillText('Half-Wave Voltage Doubler (Villard)', 14, 22);
+
+  ctx.textAlign='center';
+  ctx.font='bold 12px Segoe UI';
+  if(st.d2){
+    ctx.fillStyle='#00f2fe';
+    ctx.fillText('Pump Phase — D2 ON : C2 charging toward 2×Vp', l.w*0.5, l.botY+40);
+  } else if(st.d1){
+    ctx.fillStyle='#4facfe';
+    ctx.fillText('Clamp Phase — D1 ON : C1 charging to Vp', l.w*0.5, l.botY+40);
+  } else {
+    ctx.fillStyle='#ffb703';
+    ctx.fillText('Both Diodes OFF — C2 Supplies Load', l.w*0.5, l.botY+40);
+  }
+  ctx.restore();
+}
+
+/* ───── Series Capacitor C1 (horizontal) ───── */
+function drawCapSeries(l){
+  var x=l.c1X, y=l.topY;
+  var st=getCircuitState();
+
+  ctx.save();
+  if(st.d1){
+    ctx.shadowColor='#4facfe'; ctx.shadowBlur=14; ctx.strokeStyle='#4facfe';
+  } else if(st.d2){
+    ctx.shadowColor='#00f2fe'; ctx.shadowBlur=10; ctx.strokeStyle='#00f2fe';
+  } else {
+    ctx.strokeStyle='#e2e8f0';
+  }
+  ctx.lineWidth=4; ctx.lineCap='round';
+
+  ctx.beginPath();
+  ctx.moveTo(x-8,y-16); ctx.lineTo(x-8,y+16);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x+8,y-16); ctx.lineTo(x+8,y+16);
+  ctx.stroke();
+  ctx.shadowBlur=0;
+
+  ctx.textAlign='center';
+  ctx.font='11px Segoe UI';
+  if(st.d1){
+    ctx.fillStyle='#4facfe'; ctx.fillText('Charging',x,y+32);
+  } else if(st.d2){
+    ctx.fillStyle='#00f2fe'; ctx.fillText('Pumping',x,y+32);
+  } else {
+    ctx.fillStyle='#94a3b8'; ctx.fillText('Coupling C1',x,y+32);
+  }
+  ctx.fillStyle='#64748b';
+  ctx.fillText(c1Uf+' µF',x,y+46);
+  ctx.fillStyle='#a78bfa';
+  ctx.fillText('Vc1 = '+Math.abs(Vc1).toFixed(1)+' V',x,y+60);
+  ctx.restore();
+}
+
+/* ───── Smoothing Capacitor C2 (vertical) ───── */
+function drawCapSmooth(l){
+  var x=l.bX, y=l.midY;
+  var st=getCircuitState();
+
+  ctx.save();
+  if(st.discharging){
+    ctx.shadowColor='#ffb703'; ctx.shadowBlur=15; ctx.strokeStyle='#ffb703';
+  } else if(st.d2){
+    ctx.shadowColor='#00f2fe'; ctx.shadowBlur=10; ctx.strokeStyle='#00f2fe';
+  } else {
+    ctx.strokeStyle='#e2e8f0';
+  }
+
+  ctx.lineWidth=4;
+  ctx.beginPath();
+  ctx.moveTo(x-20,y-10); ctx.lineTo(x+20,y-10);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x-20,y+10); ctx.lineTo(x+20,y+10);
+  ctx.stroke();
+  ctx.shadowBlur=0;
+
+  ctx.font='bold 12px Segoe UI';
+  ctx.fillStyle='#ff4757'; ctx.textAlign='center';
+  ctx.fillText('+',x,y-18);
+
+  ctx.font='11px Segoe UI';
+  if(st.discharging){
+    ctx.fillStyle='#ffb703'; ctx.fillText('Discharging',x,y+32);
+  } else if(st.d2){
+    ctx.fillStyle='#00f2fe'; ctx.fillText('Charging',x,y+32);
+  } else {
+    ctx.fillStyle='#94a3b8'; ctx.fillText('Smoothing C2',x,y+32);
+  }
+
+  ctx.fillStyle='#64748b';
+  ctx.fillText(c2Uf+' µF',x,y+46);
+  ctx.restore();
+}
+
+/* ───── Lamp ───── */
+function drawLamp(l, vLoad){
+  var x=l.lampX, y=l.midY;
+  var brightness=Math.min(1,Math.max(0,vLoad/Math.max(1,2*Vac)));
+
+  ctx.save();
+  if(brightness>0.05){
+    var gr=ctx.createRadialGradient(x,y,8,x,y,40+brightness*55);
+    gr.addColorStop(0,'rgba(255,230,120,'+brightness*0.9+')');
+    gr.addColorStop(0.4,'rgba(255,170,0,'+brightness*0.4+')');
+    gr.addColorStop(1,'rgba(255,150,0,0)');
+    ctx.fillStyle=gr;
+    ctx.beginPath(); ctx.arc(x,y,40+brightness*55,0,Math.PI*2); ctx.fill();
+  }
+
+  var R=28;
+  ctx.fillStyle='rgba(255,255,255,'+(0.05+brightness*0.2)+')';
+  ctx.strokeStyle=brightness>0.3?'#ffb703':'#64748b';
+  ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.arc(x,y,R,0,Math.PI*2); ctx.fill(); ctx.stroke();
+
+  ctx.fillStyle='#475569';
+  ctx.fillRect(x-10,y+R-3,20,12);
+
+  ctx.beginPath();
+  ctx.strokeStyle=brightness>0.1?
+    'rgb(255,'+(200+brightness*55|0)+','+(150*brightness|0)+')':'#475569';
+  ctx.lineWidth=brightness>0.1?3:1.5;
+  ctx.moveTo(x-8,y+R-4);
+  ctx.lineTo(x-6,y-4); ctx.lineTo(x-2,y-12);
+  ctx.lineTo(x+2,y-12); ctx.lineTo(x+6,y-4);
+  ctx.lineTo(x+8,y+R-4);
+  ctx.stroke();
+
+  ctx.shadowBlur=0;
+  ctx.font='12px Segoe UI';
+  ctx.fillStyle='#cbd5e1'; ctx.textAlign='center';
+  ctx.fillText('Lamp Load', x, y-R-12);
+  ctx.fillStyle='#64748b';
+  ctx.font='11px Segoe UI';
+  ctx.fillText(Rload+' Ω', x, y+R+26);
+  ctx.restore();
+}
+
+/* ───── Particle Paths ───── */
+function buildPaths(l){
+  var st=getCircuitState();
+  var p, pLoad, pCap;
+
+  /* a) Pump phase — charging C2 and feeding the load */
+  if(st.d2){
+    pLoad=[{x:l.srcX,y:l.midY-30},{x:l.srcX,y:l.topY},{x:l.lampX,y:l.topY},
+           {x:l.lampX,y:l.botY},{x:l.srcX,y:l.botY},{x:l.srcX,y:l.midY+30}];
+    pCap =[{x:l.srcX,y:l.midY-30},{x:l.srcX,y:l.topY},{x:l.bX,y:l.topY},
+           {x:l.bX,y:l.botY},{x:l.srcX,y:l.botY},{x:l.srcX,y:l.midY+30}];
+    if(flowMode==='elec'){ pLoad=pLoad.slice().reverse(); pCap=pCap.slice().reverse(); }
+    return {load:pLoad, cap:pCap};
+  }
+
+  /* b) Clamp phase — charging C1 through D1 */
+  if(st.d1){
+    p=[{x:l.srcX,y:l.midY+30},{x:l.srcX,y:l.botY},{x:l.aX,y:l.botY},
+       {x:l.aX,y:l.topY},{x:l.srcX,y:l.topY},{x:l.srcX,y:l.midY-30}];
+    if(flowMode==='elec') p=p.slice().reverse();
+    return {load:p, cap:p};
+  }
+
+  /* c) C2 discharging into the lamp */
+  if(st.discharging){
+    p=[{x:l.bX,y:l.midY-10},{x:l.bX,y:l.topY},{x:l.lampX,y:l.topY},
+       {x:l.lampX,y:l.botY},{x:l.bX,y:l.botY},{x:l.bX,y:l.midY+10}];
+    if(flowMode==='elec') p=p.slice().reverse();
+    return {load:p, cap:p};
+  }
+
+  return null;
+}
+
+function drawParticles(l, vac){
+  var paths=buildPaths(l);
+  if(!paths) return;
+
+  var st=getCircuitState();
+  var spd=0.006+(Math.abs(vac)/30)*0.012;
+  var pColor=activeColor(st);
+
+  if(st.discharging){
+    pColor='#ffb703';
+    spd=0.004+(Vc2/Math.max(1,2*Vac))*0.008;
+  }
+
+  for(var i=0;i<particles.length;i++){
+    var p=particles[i];
+    p.progress+=spd;
+    if(p.progress>=1) p.progress-=1;
+
+    var path=(p.branch==='cap')?paths.cap:paths.load;
+    var pt=getPointAlongPath(path, p.progress);
+    if(!pt) continue;
+
+    ctx.beginPath();
+    ctx.arc(pt.x,pt.y,4,0,Math.PI*2);
+    ctx.fillStyle=pColor;
+    ctx.shadowColor=pColor;
+    ctx.shadowBlur=8;
+    ctx.fill();
+    ctx.shadowBlur=0;
+  }
+}
+
+function getPointAlongPath(pts,t){
+  if(!pts||pts.length<2) return null;
+  var tot=0, lens=[], i;
+  for(i=0;i<pts.length-1;i++){
+    var dx=pts[i+1].x-pts[i].x, dy=pts[i+1].y-pts[i].y;
+    lens.push(Math.sqrt(dx*dx+dy*dy));
+    tot+=lens[i];
+  }
+  if(tot<1) return pts[0];
+  var tgt=t*tot, cur=0;
+  for(i=0;i<lens.length;i++){
+    if(cur+lens[i]>=tgt){
+      var s=(tgt-cur)/lens[i];
+      return {x:pts[i].x+(pts[i+1].x-pts[i].x)*s, y:pts[i].y+(pts[i+1].y-pts[i].y)*s};
+    }
+    cur+=lens[i];
+  }
+  return pts[pts.length-1];
+}
+
+/* ───── Oscilloscope ───── */
+function drawScope(ctxS,cvs,data,maxVal,color,mode){
+  var w=cvs.width, h=cvs.height, i;
+  if(w<5||h<5) return;
+  ctxS.clearRect(0,0,w,h);
+
+  ctxS.strokeStyle='rgba(255,255,255,.05)'; ctxS.lineWidth=1;
+  ctxS.beginPath();
+  for(var x=0;x<w;x+=20){ctxS.moveTo(x,0);ctxS.lineTo(x,h);}
+  for(var y2=0;y2<h;y2+=20){ctxS.moveTo(0,y2);ctxS.lineTo(w,y2);}
+  ctxS.stroke();
+
+  var baseY, amp;
+  if(mode==='dc'){ baseY=h-6;      amp=h*0.85; }
+  else if(mode==='node'){ baseY=h*0.80; amp=h*0.72; }
+  else { baseY=h/2; amp=h*0.42; }
+
+  ctxS.strokeStyle='rgba(255,255,255,.15)';
+  ctxS.beginPath(); ctxS.moveTo(0,baseY); ctxS.lineTo(w,baseY); ctxS.stroke();
+
+  var mv=Math.max(1,maxVal);
+
+  /* Reference lines on the output scope */
+  if(mode==='dc'){
+    var refs=[
+      {v:Vac,            c:'rgba(0,242,254,.30)',  t:'1× Input'},
+      {v:2*Vac-2*VD,     c:'rgba(167,139,250,.45)',t:'2× Ideal'}
+    ];
+    ctxS.setLineDash([4,4]); ctxS.lineWidth=1.5;
+    for(i=0;i<refs.length;i++){
+      var ry=baseY-(refs[i].v/mv)*amp;
+      ctxS.strokeStyle=refs[i].c;
+      ctxS.beginPath(); ctxS.moveTo(0,ry); ctxS.lineTo(w,ry); ctxS.stroke();
+      ctxS.font='10px Segoe UI'; ctxS.textAlign='right';
+      ctxS.fillStyle=refs[i].c;
+      ctxS.fillText(refs[i].t, w-6, ry-3);
+    }
+    ctxS.setLineDash([]);
+  }
+
+  /* Peak reference line for node A scope */
+  if(mode==='node'){
+    ctxS.setLineDash([3,3]);
+    ctxS.strokeStyle='rgba(255,71,87,.25)'; ctxS.lineWidth=1;
+    var zy=baseY-(Vac/mv)*amp;
+    ctxS.beginPath(); ctxS.moveTo(0,zy); ctxS.lineTo(w,zy); ctxS.stroke();
+    ctxS.setLineDash([]);
+    ctxS.font='10px Segoe UI'; ctxS.textAlign='right';
+    ctxS.fillStyle='rgba(255,71,87,.5)';
+    ctxS.fillText('Vp', w-6, zy-3);
+  }
+
+  if(data.length<2) return;
+  var step=w/maxHist;
+
+  ctxS.beginPath();
+  ctxS.strokeStyle=color; ctxS.lineWidth=2.5;
+  for(i=0;i<data.length;i++){
+    var xx=i*step, yy=baseY-(data[i]/mv)*amp;
+    if(yy<-50)yy=-50; if(yy>h+50)yy=h+50;
+    if(i===0)ctxS.moveTo(xx,yy); else ctxS.lineTo(xx,yy);
+  }
+  ctxS.stroke();
+
+  if(mode==='dc'){
+    ctxS.font='10px Segoe UI';
+    ctxS.fillStyle='#e2b170'; ctxS.textAlign='left';
+    ctxS.fillText('Output DC',6,14);
+  }
+}
+
+/* ───── Physics ───── */
+function physicsStep(){
+  var T=1/Math.max(1,freq);
+  var C1=c1Uf*1e-6, C2=c2Uf*1e-6;
+  var physDt=T/400;
+  var stepsPerFrame=Math.max(1,Math.round(0.016/physDt));
+  if(stepsPerFrame>400) stepsPerFrame=400;
+
+  var Cs=(C1*C2)/(C1+C2);
+  var va=0, vA=0;
+
+  for(var s=0;s<stepsPerFrame;s++){
+    time+=physDt;
+    va=Vac*Math.sin(2*Math.PI*freq*time);
+    vA=va-Vc1;
+
+    /* D1 : clamps node A at −VD and charges C1 */
+    d1On=(vA < -VD-0.002);
+    if(d1On){
+      var tgt=va+VD;
+      Vc1+=(tgt-Vc1)*(1-Math.exp(-physDt/(Rd*C1)));
+      vA=va-Vc1;
+    }
+
+    /* D2 : transfers charge from C1 to C2 */
+    d2On=(vA > Vc2+VD+0.002);
+    if(d2On){
+      var dV=vA-VD-Vc2;
+      var dVn=dV*Math.exp(-physDt/(Rd*Cs));
+      var q=(dV-dVn)*Cs;
+      Vc1+=q/C1;
+      Vc2+=q/C2;
+      vA=va-Vc1;
+    }
+
+    /* C2 discharging into the load */
+    Vc2*=Math.exp(-physDt/(Math.max(1,Rload)*C2));
+    if(Vc2<0) Vc2=0;
+  }
+
+  nodeA=vA;
+  return {va:va, vA:vA, vout:Vc2};
+}
+
+/* ───── Main Loop ───── */
+function animate(){
+  var ph=physicsStep();
+
+  acH.push(ph.va); naH.push(ph.vA); dcH.push(ph.vout);
+  if(acH.length>maxHist)acH.shift();
+  if(naH.length>maxHist)naH.shift();
+  if(dcH.length>maxHist)dcH.shift();
+
+  var i;
+  var last=dcH.length>120?dcH.slice(-120):dcH;
+  var vmx=-Infinity, vmn=Infinity;
+  for(i=0;i<last.length;i++){if(last[i]>vmx)vmx=last[i];if(last[i]<vmn)vmn=last[i];}
+  var vRip=(vmx>vmn)?(vmx-vmn):0;
+
+  var lastA=naH.length>120?naH.slice(-120):naH;
+  var aMax=-Infinity;
+  for(i=0;i<lastA.length;i++){ if(lastA[i]>aMax)aMax=lastA[i]; }
+  if(aMax===-Infinity) aMax=0;
+
+  var pwr=Vc2*Vc2/Math.max(1,Rload);
+  var gain=Vac>0?(Vc2/Vac):0;
+
+  document.getElementById('m-vpeak').textContent=Vac.toFixed(1)+' V';
+  document.getElementById('m-vnode').textContent=aMax.toFixed(1)+' V';
+  document.getElementById('m-vout').textContent=Vc2.toFixed(1)+' V';
+  document.getElementById('m-gain').textContent='×'+gain.toFixed(2);
+  document.getElementById('m-vrip').textContent=vRip.toFixed(2)+' V';
+  document.getElementById('m-pwr').textContent=pwr.toFixed(1)+' W';
+
+  var l=getL();
+  ctx.clearRect(0,0,l.w,l.h);
+  drawWires(l);
+  drawACSource(l, ph.va);
+  drawCapSeries(l);
+  drawDiodes(l);
+  drawCapSmooth(l);
+  drawLamp(l, ph.vout);
+  drawParticles(l, ph.va);
+
+  drawScope(ctxAC,canvasAC,acH,Vac*1.2,'#ff4757','ac');
+  drawScope(ctxNO,canvasNO,naH,Vac*2.3,'#a78bfa','node');
+  drawScope(ctxDC,canvasDC,dcH,Vac*2.4,'#ffb703','dc');
+
+  requestAnimationFrame(animate);
+}
+
+function start(){ resizeAll(); requestAnimationFrame(animate); }
+if(document.readyState==='complete') start();
+else window.addEventListener('load',start);
+
+})();
+</script>
+</body>
+</html>

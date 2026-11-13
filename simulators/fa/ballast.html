@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شبیه‌ساز مدار بالاست الکترونیکی (Electronic Ballast)</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --accent-purple: #a29bfe;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .toggle-btn.action {
+            background: rgba(0, 242, 254, 0.12);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            margin-top: 4px;
+        }
+
+        .toggle-btn.action:hover {
+            background: var(--accent-cyan);
+            color: #0f172a;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-card h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .scope-sw h3::before { background: var(--accent-cyan); }
+        .scope-lamp h3::before { background: var(--accent-purple); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-align: center;
+            flex-grow: 1;
+        }
+
+        .status-off { background: rgba(255, 71, 87, 0.15); color: var(--accent-red); border: 1px solid var(--accent-red); }
+        .status-strike { background: rgba(255, 183, 3, 0.15); color: var(--accent-gold); border: 1px solid var(--accent-gold); }
+        .status-arc { background: rgba(162, 155, 254, 0.15); color: var(--accent-purple); border: 1px solid var(--accent-purple); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>شبیه‌ساز مدار بالاست الکترونیکی (Electronic Ballast)</h1>
+        <p>اینورتر نیم‌پلی رزونانسی LC برای یونیزاسیون، جرقه‌زنی و تثبیت قوس الکتریکی لامپ فلورسنت</p>
+    </header>
+
+    <div class="main-container">
+        <!-- پنل تنظیمات -->
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group">
+                <label>نوع جریان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">قراردادی (+ به -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">الکترونی (- به +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span>ولتاژ ورودی برق شهر (V_AC):</span> <span class="val" id="val-vac">220 V</span></label>
+                <input type="range" id="slider-vac" min="110" max="240" value="220" step="5">
+            </div>
+
+            <div class="control-group">
+                <label><span>فرکانس سوئیچینگ (f_sw):</span> <span class="val" id="val-fsw">35 kHz</span></label>
+                <input type="range" id="slider-fsw" min="20" max="70" value="35" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span>اندوکتانس رزونانس (L_r):</span> <span class="val" id="val-lr">1.8 mH</span></label>
+                <input type="range" id="slider-lr" min="1.0" max="3.5" value="1.8" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label><span>خازن رزونانس (C_r):</span> <span class="val" id="val-cr">6.8 nF</span></label>
+                <input type="range" id="slider-cr" min="2.2" max="15.0" value="6.8" step="0.1">
+            </div>
+
+            <button class="toggle-btn action" onclick="triggerStrike()">تحریک جرقه‌زنی مجدد (Re-strike Arc)</button>
+
+            <div class="state-indicator">
+                <div class="status-badge status-arc" id="badge-status">حالت: تخلیه الکتریکی و قوس پایدار</div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title">ولتاژ ریل DC (V_DC)</div>
+                    <div class="val" id="m-vdc">311 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">فرکانس تشدید (f_0)</div>
+                    <div class="val" id="m-f0" style="color:var(--accent-gold)">45.5 kHz</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">ولتاژ دو سر لامپ (V_lamp)</div>
+                    <div class="val" id="m-vlamp" style="color:var(--accent-purple)">105 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">جریان قوس لامپ (I_lamp)</div>
+                    <div class="val" id="m-ilamp" style="color:var(--accent-green)">380 mA</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ناحیه شبیه‌سازی و اسیلوسکوپ‌ها -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-sw">
+                    <h3>ولتاژ نقطه وسط اینورتر نیم‌پلی (Midpoint Switching V_sw)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeSW"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-lamp">
+                    <h3>ولتاژ و جریان سینوسی لامپ رزونانسی (V_lamp & I_lamp)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeLAMP"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // متغیرهای حالت
+        let flowMode = 'conv';
+        let V_ac = 220; // ولتاژ متناوب ورودی
+        let f_sw = 35; // کیلوهرتز (فرکانس سوئیچینگ اینورتر)
+        let L_r = 1.8; // میلی‌هنری
+        let C_r = 6.8; // نانوفاراد
+
+        let isIgnited = true; // آیا گاز لامپ جرقه‌زده و قوس تشکیل شده است؟
+        let strikeTimer = 0;
+
+        // بوم‌ها
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasSW = document.getElementById('scopeSW');
+        const ctxSW = canvasSW.getContext('2d');
+        const canvasLAMP = document.getElementById('scopeLAMP');
+        const ctxLAMP = canvasLAMP.getContext('2d');
+
+        // اسلایدرها
+        document.getElementById('slider-vac').addEventListener('input', (e) => {
+            V_ac = parseFloat(e.target.value);
+            document.getElementById('val-vac').innerText = V_ac + ' V';
+        });
+        document.getElementById('slider-fsw').addEventListener('input', (e) => {
+            f_sw = parseFloat(e.target.value);
+            document.getElementById('val-fsw').innerText = f_sw + ' kHz';
+        });
+        document.getElementById('slider-lr').addEventListener('input', (e) => {
+            L_r = parseFloat(e.target.value);
+            document.getElementById('val-lr').innerText = L_lr_text(L_r);
+        });
+        document.getElementById('slider-cr').addEventListener('input', (e) => {
+            C_r = parseFloat(e.target.value);
+            document.getElementById('val-cr').innerText = C_r.toFixed(1) + ' nF';
+        });
+
+        function L_lr_text(val) {
+            return val.toFixed(1) + ' mH';
+        }
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        function triggerStrike() {
+            isIgnited = false;
+            strikeTimer = 0;
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            const rectSW = canvasSW.parentElement.getBoundingClientRect();
+            canvasSW.width = rectSW.width;
+            canvasSW.height = rectSW.height;
+
+            const rectLAMP = canvasLAMP.parentElement.getBoundingClientRect();
+            canvasLAMP.width = rectLAMP.width;
+            canvasLAMP.height = rectLAMP.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        // تاریخچه اسیلوسکوپ
+        const maxHistory = 300;
+        const swHistory = [];
+        const vLampHistory = [];
+        const iLampHistory = [];
+
+        // ذرات متحرک
+        const particles = [];
+        for (let i = 0; i < 40; i++) {
+            particles.push({
+                progress: Math.random(),
+                dir: Math.random() > 0.5 ? 1 : -1
+            });
+        }
+
+        let time = 0;
+
+        function animate() {
+            time += 0.015;
+
+            // 1. محاسبات فیزیکی رزونانس LC
+            const V_dc = V_ac * Math.SQRT2; // ولتاژ ریل DC (تقریباً ۳۱۱ ولت برای ۲۲۰ ولت متناوب)
+            
+            // فرکانس تشدید تانک LC: f0 = 1 / (2 * PI * sqrt(L * C))
+            const L_h = L_r * 1e-3;
+            const C_f = C_r * 1e-9;
+            const f_0_hz = 1 / (2 * Math.PI * Math.sqrt(L_h * C_f));
+            const f_0_khz = f_0_hz / 1000;
+
+            // نسبت فرکانس کار به فرکانس تشدید
+            const freqRatio = (f_sw * 1000) / f_0_hz;
+            
+            // اگر لامپ روشن نباشد، Q مدار بسیار بالاست
+            let Q = isIgnited ? 2.5 : 12.0; 
+            
+            // بهره ولتاژ رزونانس
+            const gain = 1 / Math.sqrt(Math.pow(1 - freqRatio * freqRatio, 2) + Math.pow(freqRatio / Q, 2));
+            
+            let V_lamp_rms = (V_dc / 2) * gain * 0.707;
+            
+            // ولتاژ جرقه‌زنی مورد نیاز برای شکست گاز داخل فلورسنت (حدود ۵۵۰ ولت)
+            const V_strike_needed = 550;
+
+            if (!isIgnited) {
+                strikeTimer += 0.015;
+                if (V_lamp_rms * Math.SQRT2 >= V_strike_needed || strikeTimer > 1.2) {
+                    isIgnited = true; // گاز یونیزه شد!
+                }
+            }
+
+            // پس از جرقه‌زنی، ولتاژ لامپ به ولتاژ کارکرد تثبیت شده (حدود ۹۰ تا ۱۲۰ ولت) افت می‌کند
+            if (isIgnited) {
+                V_lamp_rms = Math.min(120, Math.max(70, V_lamp_rms * 0.25));
+            }
+
+            const R_lamp_active = isIgnited ? 280 : 50000; // مقاومت لامپ در حالت روشن vs خاموش
+            const I_lamp_rms = V_lamp_rms / R_lamp_active;
+
+            // وضعیت سوئیچ‌زنی نیم‌پلی (Q1 روشن در نیم‌پریود اول، Q2 روشن در نیم‌پریود دوم)
+            const period = 1 / (f_sw * 0.1);
+            const phase = (time % period) / period;
+            const isQ1On = phase < 0.5;
+
+            // بروزرسانی UI
+            const badge = document.getElementById('badge-status');
+            if (!isIgnited) {
+                badge.className = 'status-badge status-strike';
+                badge.innerText = 'حالت: ولتاژ رزونانس بالا (پیش‌گرمایش و جرقه‌زنی گاز)';
+            } else {
+                badge.className = 'status-badge status-arc';
+                badge.innerText = 'حالت: تخلیه الکتریکی و قوس پایدار (روشن)';
+            }
+
+            document.getElementById('m-vdc').innerText = Math.round(V_dc) + ' V';
+            document.getElementById('m-f0').innerText = f_0_khz.toFixed(1) + ' kHz';
+            document.getElementById('m-vlamp').innerText = Math.round(V_lamp_rms) + ' V';
+            document.getElementById('m-ilamp').innerText = isIgnited ? Math.round(I_lamp_rms * 1000) + ' mA' : '0 mA';
+
+            // ذخیره تاریخچه اسیلوسکوپ
+            const v_sw_instant = isQ1On ? V_dc : 0;
+            const v_lamp_instant = Math.sin(time * 25) * V_lamp_rms * Math.SQRT2;
+            const i_lamp_instant = Math.sin(time * 25) * I_lamp_rms * Math.SQRT2;
+
+            swHistory.push(v_sw_instant);
+            vLampHistory.push(v_lamp_instant);
+            iLampHistory.push(i_lamp_instant);
+
+            if (swHistory.length > maxHistory) swHistory.shift();
+            if (vLampHistory.length > maxHistory) vLampHistory.shift();
+            if (iLampHistory.length > maxHistory) iLampHistory.shift();
+
+            // رندر نقاشی‌ها
+            drawCircuit(isQ1On, V_dc, V_lamp_rms, isIgnited);
+            drawSWScope(V_dc);
+            drawLAMPScope();
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawCircuit(isQ1On, vDc, vLamp, ignited) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // مختصات گره‌ها
+            const acX = w * 0.08;
+            const rectX = w * 0.22;
+            const cdcX = w * 0.32;
+            const q1X = w * 0.44;
+            const midNodeX = w * 0.54;
+            const lrEndX = w * 0.68;
+            const lampX = w * 0.82;
+            const crX = w * 0.94;
+
+            const topY = h * 0.20;
+            const bottomY = h * 0.80;
+            const midY = (topY + bottomY) / 2;
+            const q1Y = h * 0.32;
+            const q2Y = h * 0.68;
+
+            // 1. سیم‌های پایه (ضخامت ۴ پیکسل)
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = '#334155';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // ریل مثبت DC و زمین GND
+            ctx.beginPath();
+            ctx.moveTo(rectX, topY); ctx.lineTo(q1X, topY); // ریل V_DC
+            ctx.moveTo(rectX, bottomY); ctx.lineTo(crX, bottomY); // ریل GND
+            ctx.stroke();
+
+            // سیم‌های شاخه‌ها
+            ctx.beginPath();
+            ctx.moveTo(acX, midY - 20); ctx.lineTo(rectX, midY - 20);
+            ctx.moveTo(acX, midY + 20); ctx.lineTo(rectX, midY + 20);
+            ctx.moveTo(cdcX, topY); ctx.lineTo(cdcX, bottomY);
+            ctx.moveTo(q1X, topY); ctx.lineTo(q1X, q1Y - 15);
+            ctx.moveTo(q1X, q1Y + 15); ctx.lineTo(q1X, q2Y - 15); // گره وسط اینورتر
+            ctx.moveTo(q1X, q2Y + 15); ctx.lineTo(q1X, bottomY);
+            
+            // خروجی رزونانس به سمت سلف و لامپ
+            ctx.moveTo(q1X, midY); ctx.lineTo(crX, midY);
+            ctx.moveTo(lampX, midY); ctx.lineTo(lampX, bottomY);
+            ctx.moveTo(crX, midY); ctx.lineTo(crX, bottomY);
+            ctx.stroke();
+
+            // 2. هایلایت سیم‌های مسیر جریان رزونانسی متناوب
+            ctx.lineWidth = 4;
+            if (isQ1On) {
+                // جریان از Q1 بالا -> سلف Lr -> لامپ -> خازن Cr
+                ctx.strokeStyle = 'rgba(0, 242, 254, 0.8)';
+                ctx.beginPath();
+                ctx.moveTo(q1X, topY); ctx.lineTo(q1X, midY);
+                ctx.lineTo(crX, midY);
+                ctx.stroke();
+            } else {
+                // جریان برگشتی از GND -> Q2 پایین -> سلف Lr
+                ctx.strokeStyle = 'rgba(255, 183, 3, 0.8)';
+                ctx.beginPath();
+                ctx.moveTo(q1X, bottomY); ctx.lineTo(q1X, midY);
+                ctx.lineTo(crX, midY);
+                ctx.stroke();
+            }
+
+            // 3. مسیرهای سیگنال گیت (خط چین آبی)
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(q1X - 35, q1Y); ctx.lineTo(q1X - 18, q1Y);
+            ctx.moveTo(q1X - 35, q2Y); ctx.lineTo(q1X - 18, q2Y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 4. رسم قطعات مدار
+            drawACSource(acX, midY, V_ac);
+            drawBridgeRectifier(rectX, midY);
+            drawCapacitor(cdcX, midY, 'C_dc');
+            drawMOSFET(q1X, q1Y, isQ1On, 'Q1 (High)');
+            drawMOSFET(q1X, q2Y, !isQ1On, 'Q2 (Low)');
+            drawInductor(midNodeX, lrEndX, midY, isQ1On);
+            drawFluorescentLamp(lampX, midY + (bottomY - midY)/2, ignited, vLamp);
+            drawCapacitor(crX, midY + (bottomY - midY)/2, 'C_r');
+
+            // 5. ذرات متحرک
+            drawParticles(isQ1On, q1X, crX, topY, bottomY, midY);
+        }
+
+        // --- توابع رسم المان‌ها ---
+
+        function drawACSource(x, y, vVal) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#4facfe'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(x, y, 24, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            
+            // موج سینوسی داخل منبع
+            ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x - 12, y);
+            ctx.quadraticCurveTo(x - 6, y - 12, x, y);
+            ctx.quadraticCurveTo(x + 6, y + 12, x + 12, y);
+            ctx.stroke();
+
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center';
+            ctx.fillText(vVal + 'V AC', x, y + 38);
+            ctx.restore();
+        }
+
+        function drawBridgeRectifier(x, y) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#4facfe'; ctx.lineWidth = 2;
+            
+            ctx.fillRect(-18, -25, 36, 50);
+            ctx.strokeRect(-18, -25, 36, 50);
+
+            ctx.font = 'bold 11px Segoe UI'; ctx.fillStyle = '#e2e8f0'; ctx.textAlign = 'center';
+            ctx.fillText('پل دیود', 0, -5);
+            ctx.font = '10px Segoe UI'; ctx.fillStyle = '#ffb703';
+            ctx.fillText('DC', 0, 12);
+            ctx.restore();
+        }
+
+        function drawCapacitor(x, y, label) {
+            ctx.save();
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x - 14, y - 8); ctx.lineTo(x + 14, y - 8);
+            ctx.moveTo(x - 14, y + 8); ctx.lineTo(x + 14, y + 8);
+            ctx.stroke();
+
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center';
+            ctx.fillText(label, x, y + 25);
+            ctx.restore();
+        }
+
+        function drawMOSFET(x, y, isOn, label) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.fillStyle = isOn ? 'rgba(0, 242, 254, 0.15)' : '#1e293b';
+            ctx.strokeStyle = isOn ? '#00f2fe' : '#64748b'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.rect(-18, -15, 36, 30); ctx.fill(); ctx.stroke();
+
+            ctx.font = '9px Segoe UI'; ctx.fillStyle = isOn ? '#00f2fe' : '#94a3b8';
+            ctx.fillText(label, 0, 4);
+            ctx.restore();
+        }
+
+        function drawInductor(x1, x2, y, isCharging) {
+            ctx.save();
+            const width = x2 - x1;
+            const coils = 4;
+            const coilWidth = width / coils;
+
+            if (isCharging) { ctx.shadowColor = '#00f2fe'; ctx.shadowBlur = 12; }
+            else { ctx.shadowColor = '#ffb703'; ctx.shadowBlur = 8; }
+
+            ctx.strokeStyle = isCharging ? '#00f2fe' : '#ffb703';
+            ctx.lineWidth = 25; ctx.lineCap = 'round'; ctx.globalAlpha = 0.15;
+            ctx.beginPath(); ctx.moveTo(x1 + 10, y); ctx.lineTo(x2 - 10, y); ctx.stroke();
+
+            ctx.globalAlpha = 1.0; ctx.shadowBlur = 0; ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < coils; i++) {
+                const cx = x1 + i * coilWidth + coilWidth / 2;
+                ctx.arc(cx, y, coilWidth / 2, Math.PI, 0, false);
+            }
+            ctx.stroke();
+            ctx.font = '12px Segoe UI'; ctx.fillStyle = '#cbd5e1'; ctx.textAlign = 'center';
+            ctx.fillText('سلف L_r (' + L_r + 'mH)', x1 + width / 2, y - 18);
+            ctx.restore();
+        }
+
+        // رسم گرافیکی منحصر به‌فرد لامپ فلورسنت و قوس پلاسما
+        function drawFluorescentLamp(x, y, ignited, vLamp) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const h = 80;
+            const w = 26;
+
+            // فیلامان‌های گرم‌کننده بالا و پایین
+            ctx.strokeStyle = '#ffb703'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-8, -h/2 + 6); ctx.lineTo(8, -h/2 + 6);
+            ctx.moveTo(-8, h/2 - 6); ctx.lineTo(8, h/2 - 6);
+            ctx.stroke();
+
+            // بدنه شیشه‌ای تیوب
+            ctx.fillStyle = ignited ? 'rgba(162, 155, 254, 0.15)' : 'rgba(15, 23, 42, 0.8)';
+            ctx.strokeStyle = ignited ? '#a29bfe' : '#64748b';
+            ctx.lineWidth = 2.5;
+
+            ctx.beginPath();
+            ctx.roundRect(-w/2, -h/2, w, h, 8);
+            ctx.fill();
+            ctx.stroke();
+
+            // درخشش قوس پلاسما داخل لامپ
+            if (ignited) {
+                ctx.shadowColor = '#a29bfe';
+                ctx.shadowBlur = 20;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+
+                // خط قوس الکتریسیته متحرک داخل گاز
+                ctx.beginPath();
+                ctx.moveTo(0, -h/2 + 10);
+                for (let i = -h/2 + 15; i < h/2 - 10; i += 10) {
+                    const jitter = (Math.random() - 0.5) * 6;
+                    ctx.lineTo(jitter, i);
+                }
+                ctx.lineTo(0, h/2 - 10);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            ctx.font = '11px Segoe UI'; ctx.fillStyle = '#e2e8f0'; ctx.textAlign = 'center';
+            ctx.fillText('لامپ فلورسنت', 0, -h/2 - 12);
+            ctx.restore();
+        }
+
+        // انیمیشن ذرات
+        function drawParticles(isQ1On, q1X, crX, topY, bottomY, midY) {
+            const speed = 0.01;
+
+            particles.forEach(p => {
+                p.progress += speed;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = [];
+                let pColor = isQ1On ? '#00f2fe' : '#ffb703';
+
+                if (isQ1On) {
+                    path = [
+                        { x: q1X, y: topY },
+                        { x: q1X, y: midY },
+                        { x: crX, y: midY },
+                        { x: crX, y: bottomY },
+                        { x: q1X, y: bottomY }
+                    ];
+                } else {
+                    path = [
+                        { x: q1X, y: bottomY },
+                        { x: q1X, y: midY },
+                        { x: crX, y: midY },
+                        { x: crX, y: bottomY }
+                    ];
+                }
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = pColor; ctx.shadowColor = pColor; ctx.shadowBlur = 8;
+                    ctx.fill(); ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0;
+            const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i + 1].x - points[i].x;
+                const dy = points[i + 1].y - points[i].y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                lengths.push(len);
+                totalLen += len;
+            }
+            let targetLen = t * totalLen;
+            let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segmentT = (targetLen - currentLen) / lengths[i];
+                    const p1 = points[i];
+                    const p2 = points[i + 1];
+                    return {
+                        x: p1.x + (p2.x - p1.x) * segmentT,
+                        y: p1.y + (p2.y - p1.y) * segmentT
+                    };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        // --- اسیلوسکوپ‌ها ---
+
+        function drawSWScope(vDc) {
+            const w = canvasSW.width;
+            const h = canvasSW.height;
+            ctxSW.clearRect(0, 0, w, h);
+
+            // شبکه‌بندی
+            ctxSW.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctxSW.lineWidth = 1;
+            ctxSW.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxSW.moveTo(x, 0); ctxSW.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxSW.moveTo(0, y); ctxSW.lineTo(w, y); }
+            ctxSW.stroke();
+
+            ctxSW.strokeStyle = '#00f2fe'; ctxSW.lineWidth = 2;
+            ctxSW.beginPath();
+            const step = w / maxHistory;
+            for (let i = 0; i < swHistory.length; i++) {
+                const x = i * step;
+                const y = h * 0.85 - (swHistory[i] / (vDc * 1.2)) * (h * 0.7);
+                if (i === 0) ctxSW.moveTo(x, y);
+                else {
+                    const prevY = h * 0.85 - (swHistory[i - 1] / (vDc * 1.2)) * (h * 0.7);
+                    if (prevY !== y) ctxSW.lineTo(x, prevY);
+                    ctxSW.lineTo(x, y);
+                }
+            }
+            ctxSW.stroke();
+        }
+
+        function drawLAMPScope() {
+            const w = canvasLAMP.width;
+            const h = canvasLAMP.height;
+            ctxLAMP.clearRect(0, 0, w, h);
+
+            // شبکه‌بندی
+            ctxLAMP.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctxLAMP.lineWidth = 1;
+            ctxLAMP.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxLAMP.moveTo(x, 0); ctxLAMP.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxLAMP.moveTo(0, y); ctxLAMP.lineTo(w, y); }
+            ctxLAMP.stroke();
+
+            // ولتاژ سینوسی لامپ (بنفش)
+            ctxLAMP.strokeStyle = '#a29bfe'; ctxLAMP.lineWidth = 2.5;
+            ctxLAMP.beginPath();
+            const step = w / maxHistory;
+            for (let i = 0; i < vLampHistory.length; i++) {
+                const x = i * step;
+                const y = h/2 - (vLampHistory[i] / 300) * (h * 0.4);
+                if (i === 0) ctxLAMP.moveTo(x, y);
+                else ctxLAMP.lineTo(x, y);
+            }
+            ctxLAMP.stroke();
+
+            // جریان سینوسی لامپ (سبز)
+            ctxLAMP.strokeStyle = '#2ed573'; ctxLAMP.lineWidth = 1.5;
+            ctxLAMP.beginPath();
+            for (let i = 0; i < iLampHistory.length; i++) {
+                const x = i * step;
+                const y = h/2 - (iLampHistory[i] / 1.0) * (h * 0.4);
+                if (i === 0) ctxLAMP.moveTo(x, y);
+                else ctxLAMP.lineTo(x, y);
+            }
+            ctxLAMP.stroke();
+        }
+
+        // پشتیبانی از RoundRect در مرورگرهای قدیمی‌تر
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r);
+                this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r);
+                this.arcTo(x, y, x + w, y, r);
+                this.closePath();
+                return this;
+            }
+        }
+
+        // شروع پویانمایی
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

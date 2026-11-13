@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Center-Tapped Full-Wave Rectifier Simulator with Lamp Load</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            background-color: var(--bg-color); color: var(--text-color);
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; padding: 20px; overflow-x: hidden;
+        }
+
+        header { text-align: center; margin-bottom: 20px; }
+        header h1 { font-size: 1.8rem; color: var(--accent-cyan); margin-bottom: 6px; text-shadow: 0 0 12px rgba(0, 242, 254, 0.3); }
+        header p { font-size: 0.95rem; color: #94a3b8; }
+
+        .main-container { display: grid; grid-template-columns: 320px 1fr; gap: 20px; width: 100%; max-width: 1300px; }
+        @media (max-width: 950px) { .main-container { grid-template-columns: 1fr; } }
+
+        .glass-panel {
+            background: var(--panel-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar { display: flex; flex-direction: column; gap: 18px; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        .control-group label { font-size: 0.88rem; display: flex; justify-content: space-between; color: #cbd5e1; }
+        .control-group label span.val { color: var(--accent-cyan); font-weight: bold; direction: ltr; }
+
+        input[type="range"] { appearance: none; width: 100%; height: 6px; background: #1e293b; border-radius: 3px; outline: none; }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none; width: 18px; height: 18px; border-radius: 50%;
+            background: var(--accent-cyan); cursor: pointer; box-shadow: 0 0 8px var(--accent-cyan); transition: transform 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+        .toggle-group { display: flex; background: #1e293b; border-radius: 8px; padding: 3px; gap: 4px; }
+        .toggle-btn { flex: 1; padding: 8px; border: none; background: transparent; color: #94a3b8; font-size: 0.82rem; border-radius: 6px; cursor: pointer; transition: all 0.3s; }
+        .toggle-btn.active { background: var(--accent-cyan); color: #0f172a; font-weight: bold; }
+
+        .simulation-area { display: flex; flex-direction: column; gap: 20px; }
+        .canvas-container { position: relative; width: 100%; height: 440px; background: rgba(10, 15, 29, 0.6); border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); }
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .scopes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 650px) { .scopes-grid { grid-template-columns: 1fr; } }
+        .scope-card { background: rgba(15, 23, 42, 0.8); border-radius: 10px; padding: 12px; border: 1px solid rgba(255, 255, 255, 0.08); }
+        .scope-card h3 { font-size: 0.85rem; margin-bottom: 8px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
+        .scope-card h3::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; }
+        .scope-ac h3::before { background: #ff4757; }
+        .scope-dc h3::before { background: var(--accent-gold); }
+
+        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 5px; }
+        .metric-card { background: rgba(255, 255, 255, 0.03); border-radius: 8px; padding: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .metric-card .title { font-size: 0.75rem; color: #64748b; margin-bottom: 4px; }
+        .metric-card .val { font-size: 1.05rem; font-weight: bold; color: var(--accent-cyan); direction: ltr; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Center-Tapped Full-Wave Rectifier with Lamp Load</h1>
+        <p>Live visualization of full-wave rectification with two diodes, center-tapped transformer & filter capacitor</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Controls Panel -->
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group">
+                <label>Current Flow Display:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">Conventional (+ to -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">Electron (- to +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Secondary Peak Voltage (each half): <span class="val" id="val-vac">12 V</span></label>
+                <input type="range" id="slider-vac" min="5" max="24" value="12" step="1">
+            </div>
+
+            <div class="control-group">
+                <label>Input Frequency (AC): <span class="val" id="val-freq">50 Hz</span></label>
+                <input type="range" id="slider-freq" min="1" max="100" value="50" step="5">
+            </div>
+
+            <div class="control-group">
+                <label>Filter Capacitance (C): <span class="val" id="val-cap">470 µF</span></label>
+                <input type="range" id="slider-cap" min="0" max="2200" value="470" step="50">
+            </div>
+
+            <div class="control-group">
+                <label>Lamp Resistance (Power): <span class="val" id="val-res">50 Ω</span></label>
+                <input type="range" id="slider-res" min="10" max="200" value="50" step="5">
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title">Peak Input</div>
+                    <div class="val" id="m-vpeak">12.0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">DC Average</div>
+                    <div class="val" id="m-vdc">0.0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">Ripple Voltage</div>
+                    <div class="val" id="m-vrip">0.0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">Lamp Power</div>
+                    <div class="val" id="m-pwr">0.0 W</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Simulation Area -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-ac">
+                    <h3>Secondary AC Input Signal</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeAC"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-dc">
+                    <h3>Lamp Voltage (Filtered DC)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeDC"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let flowMode = 'conv'; 
+        let Vac_peak = 12;
+        let freq = 50;
+        let capacitance = 470; 
+        let lampResistance = 50; 
+        const V_diode = 0.7; 
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasAC = document.getElementById('scopeAC');
+        const ctxAC = canvasAC.getContext('2d');
+        const canvasDC = document.getElementById('scopeDC');
+        const ctxDC = canvasDC.getContext('2d');
+
+        document.getElementById('slider-vac').addEventListener('input', (e) => { Vac_peak = parseFloat(e.target.value); document.getElementById('val-vac').innerText = Vac_peak + ' V'; });
+        document.getElementById('slider-freq').addEventListener('input', (e) => { freq = parseFloat(e.target.value); document.getElementById('val-freq').innerText = freq + ' Hz'; });
+        document.getElementById('slider-cap').addEventListener('input', (e) => { capacitance = parseFloat(e.target.value); document.getElementById('val-cap').innerText = capacitance + ' µF'; });
+        document.getElementById('slider-res').addEventListener('input', (e) => { lampResistance = parseFloat(e.target.value); document.getElementById('val-res').innerText = lampResistance + ' Ω'; });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width; canvas.height = rect.height;
+            const rectAC = canvasAC.parentElement.getBoundingClientRect();
+            canvasAC.width = rectAC.width; canvasAC.height = rectAC.height;
+            const rectDC = canvasDC.parentElement.getBoundingClientRect();
+            canvasDC.width = rectDC.width; canvasDC.height = rectDC.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        const acHistory = []; const dcHistory = []; const maxHistory = 300;
+        const particles = []; const numParticles = 45;
+
+        for (let i = 0; i < numParticles; i++) {
+            particles.push({ progress: Math.random(), pathType: i % 2 === 0 ? 'load' : 'cap' });
+        }
+
+        let time = 0; let V_cap = 0;
+
+        function animate(timestamp) {
+            time += 0.016; 
+            const omega = 2 * Math.PI * freq;
+            const v_ac_instant = Vac_peak * Math.sin(omega * time);
+            
+            const v_top = v_ac_instant;
+            const v_bottom = -v_ac_instant;
+            
+            const v_rectified_raw = Math.max(0, v_top - V_diode, v_bottom - V_diode);
+
+            const dt = 0.0015; 
+            const C_farads = capacitance * 1e-6;
+            
+            if (C_farads > 0) {
+                if (v_rectified_raw > V_cap) {
+                    V_cap += (v_rectified_raw - V_cap) * 0.4;
+                } else {
+                    const R = lampResistance;
+                    const tau = R * C_farads;
+                    V_cap *= Math.exp(-dt / tau);
+                }
+            } else {
+                V_cap = v_rectified_raw;
+            }
+
+            const V_load = V_cap; 
+
+            acHistory.push(v_ac_instant);
+            dcHistory.push(V_load);
+            if (acHistory.length > maxHistory) acHistory.shift();
+            if (dcHistory.length > maxHistory) dcHistory.shift();
+
+            const v_dc_avg = dcHistory.reduce((a, b) => a + b, 0) / dcHistory.length;
+            const v_max = Math.max(...dcHistory);
+            const v_min = Math.min(...dcHistory);
+            const pwr_lamp = (V_load * V_load) / lampResistance;
+
+            document.getElementById('m-vpeak').innerText = Vac_peak.toFixed(1) + ' V';
+            document.getElementById('m-vdc').innerText = v_dc_avg.toFixed(1) + ' V';
+            document.getElementById('m-vrip').innerText = (v_max - v_min).toFixed(1) + ' V';
+            document.getElementById('m-pwr').innerText = pwr_lamp.toFixed(1) + ' W';
+
+            drawCircuit(v_top, V_load);
+            drawScope(ctxAC, canvasAC, acHistory, Vac_peak * 1.2, '#ff4757');
+            drawScope(ctxDC, canvasDC, dcHistory, Vac_peak * 1.2, '#ffb703');
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawCircuit(v_top, v_load) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width; const h = canvas.height;
+
+            const transX = w * 0.25;
+            const cy = h * 0.5;
+            const secH = 80;
+            
+            const N_sec_top = { x: transX + 20, y: cy - secH };
+            const N_sec_bot = { x: transX + 20, y: cy + secH };
+            const N_ct = { x: transX + 20, y: cy };
+            
+            const diodeX = transX + 90;
+            const N_junc = { x: transX + 150, y: cy - secH };
+            
+            const capX = w * 0.65;
+            const lampX = w * 0.85;
+
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#334155';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            drawTransformer(transX, cy, secH);
+
+            ctx.beginPath(); ctx.moveTo(N_sec_top.x, N_sec_top.y); ctx.lineTo(N_junc.x, N_sec_top.y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(N_sec_bot.x, N_sec_bot.y); ctx.lineTo(N_junc.x, N_sec_bot.y); ctx.lineTo(N_junc.x, N_sec_top.y); ctx.stroke();
+
+            ctx.beginPath(); ctx.moveTo(N_junc.x, N_sec_top.y); ctx.lineTo(lampX, N_sec_top.y); ctx.lineTo(lampX, cy - 50); ctx.stroke();
+            
+            ctx.beginPath(); ctx.moveTo(N_ct.x, N_ct.y); ctx.lineTo(transX + 40, N_ct.y); ctx.lineTo(transX + 40, cy + secH + 30); ctx.lineTo(lampX, cy + secH + 30); ctx.lineTo(lampX, cy + 50); ctx.stroke();
+
+            if (capacitance > 0) {
+                ctx.beginPath(); ctx.moveTo(capX, N_sec_top.y); ctx.lineTo(capX, cy - 25);
+                ctx.moveTo(capX, cy + secH + 30); ctx.lineTo(capX, cy + 25); ctx.stroke();
+            }
+
+            const d1_on = v_top > V_diode;
+            const d2_on = -v_top > V_diode;
+
+            const C_f = capacitance * 1e-6;
+            const capDischarging = !d1_on && !d2_on && C_f > 0 && V_cap > 0.5;
+            const capCharging = (d1_on || d2_on) && C_f > 0;
+
+            ctx.lineWidth = 4;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            if (d1_on) {
+                ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)';
+                ctx.beginPath();
+                ctx.moveTo(N_sec_top.x, N_sec_top.y);
+                ctx.lineTo(lampX, N_sec_top.y);
+                ctx.lineTo(lampX, cy - 50);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(lampX, cy + 50);
+                ctx.lineTo(lampX, cy + secH + 30);
+                ctx.lineTo(transX + 40, cy + secH + 30);
+                ctx.lineTo(transX + 40, N_ct.y);
+                ctx.lineTo(N_ct.x, N_ct.y);
+                ctx.stroke();
+            } else if (d2_on) {
+                ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)';
+                ctx.beginPath();
+                ctx.moveTo(N_sec_bot.x, N_sec_bot.y);
+                ctx.lineTo(N_junc.x, N_sec_bot.y);
+                ctx.lineTo(N_junc.x, N_sec_top.y);
+                ctx.lineTo(lampX, N_sec_top.y);
+                ctx.lineTo(lampX, cy - 50);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(lampX, cy + 50);
+                ctx.lineTo(lampX, cy + secH + 30);
+                ctx.lineTo(transX + 40, cy + secH + 30);
+                ctx.lineTo(transX + 40, N_ct.y);
+                ctx.lineTo(N_ct.x, N_ct.y);
+                ctx.stroke();
+            } else if (capDischarging) {
+                ctx.strokeStyle = 'rgba(255, 183, 3, 0.6)';
+                ctx.beginPath();
+                ctx.moveTo(capX, N_sec_top.y);
+                ctx.lineTo(lampX, N_sec_top.y);
+                ctx.lineTo(lampX, cy - 50);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(lampX, cy + 50);
+                ctx.lineTo(lampX, cy + secH + 30);
+                ctx.lineTo(capX, cy + secH + 30);
+                ctx.lineTo(capX, cy + 25);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(capX, N_sec_top.y);
+                ctx.lineTo(capX, cy - 25);
+                ctx.stroke();
+            }
+            ctx.lineWidth = 3;
+
+            drawSingleDiode({x: diodeX - 15, y: N_sec_top.y}, {x: diodeX + 15, y: N_sec_top.y}, d1_on);
+            drawSingleDiode({x: diodeX - 15, y: N_sec_bot.y}, {x: diodeX + 15, y: N_sec_bot.y}, d2_on);
+
+            if (capacitance > 0) drawCapacitor(capX, cy, capacitance, capDischarging, capCharging);
+            drawLamp(lampX, cy, v_load, Vac_peak);
+
+            drawParticles(v_top, v_load, N_sec_top, N_sec_bot, N_ct, N_junc, capX, lampX, cy, secH);
+        }
+
+        function drawTransformer(x, y, secH) {
+            ctx.save();
+            ctx.strokeStyle = '#4facfe'; ctx.lineWidth = 3;
+            for(let i=0; i<5; i++) {
+                ctx.beginPath(); ctx.arc(x - 20, y - 60 + i*30, 15, -Math.PI/2, Math.PI/2, true); ctx.stroke();
+            }
+            ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(x - 2, y - 80); ctx.lineTo(x - 2, y + 80); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x + 2, y - 80); ctx.lineTo(x + 2, y + 80); ctx.stroke();
+            
+            ctx.strokeStyle = '#00f2fe'; ctx.lineWidth = 3;
+            for(let i=0; i<6; i++) {
+                ctx.beginPath(); ctx.arc(x + 20, y - 75 + i*30, 15, Math.PI/2, -Math.PI/2, true); ctx.stroke();
+            }
+            ctx.fillStyle = '#ffb703';
+            ctx.shadowColor = '#ffb703'; ctx.shadowBlur = 8;
+            ctx.beginPath(); ctx.arc(x + 20, y, 4, 0, Math.PI*2); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        function drawSingleDiode(p1, p2, isActive) {
+            const mx = (p1.x + p2.x) / 2; const my = (p1.y + p2.y) / 2;
+            const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+            ctx.save(); ctx.translate(mx, my); ctx.rotate(angle);
+            const size = 14;
+            ctx.fillStyle = isActive ? '#00f2fe' : '#1e293b';
+            ctx.strokeStyle = isActive ? '#00f2fe' : '#64748b'; ctx.lineWidth = 2;
+            if (isActive) { ctx.shadowColor = '#00f2fe'; ctx.shadowBlur = 10; }
+
+            ctx.beginPath(); ctx.moveTo(size, 0); ctx.lineTo(-size, -size); ctx.lineTo(-size, size); ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(size, -size); ctx.lineTo(size, size); ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.beginPath(); ctx.arc(0, 0, size * 1.3, 0, Math.PI * 2);
+            ctx.strokeStyle = isActive ? 'rgba(0, 242, 254, 0.4)' : 'rgba(255,255,255,0.05)'; ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawCapacitor(x, y, capValue, isDischarging, isCharging) {
+            ctx.save();
+            const col = isDischarging ? '#ffb703' : (isCharging ? '#00f2fe' : '#64748b');
+            ctx.strokeStyle = col; ctx.lineWidth = 4;
+            if (isDischarging || isCharging) { ctx.shadowColor = col; ctx.shadowBlur = 10; }
+            ctx.beginPath(); ctx.moveTo(x - 20, y - 10); ctx.lineTo(x + 20, y - 10); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x - 20, y + 10); ctx.lineTo(x + 20, y + 10); ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.font = '12px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center'; ctx.fillText(capValue + ' µF', x, y + 30);
+            ctx.restore();
+        }
+
+        function drawLamp(x, y, v_load, v_max) {
+            ctx.save();
+            const brightness = Math.min(1, Math.max(0, v_load / Math.max(1, v_max)));
+            if (brightness > 0.05) {
+                const glowRadius = 40 + brightness * 60;
+                const radialGradient = ctx.createRadialGradient(x, y, 10, x, y, glowRadius);
+                radialGradient.addColorStop(0, `rgba(255, 230, 120, ${brightness * 0.9})`);
+                radialGradient.addColorStop(0.4, `rgba(255, 170, 0, ${brightness * 0.4})`);
+                radialGradient.addColorStop(1, 'rgba(255, 150, 0, 0)');
+                ctx.fillStyle = radialGradient; ctx.beginPath(); ctx.arc(x, y, glowRadius, 0, Math.PI * 2); ctx.fill();
+            }
+
+            ctx.fillStyle = `rgba(30, 41, 59, ${1 - brightness * 0.6})`;
+            ctx.strokeStyle = brightness > 0.3 ? '#ffb703' : '#64748b'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.arc(x, y, 35, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = '#475569'; ctx.fillRect(x - 12, y + 31, 24, 16);
+            ctx.beginPath(); ctx.strokeStyle = brightness > 0.1 ? `rgb(255, ${200 + brightness * 55}, ${150 * brightness})` : '#475569'; ctx.lineWidth = brightness > 0.1 ? 3 : 1.5;
+            ctx.moveTo(x - 10, y + 30); ctx.lineTo(x - 8, y - 5); ctx.lineTo(x - 3, y - 15); ctx.lineTo(x + 3, y - 15); ctx.lineTo(x + 8, y - 5); ctx.lineTo(x + 10, y + 30); ctx.stroke();
+
+            if (brightness > 0.05) { ctx.shadowColor = '#ffb703'; ctx.shadowBlur = brightness * 20; }
+            ctx.shadowBlur = 0; ctx.font = '12px Segoe UI'; ctx.fillStyle = '#cbd5e1'; ctx.textAlign = 'center'; ctx.fillText('Lamp Load', x, y - 47);
+            ctx.restore();
+        }
+
+        function drawParticles(v_top, v_load, N_sec_top, N_sec_bot, N_ct, N_junc, capX, lampX, cy, secH) {
+            if (Math.abs(v_top) < 0.5 && v_load < 0.5) return;
+            const isPos = v_top >= 0;
+            const speedFactor = 0.008 + (Math.abs(v_top) / 24) * 0.015;
+
+            const d1_on = v_top > V_diode;
+            const d2_on = -v_top > V_diode;
+            const conducting = d1_on || d2_on;
+            const C_f = capacitance * 1e-6;
+            const capDischarging = !conducting && C_f > 0 && V_cap > 0.5;
+            const pColor = conducting ? '#00f2fe' : '#ffb703';
+            const dischargeSpeed = 0.006 + (V_cap / Math.max(1, Vac_peak)) * 0.012;
+
+            particles.forEach(p => {
+                p.progress += conducting ? speedFactor : dischargeSpeed;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = [];
+                const targetX = p.pathType === 'cap' && capacitance > 0 ? capX : lampX;
+                const gndRoute = [
+                    {x: targetX, y: cy + secH + 30},
+                    {x: N_ct.x + 20, y: cy + secH + 30},
+                    {x: N_ct.x + 20, y: N_ct.y},
+                    {x: N_ct.x, y: N_ct.y}
+                ];
+
+                if (conducting) {
+                    if (flowMode === 'conv') {
+                        if (isPos) {
+                            path = [
+                                {x: N_sec_top.x, y: N_sec_top.y}, {x: N_junc.x, y: N_sec_top.y}, 
+                                {x: targetX, y: N_sec_top.y}, {x: targetX, y: cy - 20}, ...gndRoute
+                            ];
+                        } else {
+                            path = [
+                                {x: N_sec_bot.x, y: N_sec_bot.y}, {x: N_junc.x, y: N_sec_bot.y}, 
+                                {x: N_junc.x, y: N_sec_top.y}, {x: targetX, y: N_sec_top.y}, {x: targetX, y: cy - 20}, ...gndRoute
+                            ];
+                        }
+                    } else {
+                        const gndRev = [...gndRoute].reverse();
+                        if (isPos) {
+                            path = [
+                                ...gndRev, {x: targetX, y: cy - 20}, {x: targetX, y: N_sec_top.y}, 
+                                {x: N_junc.x, y: N_sec_top.y}, {x: N_sec_top.x, y: N_sec_top.y}
+                            ];
+                        } else {
+                            path = [
+                                ...gndRev, {x: targetX, y: cy - 20}, {x: targetX, y: N_sec_top.y}, 
+                                {x: N_junc.x, y: N_sec_top.y}, {x: N_junc.x, y: N_sec_bot.y}, {x: N_sec_bot.x, y: N_sec_bot.y}
+                            ];
+                        }
+                    }
+                } else if (capDischarging) {
+                    if (flowMode === 'conv') {
+                        path = [
+                            {x: capX, y: cy - 25}, {x: capX, y: N_sec_top.y},
+                            {x: lampX, y: N_sec_top.y}, {x: lampX, y: cy - 50},
+                            {x: lampX, y: cy + 50}, {x: lampX, y: cy + secH + 30},
+                            {x: capX, y: cy + secH + 30}, {x: capX, y: cy + 25}
+                        ];
+                    } else {
+                        path = [
+                            {x: capX, y: cy + 25}, {x: capX, y: cy + secH + 30},
+                            {x: lampX, y: cy + secH + 30}, {x: lampX, y: cy + 50},
+                            {x: lampX, y: cy - 50}, {x: lampX, y: N_sec_top.y},
+                            {x: capX, y: N_sec_top.y}, {x: capX, y: cy - 25}
+                        ];
+                    }
+                } else {
+                    return;
+                }
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = pColor;
+                    ctx.shadowColor = pColor; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0; const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i+1].x - points[i].x; const dy = points[i+1].y - points[i].y;
+                const len = Math.sqrt(dx * dx + dy * dy); lengths.push(len); totalLen += len;
+            }
+            let targetLen = t * totalLen; let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segmentT = (targetLen - currentLen) / lengths[i];
+                    return { x: points[i].x + (points[i+1].x - points[i].x) * segmentT, y: points[i].y + (points[i+1].y - points[i].y) * segmentT };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        function drawScope(ctxScope, canvasScope, data, maxVal, color) {
+            const w = canvasScope.width; const h = canvasScope.height;
+            ctxScope.clearRect(0, 0, w, h);
+            ctxScope.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctxScope.lineWidth = 1; ctxScope.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxScope.moveTo(x, 0); ctxScope.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxScope.moveTo(0, y); ctxScope.lineTo(w, y); }
+            ctxScope.stroke();
+            const midY = h / 2; ctxScope.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctxScope.beginPath(); ctxScope.moveTo(0, midY); ctxScope.lineTo(w, midY); ctxScope.stroke();
+            if (data.length < 2) return;
+            ctxScope.beginPath(); ctxScope.strokeStyle = color; ctxScope.lineWidth = 2.5; const step = w / maxHistory;
+            for (let i = 0; i < data.length; i++) {
+                const x = i * step; const y = midY - (data[i] / maxVal) * (h * 0.4);
+                if (i === 0) ctxScope.moveTo(x, y); else ctxScope.lineTo(x, y);
+            }
+            ctxScope.stroke();
+        }
+
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>

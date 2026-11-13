@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Snubber Circuit Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .btn-action {
+            background: rgba(46, 213, 115, 0.2);
+            border: 1px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+        
+        .btn-action.off {
+            background: rgba(255, 71, 87, 0.2);
+            border: 1px solid var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 440px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-card h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .scope-pwm h3::before { background: var(--accent-cyan); }
+        .scope-out h3::before { background: var(--accent-red); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.on {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .status-dot.off {
+            background: var(--accent-gold);
+            box-shadow: 0 0 10px var(--accent-gold);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>RC Snubber Circuit Simulator</h1>
+        <p>Analyzing RC snubber effectiveness in mitigating voltage spikes during MOSFET inductive load switching</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Control Sidebar -->
+        <aside class="glass-panel controls-sidebar">
+            
+            <div class="control-group">
+                <label>Snubber Circuit State:</label>
+                <button class="toggle-btn btn-action active" id="btn-snub-toggle" onclick="toggleSnubber()">Active (Protection ON)</button>
+            </div>
+
+            <div class="control-group">
+                <label>Current Flow:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">Conventional (+ to -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">Electron (- to +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span>Input Voltage (V_in):</span> <span class="val" id="val-vin">24 V</span></label>
+                <input type="range" id="slider-vin" min="12" max="48" value="24" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span>Switching Freq:</span> <span class="val" id="val-freq">1 kHz</span></label>
+                <input type="range" id="slider-freq" min="0.5" max="5" value="1" step="0.5">
+            </div>
+
+            <div class="control-group">
+                <label><span>Load Inductance (L_load):</span> <span class="val" id="val-ind">10 mH</span></label>
+                <input type="range" id="slider-ind" min="1" max="50" value="10" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span>Snubber Resistor (R_s):</span> <span class="val" id="val-rs">100 Ω</span></label>
+                <input type="range" id="slider-rs" min="10" max="500" value="100" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span>Snubber Capacitor (C_s):</span> <span class="val" id="val-cs">10 nF</span></label>
+                <input type="range" id="slider-cs" min="1" max="100" value="10" step="1">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">State: MOSFET ON (Charging Inductor)</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title">Inductor Current (I_L)</div>
+                    <div class="val" id="m-il">0.00 A</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title">Max MOSFET Voltage</div>
+                    <div class="val" id="m-vds-max" style="color:var(--accent-red)">0 V</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Simulation Area -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-pwm">
+                    <h3>Gate Drive Signal (V_gs)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopePWM"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-out">
+                    <h3>MOSFET Drain-Source Voltage (V_ds) & Spikes</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeOUT"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ================= Physical and Logic Variables =================
+        let flowMode = 'conv';
+        let isSnubberActive = true;
+        let Vin = 24;
+        let freqSw = 1; // kHz
+        let L_load = 10; // mH
+        const R_load = 5; // Ohm (Internal Inductor Resistance)
+        let R_snub = 100; // Ohm
+        let C_snub = 10; // nF
+
+        // Canvases
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasPWM = document.getElementById('scopePWM');
+        const ctxPWM = canvasPWM.getContext('2d');
+        const canvasOUT = document.getElementById('scopeOUT');
+        const ctxOUT = canvasOUT.getContext('2d');
+
+        // UI Listeners
+        function toggleSnubber() {
+            isSnubberActive = !isSnubberActive;
+            const btn = document.getElementById('btn-snub-toggle');
+            if (isSnubberActive) {
+                btn.className = 'toggle-btn btn-action active';
+                btn.innerText = 'Active (Protection ON)';
+            } else {
+                btn.className = 'toggle-btn btn-action off';
+                btn.innerText = 'Disabled (Spike Danger!)';
+            }
+        }
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        document.getElementById('slider-vin').addEventListener('input', (e) => {
+            Vin = parseFloat(e.target.value); document.getElementById('val-vin').innerText = Vin + ' V';
+        });
+        document.getElementById('slider-freq').addEventListener('input', (e) => {
+            freqSw = parseFloat(e.target.value); document.getElementById('val-freq').innerText = freqSw + ' kHz';
+        });
+        document.getElementById('slider-ind').addEventListener('input', (e) => {
+            L_load = parseFloat(e.target.value); document.getElementById('val-ind').innerText = L_load + ' mH';
+        });
+        document.getElementById('slider-rs').addEventListener('input', (e) => {
+            R_snub = parseFloat(e.target.value); document.getElementById('val-rs').innerText = R_snub + ' Ω';
+        });
+        document.getElementById('slider-cs').addEventListener('input', (e) => {
+            C_snub = parseFloat(e.target.value); document.getElementById('val-cs').innerText = C_snub + ' nF';
+        });
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width; canvas.height = rect.height;
+            const rectPWM = canvasPWM.parentElement.getBoundingClientRect();
+            canvasPWM.width = rectPWM.width; canvasPWM.height = rectPWM.height;
+            const rectOUT = canvasOUT.parentElement.getBoundingClientRect();
+            canvasOUT.width = rectOUT.width; canvasOUT.height = rectOUT.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        // Scope Arrays
+        const pwmHistory = [];
+        const vdsHistory = [];
+        const maxHistory = 350;
+
+        // Particles
+        const particles = [];
+        for (let i = 0; i < 40; i++) {
+            particles.push({ progress: Math.random() });
+        }
+
+        let time = 0;
+        let I_L = 0; // Inductor Current
+        let V_ds_peak = 0; // Max Voltage Peak Tracker
+
+        // ================= Main Animation Loop & Physics =================
+        function animate() {
+            time += 0.015 * freqSw;
+
+            // Generate PWM Signal (50% Duty Cycle)
+            const period = 2.0;
+            const phase = time % period;
+            const isMosfetOn = phase < (period * 0.5);
+
+            let V_ds_inst = 0;
+            const I_max_steady = Vin / R_load;
+
+            if (isMosfetOn) {
+                // Inductor Charging
+                I_L += (I_max_steady - I_L) * 0.05 * (50 / L_load);
+                V_ds_inst = 0; // Ideal MOSFET ON
+                V_ds_peak = 0;
+            } else {
+                // MOSFET OFF: Inductor tries to maintain current
+                const t_off = phase - (period * 0.5);
+                
+                let damping, freqRinging, amplitude;
+
+                if (isSnubberActive) {
+                    // With Snubber: High damping, lower freq, lower amplitude
+                    damping = R_snub * 0.2; 
+                    freqRinging = 1 / Math.sqrt(L_load * C_snub) * 100;
+                    amplitude = I_L * Math.sqrt(L_load / C_snub) * 2;
+                } else {
+                    // Without Snubber: Low damping, high freq, massive spike
+                    damping = 2; 
+                    freqRinging = 50; 
+                    amplitude = I_L * 150; 
+                }
+
+                // Damped Sine Wave Equation
+                const ringing = amplitude * Math.exp(-damping * t_off) * Math.cos(freqRinging * t_off * Math.PI * 2);
+                
+                V_ds_inst = Vin + ringing;
+
+                // Body diode clamp protection simulation
+                if (V_ds_inst < -0.7) V_ds_inst = -0.7;
+
+                // Inductor current discharge
+                I_L -= I_L * (isSnubberActive ? 0.05 : 0.2); 
+                if (I_L < 0) I_L = 0;
+
+                if (V_ds_inst > V_ds_peak) V_ds_peak = V_ds_inst;
+            }
+
+            // Update UI
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+
+            if (isMosfetOn) {
+                dot.className = 'status-dot on';
+                txt.innerText = 'State: MOSFET ON (Storing Energy in Inductor)';
+            } else {
+                dot.className = 'status-dot off';
+                txt.innerText = isSnubberActive ? 'State: MOSFET OFF (Energy Absorbed by Snubber)' : 'State: MOSFET OFF (High Voltage Spike!)';
+            }
+
+            document.getElementById('m-il').innerText = I_L.toFixed(2) + ' A';
+            
+            const maxVdsEl = document.getElementById('m-vds-max');
+            maxVdsEl.innerText = V_ds_peak.toFixed(0) + ' V';
+            if (!isSnubberActive && V_ds_peak > Vin * 3) {
+                maxVdsEl.style.textShadow = '0 0 10px red';
+                maxVdsEl.style.color = '#ff4757';
+            } else {
+                maxVdsEl.style.textShadow = 'none';
+                maxVdsEl.style.color = 'var(--accent-gold)';
+            }
+
+            // Scope History Update
+            pwmHistory.push(isMosfetOn ? 1 : 0);
+            vdsHistory.push(V_ds_inst);
+            if (pwmHistory.length > maxHistory) pwmHistory.shift();
+            if (vdsHistory.length > maxHistory) vdsHistory.shift();
+
+            // Render Canvases
+            drawCircuit(isMosfetOn, V_ds_inst);
+            drawPWM();
+            drawOUT(Vin);
+
+            requestAnimationFrame(animate);
+        }
+
+        // ================= Draw Circuit on Canvas =================
+        function drawCircuit(isMosfetOn, vds) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+
+            const vInX = w * 0.15;
+            const loadX = w * 0.45;
+            const snubX = w * 0.75;
+
+            const topY = h * 0.25;
+            const midY = h * 0.50;
+            const botY = h * 0.75;
+
+            // 1. Draw Base Base Wires
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#334155';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            
+            // Top Rail
+            ctx.moveTo(vInX, topY); ctx.lineTo(snubX, topY);
+            // Bottom Rail
+            ctx.moveTo(vInX, botY); ctx.lineTo(snubX, botY);
+            
+            // Branches
+            ctx.moveTo(vInX, topY); ctx.lineTo(vInX, botY); // Source
+            ctx.moveTo(loadX, topY); ctx.lineTo(loadX, botY); // Load & MOSFET
+            ctx.moveTo(snubX, topY); ctx.lineTo(snubX, botY); // Snubber
+            ctx.stroke();
+
+            // 2. Highlight Active Wire Paths (Neon Effect)
+            ctx.lineWidth = 4;
+            if (isMosfetOn) {
+                // Main current through MOSFET
+                ctx.strokeStyle = 'rgba(0, 242, 254, 0.7)';
+                ctx.shadowColor = '#00f2fe';
+                ctx.shadowBlur = 12;
+                ctx.beginPath();
+                ctx.moveTo(vInX, botY); ctx.lineTo(vInX, topY);
+                ctx.lineTo(loadX, topY); ctx.lineTo(loadX, botY);
+                ctx.lineTo(vInX, botY);
+                ctx.stroke();
+            } else if (!isMosfetOn && I_L > 0.1) {
+                if (isSnubberActive) {
+                    // Snubber Loop Current
+                    ctx.strokeStyle = 'rgba(255, 183, 3, 0.7)';
+                    ctx.shadowColor = '#ffb703';
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath();
+                    ctx.moveTo(loadX, midY);
+                    ctx.lineTo(loadX, topY);
+                    ctx.lineTo(snubX, topY);
+                    ctx.lineTo(snubX, botY);
+                    ctx.lineTo(loadX, botY);
+                    ctx.lineTo(loadX, midY);
+                    ctx.stroke();
+                } else {
+                    // Without Snubber: Red stress on MOSFET
+                    ctx.strokeStyle = 'rgba(255, 71, 87, 0.9)';
+                    ctx.shadowColor = '#ff4757';
+                    ctx.shadowBlur = 20;
+                    ctx.beginPath();
+                    ctx.moveTo(loadX, topY); ctx.lineTo(loadX, midY);
+                    ctx.stroke();
+                }
+            }
+            ctx.shadowBlur = 0;
+
+            // 3. Draw Components
+            drawDCSource(vInX, midY, Vin);
+            drawInductiveLoad(loadX, topY + (midY - topY)/2, I_L);
+            drawMOSFET(loadX, botY - (botY - midY)/2, isMosfetOn, vds);
+            
+            if (isSnubberActive) {
+                ctx.globalAlpha = 1.0;
+            } else {
+                ctx.globalAlpha = 0.2; // Dim snubber when inactive
+                // Draw 'X' over snubber
+                ctx.strokeStyle = '#ff4757'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(snubX - 15, midY - 15); ctx.lineTo(snubX + 15, midY + 15);
+                ctx.moveTo(snubX + 15, midY - 15); ctx.lineTo(snubX - 15, midY + 15); ctx.stroke();
+            }
+            drawSnubber(snubX, midY, topY, botY);
+            ctx.globalAlpha = 1.0;
+
+            drawGround(vInX, botY);
+            drawGround(loadX, botY);
+            drawGround(snubX, botY);
+
+            // 4. Draw Particles
+            drawParticles(isMosfetOn, vInX, loadX, snubX, topY, botY, midY);
+        }
+
+        function drawDCSource(x, y, vVal) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a'; ctx.strokeStyle = '#4facfe'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(x, y, 26, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            ctx.font = 'bold 13px Segoe UI';
+            ctx.fillStyle = '#ff4757'; ctx.fillText('+', x - 4, y - 10);
+            ctx.fillStyle = '#2ed573'; ctx.fillText('-', x - 3, y + 18);
+            ctx.fillStyle = '#94a3b8'; ctx.font = '12px Segoe UI'; ctx.textAlign = 'center';
+            ctx.fillText('DC In', x - 45, y + 4);
+            ctx.restore();
+        }
+
+        function drawInductiveLoad(x, y, iL) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            ctx.strokeStyle = iL > 0.5 ? '#00f2fe' : '#64748b';
+            if (iL > 0.5) { ctx.shadowColor = '#00f2fe'; ctx.shadowBlur = 10; }
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            
+            const coils = 4;
+            const r = 8;
+            ctx.moveTo(0, -30);
+            for(let i=0; i<coils; i++) {
+                ctx.arc(0, -20 + i*(r*1.5), r, Math.PI*1.5, Math.PI*0.5, false);
+            }
+            ctx.lineTo(0, 30);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#e2e8f0'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left';
+            ctx.fillText('Inductive Load L', 15, 0);
+            ctx.restore();
+        }
+
+        function drawMOSFET(x, y, isOn, vds) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.fillStyle = isOn ? 'rgba(0, 242, 254, 0.15)' : '#1e293b';
+            
+            let strokeCol = isOn ? '#00f2fe' : '#64748b';
+            if (!isOn && vds > Vin * 2) {
+                strokeCol = '#ff4757';
+                ctx.shadowColor = '#ff4757';
+                ctx.shadowBlur = 20;
+            }
+
+            ctx.strokeStyle = strokeCol;
+            ctx.lineWidth = 2;
+
+            ctx.beginPath(); ctx.rect(-18, -20, 36, 40); ctx.fill(); ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+            ctx.font = 'bold 10px Segoe UI';
+            ctx.fillStyle = strokeCol;
+            ctx.fillText('D', -5, -8);
+            ctx.fillText('S', -5, 15);
+            ctx.fillText('G', -25, 4);
+
+            ctx.beginPath(); ctx.moveTo(-18, 0); ctx.lineTo(-30, 0); ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left';
+            ctx.fillText('MOSFET', 22, 0);
+
+            ctx.restore();
+        }
+
+        function drawSnubber(x, y, topY, botY) {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 2.5;
+            
+            // Top Capacitor
+            ctx.beginPath();
+            ctx.moveTo(0, -40); ctx.lineTo(0, -20);
+            ctx.moveTo(-12, -20); ctx.lineTo(12, -20);
+            ctx.moveTo(-12, -12); ctx.lineTo(12, -12);
+            ctx.moveTo(0, -12); ctx.lineTo(0, 5);
+            ctx.stroke();
+
+            // Bottom Resistor
+            ctx.beginPath();
+            ctx.moveTo(0, 5);
+            const zigs = 5; const step = 20 / zigs;
+            for(let i=0; i<zigs; i++) {
+                ctx.lineTo(i%2===0 ? -8 : 8, 5 + step*i + step/2);
+            }
+            ctx.lineTo(0, 25); ctx.lineTo(0, 40);
+            ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8'; ctx.font = '11px Segoe UI'; ctx.textAlign = 'left';
+            ctx.fillText('Cs', 15, -15);
+            ctx.fillText('Rs', 15, 15);
+
+            ctx.restore();
+        }
+
+        function drawGround(x, y) {
+            ctx.save();
+            ctx.strokeStyle = '#64748b'; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x, y); ctx.lineTo(x, y + 15);
+            ctx.moveTo(x - 12, y + 15); ctx.lineTo(x + 12, y + 15);
+            ctx.moveTo(x - 6, y + 20); ctx.lineTo(x + 6, y + 20);
+            ctx.moveTo(x - 2, y + 25); ctx.lineTo(x + 2, y + 25);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawParticles(isMosfetOn, vInX, loadX, snubX, topY, botY, midY) {
+            const speed = 0.01;
+            let isForward = (flowMode === 'conv');
+
+            particles.forEach(p => {
+                p.progress += speed;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = [];
+                let pColor = '#00f2fe';
+
+                if (isMosfetOn) {
+                    path = [
+                        {x: vInX, y: botY}, {x: vInX, y: topY},
+                        {x: loadX, y: topY}, {x: loadX, y: botY},
+                        {x: vInX, y: botY}
+                    ];
+                } else {
+                    if (isSnubberActive && I_L > 0.1) {
+                        pColor = '#ffb703';
+                        path = [
+                            {x: loadX, y: midY}, {x: loadX, y: topY},
+                            {x: snubX, y: topY}, {x: snubX, y: botY},
+                            {x: loadX, y: botY}, {x: loadX, y: midY}
+                        ];
+                    } else {
+                        return; 
+                    }
+                }
+
+                if (!isForward) path = [...path].reverse();
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = pColor;
+                    ctx.shadowColor = pColor; ctx.shadowBlur = 8;
+                    ctx.fill(); ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0; const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i + 1].x - points[i].x; const dy = points[i + 1].y - points[i].y;
+                const len = Math.sqrt(dx * dx + dy * dy); lengths.push(len); totalLen += len;
+            }
+            let targetLen = t * totalLen; let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segmentT = (targetLen - currentLen) / lengths[i];
+                    const p1 = points[i]; const p2 = points[i + 1];
+                    return { x: p1.x + (p2.x - p1.x) * segmentT, y: p1.y + (p2.y - p1.y) * segmentT };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        // ================= Draw Scopes =================
+        function drawPWM() {
+            const w = canvasPWM.width; const h = canvasPWM.height;
+            ctxPWM.clearRect(0, 0, w, h);
+
+            ctxPWM.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctxPWM.lineWidth = 1; ctxPWM.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxPWM.moveTo(x, 0); ctxPWM.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxPWM.moveTo(0, y); ctxPWM.lineTo(w, y); }
+            ctxPWM.stroke();
+
+            ctxPWM.strokeStyle = '#00f2fe'; ctxPWM.lineWidth = 2; ctxPWM.beginPath();
+            const step = w / maxHistory;
+            for (let i = 0; i < pwmHistory.length; i++) {
+                const x = i * step;
+                const y = pwmHistory[i] === 1 ? h * 0.25 : h * 0.75;
+                if (i === 0) ctxPWM.moveTo(x, y);
+                else {
+                    const prevY = pwmHistory[i - 1] === 1 ? h * 0.25 : h * 0.75;
+                    if (prevY !== y) ctxPWM.lineTo(x, prevY);
+                    ctxPWM.lineTo(x, y);
+                }
+            }
+            ctxPWM.stroke();
+        }
+
+        function drawOUT(vinBase) {
+            const w = canvasOUT.width; const h = canvasOUT.height;
+            ctxOUT.clearRect(0, 0, w, h);
+
+            ctxOUT.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctxOUT.lineWidth = 1; ctxOUT.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxOUT.moveTo(x, 0); ctxOUT.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxOUT.moveTo(0, y); ctxOUT.lineTo(w, y); }
+            ctxOUT.stroke();
+
+            const baseScale = 150; 
+            const yVin = h - (vinBase / baseScale) * h;
+            ctxOUT.strokeStyle = 'rgba(255, 255, 255, 0.3)'; ctxOUT.setLineDash([4, 4]);
+            ctxOUT.beginPath(); ctxOUT.moveTo(0, yVin); ctxOUT.lineTo(w, yVin); ctxOUT.stroke(); ctxOUT.setLineDash([]);
+
+            ctxOUT.strokeStyle = isSnubberActive ? '#ffb703' : '#ff4757'; 
+            ctxOUT.lineWidth = 2; ctxOUT.beginPath();
+
+            const step = w / maxHistory;
+            for (let i = 0; i < vdsHistory.length; i++) {
+                const x = i * step;
+                let y = h - (vdsHistory[i] / baseScale) * h;
+                if (y < 0) y = 0; if (y > h) y = h;
+                
+                if (i === 0) ctxOUT.moveTo(x, y);
+                else ctxOUT.lineTo(x, y);
+            }
+            ctxOUT.stroke();
+        }
+
+        requestAnimationFrame(animate);
+
+    </script>
+</body>
+</html>

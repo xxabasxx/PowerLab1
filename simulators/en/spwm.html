@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">Single-Phase SPWM Inverter Simulator</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --accent-purple: #a78bfa;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 440px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-card h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .scope-mod h3::before { background: var(--accent-purple); }
+        .scope-gate h3::before { background: var(--accent-cyan); }
+        .scope-cap h3::before { background: var(--accent-red); }
+        .scope-out h3::before { background: var(--accent-gold); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.on {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .status-dot.off {
+            background: var(--accent-gold);
+            box-shadow: 0 0 10px var(--accent-gold);
+        }
+
+        .status-dot.dead {
+            background: var(--accent-red);
+            box-shadow: 0 0 10px var(--accent-red);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="txt-title">Single-Phase SPWM Inverter Simulator</h1>
+        <p id="txt-subtitle">Sinusoidal PWM analysis, reference vs. triangular carrier comparison and freewheeling diode behaviour</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Settings panel -->
+        <aside class="glass-panel controls-sidebar">
+          <!-- Language switch (hidden, kept so animation does not throw an error) -->
+<div class="control-group" style="display: none;">
+    <label id="lbl-lang">Language / زبان:</label>
+    <div class="toggle-group">
+        <button class="toggle-btn lang-btn" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی (FA)</button>
+        <button class="toggle-btn lang-btn active" id="btn-lang-en" onclick="setLanguage('en')">English (EN)</button>
+    </div>
+</div>
+
+            <div class="control-group">
+                <label id="lbl-flow">Current Flow:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">Conventional (+ to -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">Electron (- to +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-mode">Modulation Mode:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-bipolar" onclick="setMode('bipolar')">Bipolar</button>
+                    <button class="toggle-btn" id="btn-unipolar" onclick="setMode('unipolar')">Unipolar</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-vdc">DC Bus Voltage (V_dc):</span> <span class="val" id="val-vdc">300 V</span></label>
+                <input type="range" id="slider-vdc" min="100" max="600" value="300" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-f1">Output Frequency (f₁):</span> <span class="val" id="val-f1">50 Hz</span></label>
+                <input type="range" id="slider-f1" min="10" max="100" value="50" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-fsw">Carrier Frequency (f_sw):</span> <span class="val" id="val-fsw">2.0 kHz</span></label>
+                <input type="range" id="slider-fsw" min="0.5" max="5" value="2" step="0.1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-ma">Modulation Index (mₐ):</span> <span class="val" id="val-ma">0.80</span></label>
+                <input type="range" id="slider-ma" min="0.1" max="1.2" value="0.8" step="0.05">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-cap">DC Bus Capacitor (C_dc):</span> <span class="val" id="val-cap">2200 µF</span></label>
+                <input type="range" id="slider-cap" min="100" max="10000" value="2200" step="100">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-res">Load Resistance (R):</span> <span class="val" id="val-res">10 Ω</span></label>
+                <input type="range" id="slider-res" min="2" max="50" value="10" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-ind">Load Inductance (L):</span> <span class="val" id="val-ind">50 mH</span></label>
+                <input type="range" id="slider-ind" min="1" max="200" value="50" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-dt">Dead-Time:</span> <span class="val" id="val-dt">4.0 µs</span></label>
+                <input type="range" id="slider-dt" min="0" max="20" value="4" step="0.5">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot on" id="status-dot"></div>
+                <span id="status-text">State: Active (V10)</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title" id="lbl-vrms">Output Voltage (V_rms)</div>
+                    <div class="val" id="m-vrms">0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-v1">Fundamental (V₁)</div>
+                    <div class="val" id="m-v1">0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-irms">Load Current (I_rms)</div>
+                    <div class="val" id="m-irms">0 A</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-pwr">Active Power (P)</div>
+                    <div class="val" id="m-pwr">0 W</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-thd">Harmonic Distortion (THD)</div>
+                    <div class="val" id="m-thd">0 %</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-pf">Power Factor (PF)</div>
+                    <div class="val" style="color:var(--accent-green)" id="m-pf">0.00</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-vc">Capacitor Voltage (V_Cdc)</div>
+                    <div class="val" id="m-vc">0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-dvc">Bus Ripple (ΔV_Cdc)</div>
+                    <div class="val" id="m-dvc">0 V</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Simulation area and oscilloscopes -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-mod">
+                    <h3 id="lbl-scope-mod">Sine Reference vs. Triangular Carrier (SPWM)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeMOD"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-gate">
+                    <h3 id="lbl-scope-gate">Gate Drive Signals (S1 to S4)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeGATE"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-cap">
+                    <h3 id="lbl-scope-cap">DC Bus Capacitor Voltage &amp; Drawn Current</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeCAP"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-out">
+                    <h3 id="lbl-scope-out">Output Voltage (V_AB) &amp; Load Current (I_load)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeOUT"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+<script>
+/* ==================== Multi-language dictionary ==================== */
+const i18n = {
+    fa: {
+        title: 'شبیه‌ساز اینورتر SPWM تک‌فاز (Single-Phase SPWM Inverter)',
+        subtitle: 'تحلیل مدولاسیون پهنای پالس سینوسی، مقایسه موج مرجع با حامل مثلثی و نقش دیودهای هرزگرد',
+        langLabel: 'زبان / Language:',
+        flowLabel: 'نوع جریان:',
+        convFlow: 'قراردادی (+ به -)',
+        elecFlow: 'الکترونی (- به +)',
+        modeLabel: 'حالت مدولاسیون:',
+        bipolar: 'دوقطبی',
+        unipolar: 'تک‌قطبی',
+        lblVdc: 'ولتاژ باس DC (V_dc):',
+        lblF1: 'فرکانس خروجی (f₁):',
+        lblFsw: 'فرکانس حامل (f_sw):',
+        lblMa: 'شاخص مدولاسیون (mₐ):',
+        lblCap: 'خازن باس DC (C_dc):',
+        lblRes: 'مقاومت بار (R):',
+        lblInd: 'اندوکتانس بار (L):',
+        lblDt: 'زمان مرده (Dead-Time):',
+        stActive: 'حالت: فعال',
+        stZero: 'حالت: فری‌ویلینگ',
+        stDead: 'حالت: زمان مرده (هر دو کلید خاموش)',
+        mVrms: 'ولتاژ خروجی (V_rms)',
+        mV1: 'مؤلفه اساسی (V₁)',
+        mIrms: 'جریان بار (I_rms)',
+        mPwr: 'توان فعال (P)',
+        mThd: 'اعوجاج هارمونیکی (THD)',
+        mPf: 'ضریب توان (PF)',
+        mVc: 'ولتاژ خازن (V_Cdc)',
+        mDvc: 'ریپل باس (ΔV_Cdc)',
+        scMod: 'مقایسه موج مرجع سینوسی با حامل مثلثی (SPWM)',
+        scGate: 'سیگنال فرمان گیت کلیدها (S1 تا S4)',
+        scCap: 'ولتاژ خازن باس DC و جریان کشیده‌شده',
+        scOut: 'ولتاژ خروجی (V_AB) و جریان بار (I_load)',
+        legA: 'ساق A',
+        legB: 'ساق B',
+        dcSrc: 'منبع DC',
+        capLbl: 'خازن C_dc',
+        loadLbl: 'بار R-L'
+    },
+    en: {
+        title: 'Single-Phase SPWM Inverter Simulator',
+        subtitle: 'Sinusoidal PWM analysis, reference vs. triangular carrier comparison and freewheeling diode behaviour',
+        langLabel: 'Language / زبان:',
+        flowLabel: 'Current Flow:',
+        convFlow: 'Conventional (+ to -)',
+        elecFlow: 'Electron (- to +)',
+        modeLabel: 'Modulation Mode:',
+        bipolar: 'Bipolar',
+        unipolar: 'Unipolar',
+        lblVdc: 'DC Bus Voltage (V_dc):',
+        lblF1: 'Output Frequency (f₁):',
+        lblFsw: 'Carrier Frequency (f_sw):',
+        lblMa: 'Modulation Index (mₐ):',
+        lblCap: 'DC Bus Capacitor (C_dc):',
+        lblRes: 'Load Resistance (R):',
+        lblInd: 'Load Inductance (L):',
+        lblDt: 'Dead-Time:',
+        stActive: 'State: Active',
+        stZero: 'State: Freewheeling',
+        stDead: 'State: Dead-Time (both switches off)',
+        mVrms: 'Output Voltage (V_rms)',
+        mV1: 'Fundamental (V₁)',
+        mIrms: 'Load Current (I_rms)',
+        mPwr: 'Active Power (P)',
+        mThd: 'Harmonic Distortion (THD)',
+        mPf: 'Power Factor (PF)',
+        mVc: 'Capacitor Voltage (V_Cdc)',
+        mDvc: 'Bus Ripple (ΔV_Cdc)',
+        scMod: 'Sine Reference vs. Triangular Carrier (SPWM)',
+        scGate: 'Gate Drive Signals (S1 to S4)',
+        scCap: 'DC Bus Capacitor Voltage & Drawn Current',
+        scOut: 'Output Voltage (V_AB) & Load Current (I_load)',
+        legA: 'Leg A',
+        legB: 'Leg B',
+        dcSrc: 'DC Source',
+        capLbl: 'Cap C_dc',
+        loadLbl: 'R-L Load'
+    }
+};
+
+let currentLang = 'en';
+
+function setLanguage(lang) {
+    currentLang = lang;
+    const t = i18n[lang];
+    document.documentElement.lang = lang;
+    document.documentElement.dir = (lang === 'fa') ? 'rtl' : 'ltr';
+
+    document.getElementById('page-title').innerText = t.title;
+    document.getElementById('txt-title').innerText = t.title;
+    document.getElementById('txt-subtitle').innerText = t.subtitle;
+    document.getElementById('lbl-lang').innerText = t.langLabel;
+    document.getElementById('lbl-flow').innerText = t.flowLabel;
+    document.getElementById('btn-conv').innerText = t.convFlow;
+    document.getElementById('btn-elec').innerText = t.elecFlow;
+    document.getElementById('lbl-mode').innerText = t.modeLabel;
+    document.getElementById('btn-bipolar').innerText = t.bipolar;
+    document.getElementById('btn-unipolar').innerText = t.unipolar;
+    document.getElementById('lbl-vdc').innerText = t.lblVdc;
+    document.getElementById('lbl-f1').innerText = t.lblF1;
+    document.getElementById('lbl-fsw').innerText = t.lblFsw;
+    document.getElementById('lbl-ma').innerText = t.lblMa;
+    document.getElementById('lbl-cap').innerText = t.lblCap;
+    document.getElementById('lbl-res').innerText = t.lblRes;
+    document.getElementById('lbl-ind').innerText = t.lblInd;
+    document.getElementById('lbl-dt').innerText = t.lblDt;
+    document.getElementById('lbl-vrms').innerText = t.mVrms;
+    document.getElementById('lbl-v1').innerText = t.mV1;
+    document.getElementById('lbl-irms').innerText = t.mIrms;
+    document.getElementById('lbl-pwr').innerText = t.mPwr;
+    document.getElementById('lbl-thd').innerText = t.mThd;
+    document.getElementById('lbl-pf').innerText = t.mPf;
+    document.getElementById('lbl-vc').innerText = t.mVc;
+    document.getElementById('lbl-dvc').innerText = t.mDvc;
+    document.getElementById('lbl-scope-mod').innerText = t.scMod;
+    document.getElementById('lbl-scope-gate').innerText = t.scGate;
+    document.getElementById('lbl-scope-cap').innerText = t.scCap;
+    document.getElementById('lbl-scope-out').innerText = t.scOut;
+
+    document.getElementById('btn-lang-fa').classList.toggle('active', lang === 'fa');
+    document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('lang') === 'fa') setLanguage('fa');
+
+/* ==================== State variables ==================== */
+let flowMode = 'conv';
+let mode = 'bipolar';
+
+let Vdc = 300, f1 = 50, fsw = 2000, ma = 0.8;
+let Cdc_uF = 2200, Rload = 10, L_mH = 50, dt_us = 4;
+
+const R_src = 0.5, PI = Math.PI, TAU = 2 * PI;
+const SLOW = 80, SUBSTEPS = 80, WIN = 800, maxHistory = 860;
+
+let vC = 300, iLoad = 0, theta = 0, carrierPh = 0, time = 0;
+let prevCmdA = false, prevCmdB = false, deadTA = 0, deadTB = 0;
+let gates = [false, false, false, false];
+let sLeg = [0, 0];
+let vAB = 0, iDC = 0;
+
+let histMod = [], histGate = [], histCap = [], histOut = [];
+let Vrms = 0, V1rms = 0, Irms = 0, Pact = 0, THD = 0, PF = 0, iPeakDisp = 1;
+let vCmax = 300, vCmin = 300;
+
+function setFlowMode(m) {
+    flowMode = m;
+    document.getElementById('btn-conv').classList.toggle('active', m === 'conv');
+    document.getElementById('btn-elec').classList.toggle('active', m === 'elec');
+}
+
+function setMode(m) {
+    mode = m;
+    document.getElementById('btn-bipolar').classList.toggle('active', m === 'bipolar');
+    document.getElementById('btn-unipolar').classList.toggle('active', m === 'unipolar');
+}
+
+/* ==================== Sliders ==================== */
+function bindSlider(id, cb) {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => cb(parseFloat(el.value)));
+}
+bindSlider('slider-vdc', v => { Vdc = v; document.getElementById('val-vdc').innerText = v + ' V'; vC = v; vCmax = v; vCmin = v; });
+bindSlider('slider-f1',  v => { f1 = v;  document.getElementById('val-f1').innerText = v + ' Hz'; });
+bindSlider('slider-fsw', v => { fsw = v * 1000; document.getElementById('val-fsw').innerText = v.toFixed(1) + ' kHz'; });
+bindSlider('slider-ma',  v => { ma = v;  document.getElementById('val-ma').innerText = v.toFixed(2); });
+bindSlider('slider-cap', v => { Cdc_uF = v; document.getElementById('val-cap').innerText = v + ' µF'; });
+bindSlider('slider-res', v => { Rload = v; document.getElementById('val-res').innerText = v + ' Ω'; });
+bindSlider('slider-ind', v => { L_mH = v; document.getElementById('val-ind').innerText = v + ' mH'; });
+bindSlider('slider-dt',  v => { dt_us = v; document.getElementById('val-dt').innerText = v.toFixed(1) + ' µs'; });
+
+/* ==================== Canvas setup ==================== */
+const canvas = document.getElementById('circuitCanvas');
+const ctx = canvas.getContext('2d');
+const cMod = document.getElementById('scopeMOD');
+const cGate = document.getElementById('scopeGATE');
+const cCap = document.getElementById('scopeCAP');
+const cOut = document.getElementById('scopeOUT');
+
+function resizeCanvases() {
+    [canvas, cMod, cGate, cCap, cOut].forEach(c => {
+        const rect = c.parentElement.getBoundingClientRect();
+        c.width = rect.width;
+        c.height = rect.height;
+    });
+}
+window.addEventListener('resize', resizeCanvases);
+setTimeout(resizeCanvases, 50);
+
+/* ==================== Current particles ==================== */
+let particles = [];
+for (let i = 0; i < 30; i++) particles.push({ t: Math.random() });
+
+function getPointAlongPath(points, t) {
+    t = ((t % 1) + 1) % 1;
+    let total = 0;
+    const segs = [];
+    for (let i = 0; i < points.length - 1; i++) {
+        const dx = points[i + 1].x - points[i].x;
+        const dy = points[i + 1].y - points[i].y;
+        segs.push(Math.sqrt(dx * dx + dy * dy));
+        total += segs[segs.length - 1];
+    }
+    if (total < 1) return points[0];
+    let target = t * total, acc = 0;
+    for (let i = 0; i < segs.length; i++) {
+        if (acc + segs[i] >= target) {
+            const f = (target - acc) / segs[i];
+            return {
+                x: points[i].x + (points[i + 1].x - points[i].x) * f,
+                y: points[i].y + (points[i + 1].y - points[i].y) * f
+            };
+        }
+        acc += segs[i];
+    }
+    return points[points.length - 1];
+}
+
+/* ==================== Drawing helpers ==================== */
+function ln(c, x1, y1, x2, y2) { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); }
+
+function drawSwitchBox(x, y, label, conducting, col) {
+    ctx.save();
+    ctx.fillStyle = conducting ? 'rgba(0,242,254,0.15)' : '#1e293b';
+    ctx.strokeStyle = conducting ? col : '#64748b';
+    ctx.lineWidth = 2;
+    ctx.fillRect(x - 16, y - 14, 32, 28);
+    ctx.strokeRect(x - 16, y - 14, 32, 28);
+    if (conducting) { ctx.shadowColor = col; ctx.shadowBlur = 12; ctx.strokeRect(x - 16, y - 14, 32, 28); ctx.shadowBlur = 0; }
+    ctx.font = 'bold 10px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = conducting ? col : '#94a3b8';
+    ctx.fillText(label, x, y + 4);
+    ctx.restore();
+}
+
+function drawDiodeSymbol(x, y, label, isActive) {
+    ctx.save();
+    const size = 7;
+    ctx.fillStyle = isActive ? 'rgba(255,183,3,0.5)' : '#1e293b';
+    ctx.strokeStyle = isActive ? '#ffb703' : '#64748b';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x, y - size); ctx.lineTo(x - size, y + size); ctx.lineTo(x + size, y + size);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x - size, y - size); ctx.lineTo(x + size, y - size); ctx.stroke();
+    if (isActive) {
+        ctx.shadowColor = '#ffb703'; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.moveTo(x, y - size); ctx.lineTo(x - size, y + size); ctx.lineTo(x + size, y + size);
+        ctx.closePath(); ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    ctx.font = '8px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillStyle = isActive ? '#ffb703' : '#64748b';
+    ctx.fillText(label, x, y - size - 3);
+    ctx.restore();
+}
+
+function drawScopeGrid(c, w, h) {
+    c.strokeStyle = 'rgba(255,255,255,0.05)';
+    c.lineWidth = 1;
+    c.beginPath();
+    for (let x = 0; x < w; x += 20) { c.moveTo(x, 0); c.lineTo(x, h); }
+    for (let y = 0; y < h; y += 20) { c.moveTo(0, y); c.lineTo(w, y); }
+    c.stroke();
+}
+
+/* ==================== Physics engine ==================== */
+function simulate() {
+    const dtFrame = 1 / 60 / SLOW;
+    const dtStep = dtFrame / SUBSTEPS;
+    const Cap = Cdc_uF * 1e-6;
+    const L = Math.max(L_mH, 0.5) * 1e-3;
+    const deadSec = dt_us * 1e-6;
+
+    for (let s = 0; s < SUBSTEPS; s++) {
+        theta += TAU * f1 * dtStep;
+        if (theta > TAU) theta -= TAU;
+        carrierPh += fsw * dtStep;
+        if (carrierPh >= 1) carrierPh -= 1;
+
+        const sinRef = Math.sin(theta);
+        const tri = 4 * Math.abs(carrierPh - 0.5) - 1;
+
+        let cmdA, cmdB;
+        if (mode === 'bipolar') {
+            cmdA = (ma * sinRef) > tri;
+            cmdB = !cmdA;
+        } else {
+            cmdA = (ma * sinRef) > tri;
+            cmdB = (-ma * sinRef) > tri;
+        }
+
+        if (cmdA !== prevCmdA) { deadTA = deadSec; prevCmdA = cmdA; }
+        if (cmdB !== prevCmdB) { deadTB = deadSec; prevCmdB = cmdB; }
+        if (deadTA > 0) deadTA -= dtStep;
+        if (deadTB > 0) deadTB -= dtStep;
+
+        const dA = deadTA > 0, dB = deadTB > 0;
+        let sA, sB;
+        if (dA) sA = iLoad > 0 ? 0 : 1; else sA = cmdA ? 1 : 0;
+        if (dB) sB = iLoad > 0 ? 1 : 0; else sB = cmdB ? 1 : 0;
+
+        sLeg[0] = sA; sLeg[1] = sB;
+        vAB = (sA - sB) * vC;
+
+        gates[0] = !dA && cmdA;
+        gates[1] = !dA && !cmdA;
+        gates[2] = !dB && cmdB;
+        gates[3] = !dB && !cmdB;
+
+        iLoad += dtStep * (vAB - Rload * iLoad) / L;
+        iDC = iLoad * (sA - sB);
+        const iSrc = (Vdc - vC) / R_src;
+        vC += dtStep * (iSrc - iDC) / Cap;
+        if (vC < 0) vC = 0;
+        if (vC > Vdc * 1.6) vC = Vdc * 1.6;
+    }
+    time += dtFrame;
+}
+
+/* ==================== Numerical analysis ==================== */
+function analyze() {
+    const n = histOut.length;
+    if (n < WIN) return;
+    let sv2 = 0, si2 = 0, sp = 0, ipk = 0, a1 = 0, b1 = 0;
+    const start = n - WIN;
+    for (let k = start; k < n; k++) {
+        const v = histOut[k].v, i = histOut[k].i;
+        sv2 += v * v; si2 += i * i; sp += v * i;
+        if (Math.abs(i) > ipk) ipk = Math.abs(i);
+        const th = TAU * 2 * (k - start) / WIN;
+        a1 += v * Math.cos(th);
+        b1 += v * Math.sin(th);
+    }
+    Vrms = Math.sqrt(sv2 / WIN);
+    Irms = Math.sqrt(si2 / WIN);
+    Pact = sp / WIN;
+    const V1peak = 2 * Math.sqrt(a1 * a1 + b1 * b1) / WIN;
+    V1rms = V1peak / Math.SQRT2;
+    THD = V1rms > 1 ? Math.sqrt(Math.max(0, Vrms * Vrms - V1rms * V1rms)) / V1rms * 100 : 0;
+    PF = (Vrms > 1 && Irms > 0.01) ? Math.min(1, Math.abs(Pact) / (Vrms * Irms)) : 0;
+    iPeakDisp += (Math.max(ipk, 0.2) - iPeakDisp) * 0.08;
+
+    const rc = histCap.length;
+    if (rc > 10) {
+        let mx = -1e9, mn = 1e9;
+        for (let k = Math.max(0, rc - WIN); k < rc; k++) {
+            if (histCap[k].v > mx) mx = histCap[k].v;
+            if (histCap[k].v < mn) mn = histCap[k].v;
+        }
+        vCmax = mx; vCmin = mn;
+    }
+}
+
+/* ==================== Main circuit drawing ==================== */
+function drawCircuit() {
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    const dcX = w * 0.09, capX = w * 0.21;
+    const legAX = w * 0.45, legBX = w * 0.74;
+    const loadX = w * 0.90;
+    const topY = h * 0.18, midY = h * 0.50, botY = h * 0.80;
+    const y1 = (topY + midY) / 2, y2 = (midY + botY) / 2;
+    const t = i18n[currentLang];
+
+    /* --- Base wiring (90-degree orthogonal) --- */
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 3;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ln(ctx, dcX, midY - 26, dcX, topY);
+    ln(ctx, dcX, topY, capX, topY);
+    ln(ctx, dcX, midY + 26, dcX, botY);
+    ln(ctx, dcX, botY, capX, botY);
+    ln(ctx, capX, topY, legBX, topY);
+    ln(ctx, capX, botY, legBX, botY);
+    ln(ctx, capX, topY, capX, topY + 12);
+    ln(ctx, capX, topY + 28, capX, botY);
+    ln(ctx, legAX, topY, legAX, y1 - 14);
+    ln(ctx, legAX, y1 + 14, legAX, y2 - 14);
+    ln(ctx, legAX, y2 + 14, legAX, botY);
+    ln(ctx, legBX, topY, legBX, y1 - 14);
+    ln(ctx, legBX, y1 + 14, legBX, y2 - 14);
+    ln(ctx, legBX, y2 + 14, legBX, botY);
+    ln(ctx, legAX, midY, legBX, midY);
+
+    /* --- Active current path with glow --- */
+    const sBits = '' + sLeg[0] + sLeg[1];
+    const diff = sLeg[0] !== sLeg[1];
+    if (diff) {
+        ctx.save();
+        const col = sLeg[0] > sLeg[1] ? 'rgba(0,242,254,0.6)' : 'rgba(255,183,3,0.6)';
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 4;
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 12;
+        const aX = sLeg[0] > sLeg[1] ? legAX : legBX;
+        const bX = sLeg[0] > sLeg[1] ? legBX : legAX;
+        ctx.beginPath(); ctx.moveTo(capX, topY); ctx.lineTo(aX, topY); ctx.lineTo(aX, midY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(legAX, midY); ctx.lineTo(legBX, midY); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(bX, midY); ctx.lineTo(bX, botY); ctx.lineTo(capX, botY); ctx.stroke();
+        ctx.restore();
+    }
+
+    /* --- DC source --- */
+    ctx.save();
+    ctx.fillStyle = '#0f172a';
+    ctx.strokeStyle = '#4facfe';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(dcX, midY, 26, 0, TAU); ctx.fill(); ctx.stroke();
+    ctx.font = 'bold 16px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff4757'; ctx.fillText('+', dcX, midY - 6);
+    ctx.fillStyle = '#2ed573'; ctx.fillText('−', dcX, midY + 16);
+    ctx.font = '10px Segoe UI'; ctx.fillStyle = '#94a3b8';
+    ctx.fillText(t.dcSrc, dcX, midY + 44);
+    ctx.fillText(Vdc.toFixed(0) + 'V', dcX, midY + 58);
+    ctx.restore();
+
+    /* --- DC bus capacitor --- */
+    ctx.save();
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 4;
+    ln(ctx, capX - 14, topY + 12, capX + 14, topY + 12);
+    ln(ctx, capX - 14, topY + 28, capX + 14, topY + 28);
+    ctx.font = '10px Segoe UI'; ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'center';
+    ctx.fillText(t.capLbl, capX, topY + 48);
+    ctx.restore();
+
+    /* --- Switches and diodes --- */
+    const s1on = sLeg[0] === 1 && gates[0], d1on = sLeg[0] === 1 && !gates[0];
+    const s2on = sLeg[0] === 0 && gates[1], d2on = sLeg[0] === 0 && !gates[1];
+    drawSwitchBox(legAX, y1, 'S1', s1on, '#00f2fe');
+    drawDiodeSymbol(legAX + 26, y1, 'D1', d1on);
+    drawSwitchBox(legAX, y2, 'S2', s2on, '#4facfe');
+    drawDiodeSymbol(legAX + 26, y2, 'D2', d2on);
+
+    const s3on = sLeg[1] === 1 && gates[2], d3on = sLeg[1] === 1 && !gates[2];
+    const s4on = sLeg[1] === 0 && gates[3], d4on = sLeg[1] === 0 && !gates[3];
+    drawSwitchBox(legBX, y1, 'S3', s3on, '#ffb703');
+    drawDiodeSymbol(legBX + 26, y1, 'D3', d3on);
+    drawSwitchBox(legBX, y2, 'S4', s4on, '#fb8500');
+    drawDiodeSymbol(legBX + 26, y2, 'D4', d4on);
+
+    ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center'; ctx.fillStyle = '#94a3b8';
+    ctx.fillText(t.legA, legAX, botY + 20);
+    ctx.fillText(t.legB, legBX, botY + 20);
+
+    /* --- SPWM generator box --- */
+    ctx.save();
+    ctx.fillStyle = '#0f172a';
+    ctx.strokeStyle = '#a78bfa';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(legAX - 70, h * 0.05, 90, 24);
+    ctx.strokeRect(legAX - 70, h * 0.05, 90, 24);
+    ctx.font = 'bold 10px Segoe UI'; ctx.textAlign = 'center'; ctx.fillStyle = '#a78bfa';
+    ctx.fillText('SPWM Gen', legAX - 25, h * 0.05 + 16);
+    ctx.restore();
+
+    /* --- R-L load --- */
+    ctx.save();
+    const lx = (legAX + legBX) / 2, ly = midY;
+    const absI0 = Math.abs(iLoad);
+    ctx.fillStyle = absI0 > 0.1 ? 'rgba(255,183,3,0.12)' : '#1e293b';
+    ctx.strokeStyle = absI0 > 0.1 ? '#ffb703' : '#64748b';
+    ctx.lineWidth = 2;
+    ctx.fillRect(lx - 28, ly - 13, 56, 26);
+    ctx.strokeRect(lx - 28, ly - 13, 56, 26);
+    if (absI0 > 0.1) {
+        ctx.shadowColor = '#ffb703'; ctx.shadowBlur = 12;
+        ctx.strokeRect(lx - 28, ly - 13, 56, 26); ctx.shadowBlur = 0;
+    }
+    ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'center'; ctx.fillStyle = '#e2e8f0';
+    ctx.fillText('R - L', lx, ly + 4);
+    ctx.font = '10px Segoe UI'; ctx.fillStyle = '#94a3b8';
+    ctx.fillText(t.loadLbl, lx, ly + 30);
+    ctx.restore();
+
+    /* --- Node labels A and B --- */
+    ctx.font = 'bold 11px Segoe UI'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#00f2fe'; ctx.fillText('A', legAX - 14, midY - 8);
+    ctx.fillStyle = '#ffb703'; ctx.fillText('B', legBX + 14, midY - 8);
+
+    /* --- Current particles --- */
+    const absI = Math.abs(iLoad);
+    const speed = 0.004 + Math.min(0.012, absI * 0.0012);
+    const dir = (flowMode === 'conv') ? 1 : -1;
+    const sign = iLoad >= 0 ? 1 : -1;
+
+    let path;
+    if (sLeg[0] === 1 && sLeg[1] === 0) {
+        path = [{x:capX,y:topY},{x:legAX,y:topY},{x:legAX,y:midY},{x:legBX,y:midY},{x:legBX,y:botY},{x:capX,y:botY},{x:capX,y:topY}];
+    } else if (sLeg[0] === 0 && sLeg[1] === 1) {
+        path = [{x:capX,y:topY},{x:legBX,y:topY},{x:legBX,y:midY},{x:legAX,y:midY},{x:legAX,y:botY},{x:capX,y:botY},{x:capX,y:topY}];
+    } else if (sLeg[0] === 1 && sLeg[1] === 1) {
+        path = [{x:legAX,y:midY},{x:legAX,y:topY},{x:legBX,y:topY},{x:legBX,y:midY},{x:legAX,y:midY}];
+    } else {
+        path = [{x:legAX,y:midY},{x:legAX,y:botY},{x:legBX,y:botY},{x:legBX,y:midY},{x:legAX,y:midY}];
+    }
+
+    ctx.save();
+    for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.t += speed * sign * dir;
+        if (p.t > 1) p.t -= 1;
+        if (p.t < 0) p.t += 1;
+        const pt = getPointAlongPath(path, p.t);
+        const col = absI > 0.3 ? ((sign * dir) > 0 ? '#00f2fe' : '#ffb703') : '#4facfe';
+        ctx.fillStyle = col;
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 4, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+
+    /* --- Status indicator --- */
+    const dot = document.getElementById('status-dot');
+    const stxt = document.getElementById('status-text');
+    if (deadTA > 0 || deadTB > 0) {
+        dot.className = 'status-dot dead';
+        stxt.innerText = t.stDead;
+    } else if (!diff) {
+        dot.className = 'status-dot off';
+        stxt.innerText = t.stZero + ' (' + sBits + ')';
+    } else {
+        dot.className = 'status-dot on';
+        stxt.innerText = t.stActive + ' (V' + sBits + ')';
+    }
+}
+
+/* ==================== Oscilloscopes ==================== */
+function drawScopes() {
+    /* --- Modulation scope --- */
+    (function () {
+        const c = cMod.getContext('2d'), w = cMod.width, h = cMod.height;
+        c.clearRect(0, 0, w, h);
+        drawScopeGrid(c, w, h);
+        if (histMod.length < 2) return;
+        const n = Math.min(histMod.length, w);
+        const start = histMod.length - n;
+
+        c.strokeStyle = 'rgba(255,255,255,0.25)'; c.lineWidth = 1; c.beginPath();
+        for (let i = 0; i < n; i++) {
+            const x = i / n * w, y = h / 2 - histMod[start + i].tri * h * 0.40;
+            i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+        }
+        c.stroke();
+
+        c.strokeStyle = '#00f2fe'; c.lineWidth = 2; c.beginPath();
+        for (let i = 0; i < n; i++) {
+            const x = i / n * w, y = h / 2 - histMod[start + i].ref * h * 0.40;
+            i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+        }
+        c.stroke();
+
+        if (mode === 'unipolar') {
+            c.strokeStyle = '#ffb703'; c.lineWidth = 1.5; c.setLineDash([4, 4]); c.beginPath();
+            for (let i = 0; i < n; i++) {
+                const x = i / n * w, y = h / 2 + histMod[start + i].ref * h * 0.40;
+                i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+            }
+            c.stroke(); c.setLineDash([]);
+        }
+        c.font = '9px Segoe UI'; c.textAlign = 'left';
+        c.fillStyle = '#00f2fe'; c.fillText('V_ref', 6, 12);
+        c.fillStyle = 'rgba(255,255,255,0.45)'; c.fillText('V_carrier', 46, 12);
+    })();
+
+    /* --- Gate scope --- */
+    (function () {
+        const c = cGate.getContext('2d'), w = cGate.width, h = cGate.height;
+        c.clearRect(0, 0, w, h);
+        drawScopeGrid(c, w, h);
+        if (histGate.length < 2) return;
+        const n = Math.min(histGate.length, w);
+        const start = histGate.length - n;
+        const cols = ['#00f2fe', '#4facfe', '#ffb703', '#fb8500'];
+        const labels = ['S1', 'S2', 'S3', 'S4'];
+        for (let g = 0; g < 4; g++) {
+            const base = h * (0.22 + g * 0.23);
+            c.strokeStyle = cols[g]; c.lineWidth = 1.5; c.beginPath();
+            for (let i = 0; i < n; i++) {
+                const x = i / n * w;
+                const v = histGate[start + i][g];
+                const y = base - v * h * 0.15;
+                if (i === 0) c.moveTo(x, y);
+                else {
+                    const pv = histGate[start + i - 1][g];
+                    if (pv !== v) { c.lineTo(x, base - pv * h * 0.15); c.lineTo(x, y); }
+                    else c.lineTo(x, y);
+                }
+            }
+            c.stroke();
+            c.font = '8px Segoe UI'; c.textAlign = 'left';
+            c.fillStyle = cols[g]; c.fillText(labels[g], 4, base - 1);
+        }
+    })();
+
+    /* --- DC bus scope --- */
+    (function () {
+        const c = cCap.getContext('2d'), w = cCap.width, h = cCap.height;
+        c.clearRect(0, 0, w, h);
+        drawScopeGrid(c, w, h);
+        if (histCap.length < 2) return;
+        const n = Math.min(histCap.length, w);
+        const start = histCap.length - n;
+        const maxDev = Math.max(Vdc * 0.12, 5);
+
+        c.strokeStyle = 'rgba(255,255,255,0.2)'; c.lineWidth = 1; c.setLineDash([4, 4]);
+        ln(c, 0, h / 2, w, h / 2); c.setLineDash([]);
+
+        c.strokeStyle = '#ff4757'; c.lineWidth = 2; c.beginPath();
+        for (let i = 0; i < n; i++) {
+            const x = i / n * w;
+            const y = h / 2 - (histCap[start + i].v - Vdc) / maxDev * h * 0.40;
+            i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+        }
+        c.stroke();
+
+        const maxI = Math.max(iPeakDisp * 2, 1);
+        c.strokeStyle = '#a78bfa'; c.lineWidth = 1.5; c.beginPath();
+        for (let i = 0; i < n; i++) {
+            const x = i / n * w;
+            const y = h / 2 - histCap[start + i].i / maxI * h * 0.35;
+            i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+        }
+        c.stroke();
+
+        c.font = '9px Segoe UI'; c.textAlign = 'left';
+        c.fillStyle = '#ff4757'; c.fillText('V_Cdc', 6, 12);
+        c.fillStyle = '#a78bfa'; c.fillText('i_dc', 48, 12);
+        c.fillStyle = '#94a3b8'; c.fillText('ΔV = ' + (vCmax - vCmin).toFixed(1) + ' V', w - 86, 12);
+    })();
+
+    /* --- Output scope --- */
+    (function () {
+        const c = cOut.getContext('2d'), w = cOut.width, h = cOut.height;
+        c.clearRect(0, 0, w, h);
+        drawScopeGrid(c, w, h);
+        if (histOut.length < 2) return;
+        const n = Math.min(histOut.length, w);
+        const start = histOut.length - n;
+
+        c.strokeStyle = 'rgba(255,255,255,0.2)'; c.lineWidth = 1; c.setLineDash([4, 4]);
+        ln(c, 0, h / 2, w, h / 2); c.setLineDash([]);
+
+        const vScale = h * 0.40 / Math.max(Vdc, 100);
+        c.strokeStyle = '#ffb703'; c.lineWidth = 2; c.beginPath();
+        for (let i = 0; i < n; i++) {
+            const x = i / n * w, y = h / 2 - histOut[start + i].v * vScale;
+            i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+        }
+        c.stroke();
+
+        const iScale = h * 0.35 / Math.max(iPeakDisp, 0.5);
+        c.strokeStyle = '#2ed573'; c.lineWidth = 2; c.beginPath();
+        for (let i = 0; i < n; i++) {
+            const x = i / n * w, y = h / 2 - histOut[start + i].i * iScale;
+            i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+        }
+        c.stroke();
+
+        c.strokeStyle = 'rgba(255,255,255,0.2)'; c.lineWidth = 1; c.setLineDash([6, 4]); c.beginPath();
+        for (let i = 0; i < n; i++) {
+            const x = i / n * w;
+            const th = TAU * 2 * i / WIN;
+            const y = h / 2 - V1rms * Math.SQRT2 * Math.sin(th) * vScale;
+            i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+        }
+        c.stroke(); c.setLineDash([]);
+
+        c.font = '9px Segoe UI'; c.textAlign = 'left';
+        c.fillStyle = '#ffb703'; c.fillText('V_AB', 6, 12);
+        c.fillStyle = '#2ed573'; c.fillText('I_load', 44, 12);
+    })();
+}
+
+/* ==================== Metrics update ==================== */
+function updateMetrics() {
+    document.getElementById('m-vrms').innerText = Vrms.toFixed(1) + ' V';
+    document.getElementById('m-v1').innerText = V1rms.toFixed(1) + ' V';
+    document.getElementById('m-irms').innerText = Irms.toFixed(2) + ' A';
+    document.getElementById('m-pwr').innerText = Pact.toFixed(0) + ' W';
+    document.getElementById('m-thd').innerText = THD.toFixed(1) + ' %';
+    document.getElementById('m-pf').innerText = PF.toFixed(3);
+    document.getElementById('m-vc').innerText = vC.toFixed(1) + ' V';
+    document.getElementById('m-dvc').innerText = (vCmax - vCmin).toFixed(1) + ' V';
+}
+
+/* ==================== History recording ==================== */
+function recordHistory() {
+    const tri = 4 * Math.abs(carrierPh - 0.5) - 1;
+    histMod.push({ ref: ma * Math.sin(theta), tri: tri });
+    histGate.push([gates[0] ? 1 : 0, gates[1] ? 1 : 0, gates[2] ? 1 : 0, gates[3] ? 1 : 0]);
+    histCap.push({ v: vC, i: iDC });
+    histOut.push({ v: vAB, i: iLoad });
+    if (histMod.length > maxHistory) histMod.shift();
+    if (histGate.length > maxHistory) histGate.shift();
+    if (histCap.length > maxHistory) histCap.shift();
+    if (histOut.length > maxHistory) histOut.shift();
+}
+
+/* ==================== Main loop ==================== */
+let frameCount = 0;
+function animate() {
+    simulate();
+    recordHistory();
+    frameCount++;
+    if (frameCount % 3 === 0) { analyze(); updateMetrics(); }
+    drawCircuit();
+    drawScopes();
+    requestAnimationFrame(animate);
+}
+
+resizeCanvases();
+animate();
+</script>
+</body>
+</html>

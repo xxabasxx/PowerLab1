@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head><script>(function(){if(location.protocol==='file:')return;try{if(window.self!==window.top||window.frameElement)return;}catch(e){return;}var p=location.pathname.replace(/\/$/,''),f=p.split('/').pop().replace(/\.html$/i,''),l=location.pathname.indexOf('/en/')!==-1?'en':'fa';if(f&&f!=='simulators'&&f!=='fa'&&f!=='en'){window.location.replace('/?circuit='+encodeURIComponent(f)+'&lang='+l);}})();</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">TRIAC Dimmer Simulator (Phase Control)</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --accent-red: #ff4757;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 440px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid { grid-template-columns: 1fr; }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-wave h3::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-cyan); }
+        .scope-gate h3::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-gold); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.pos { background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
+        .status-dot.neg { background: var(--accent-gold); box-shadow: 0 0 10px var(--accent-gold); }
+        .status-dot.off { background: var(--accent-red); box-shadow: 0 0 10px var(--accent-red); }
+
+        .angle-visualizer {
+            width: 100%;
+            height: 24px;
+            background: #1e293b;
+            border-radius: 12px;
+            margin-top: 4px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .angle-fill {
+            height: 100%;
+            background: repeating-linear-gradient(45deg, rgba(0, 242, 254, 0.2), rgba(0, 242, 254, 0.2) 10px, rgba(0, 242, 254, 0.4) 10px, rgba(0, 242, 254, 0.4) 20px);
+            float: left; /* Changed from right to left for LTR */
+            border-right: 2px solid var(--accent-cyan); /* Changed from left to right for LTR */
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="txt-title">TRIAC Dimmer Simulator (Phase Control)</h1>
+        <p id="txt-subtitle">AC power control via phase-angle firing, bidirectional switch & harmonics</p>
+    </header>
+
+    <div class="main-container">
+        <!-- Settings Panel -->
+        <aside class="glass-panel controls-sidebar">
+            <div class="control-group" style="display: none;">
+                <label id="lbl-lang">Language / زبان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی (FA)</button>
+                    <button class="toggle-btn active" id="btn-lang-en" onclick="setLanguage('en')">English (EN)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label id="lbl-flow">Current Flow:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">Conventional (+ to -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">Electron (- to +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-vac">Input Voltage (V_rms):</span> <span class="val" id="val-vac">220 V</span></label>
+                <input type="range" id="slider-vac" min="12" max="240" value="220" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-freq">AC Frequency (f):</span> <span class="val" id="val-freq">50 Hz</span></label>
+                <input type="range" id="slider-freq" min="50" max="60" value="50" step="10">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-alpha">Firing Angle (α):</span> <span class="val" id="val-alpha">90°</span></label>
+                <input type="range" id="slider-alpha" min="0" max="175" value="90" step="1">
+                <div class="angle-visualizer">
+                    <div class="angle-fill" id="angle-bar" style="width: 50%;"></div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-res">Load Resistance (R_load):</span> <span class="val" id="val-res">100 Ω</span></label>
+                <input type="range" id="slider-res" min="10" max="500" value="100" step="10">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">State: TRIAC OFF</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title" id="lbl-vrms">Output Voltage (V_rms)</div>
+                    <div class="val" id="m-vrms">155.6 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-irms">Output Current (I_rms)</div>
+                    <div class="val" id="m-irms">1.56 A</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-pwr">Active Power (P_out)</div>
+                    <div class="val" id="m-pwr">242 W</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-pf">Power Factor (PF)</div>
+                    <div class="val" style="color:var(--accent-green)" id="m-pf">0.71</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Simulation Area -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-wave">
+                    <h3 id="lbl-scope-wave">Grid Voltage & Chopped Load Voltage (V_load)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeWave"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-gate">
+                    <h3 id="lbl-scope-gate">Gate Trigger Pulses</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeGate"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const i18n = {
+            fa: {
+                title: "شبیه‌ساز دیمر ترایاک (TRIAC Phase Control)",
+                subtitle: "کنترل توان AC با برش زاویه فاز، بررسی عملکرد سوئیچ دوطرفه و هارمونیک‌ها",
+                langLabel: "زبان / Language:",
+                flowLabel: "نوع جریان:",
+                convFlow: "قراردادی (+ به -)",
+                elecFlow: "الکترونی (- به +)",
+                vacLabel: "ولتاژ ورودی (V_rms):",
+                freqLabel: "فرکانس شبکه (f):",
+                alphaLabel: "زاویه آتش (Firing Angle α):",
+                resLabel: "مقاومت بار (R_load):",
+                statePos: "حالت: ترایاک روشن (نیم‌سیکل مثبت)",
+                stateNeg: "حالت: ترایاک روشن (نیم‌سیکل منفی)",
+                stateOff: "حالت: ترایاک خاموش (برش فاز)",
+                vrmsLabel: "ولتاژ خروجی (V_rms)",
+                irmsLabel: "جریان خروجی (I_rms)",
+                pwrLabel: "توان مصرفی (P_out)",
+                pfLabel: "ضریب توان (PF)",
+                scopeWave: "ولتاژ شبکه و ولتاژ برش‌خورده بار (V_load)",
+                scopeGate: "پالس‌های تحریک گیت (Gate Pulses)",
+                acName: "منبع AC",
+                triacName: "TRIAC",
+                loadName: "المنت/لامپ"
+            },
+            en: {
+                title: "TRIAC Dimmer Simulator (Phase Control)",
+                subtitle: "AC power control via phase-angle firing, bidirectional switch & harmonics",
+                langLabel: "Language / زبان:",
+                flowLabel: "Current Flow:",
+                convFlow: "Conventional (+ to -)",
+                elecFlow: "Electron (- to +)",
+                vacLabel: "Input Voltage (V_rms):",
+                freqLabel: "AC Frequency (f):",
+                alphaLabel: "Firing Angle (α):",
+                resLabel: "Load Resistance (R_load):",
+                statePos: "State: TRIAC ON (Positive Half-Cycle)",
+                stateNeg: "State: TRIAC ON (Negative Half-Cycle)",
+                stateOff: "State: TRIAC OFF (Phase Chopping)",
+                vrmsLabel: "Output Voltage (V_rms)",
+                irmsLabel: "Output Current (I_rms)",
+                pwrLabel: "Active Power (P_out)",
+                pfLabel: "Power Factor (PF)",
+                scopeWave: "Grid Voltage & Chopped Load Voltage (V_load)",
+                scopeGate: "Gate Trigger Pulses",
+                acName: "AC Source",
+                triacName: "TRIAC",
+                loadName: "Heater/Lamp"
+            }
+        };
+
+        // Initialize with English
+        let currentLang = 'en';
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('lang') === 'fa') currentLang = 'fa';
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+            document.getElementById('btn-lang-fa').classList.toggle('active', lang === 'fa');
+            document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+            
+            const t = i18n[lang];
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('lbl-lang').innerText = t.langLabel;
+            document.getElementById('lbl-flow').innerText = t.flowLabel;
+            document.getElementById('btn-conv').innerText = t.convFlow;
+            document.getElementById('btn-elec').innerText = t.elecFlow;
+            document.getElementById('lbl-vac').innerText = t.vacLabel;
+            document.getElementById('lbl-freq').innerText = t.freqLabel;
+            document.getElementById('lbl-alpha').innerText = t.alphaLabel;
+            document.getElementById('lbl-res').innerText = t.resLabel;
+            document.getElementById('lbl-vrms').innerText = t.vrmsLabel;
+            document.getElementById('lbl-irms').innerText = t.irmsLabel;
+            document.getElementById('lbl-pwr').innerText = t.pwrLabel;
+            document.getElementById('lbl-pf').innerText = t.pfLabel;
+            document.getElementById('lbl-scope-wave').innerText = t.scopeWave;
+            document.getElementById('lbl-scope-gate').innerText = t.scopeGate;
+            
+            // Adjust angle bar rendering for RTL/LTR
+            const angleBar = document.getElementById('angle-bar');
+            if(lang === 'fa') {
+                angleBar.style.float = 'right';
+                angleBar.style.borderLeft = '2px solid var(--accent-cyan)';
+                angleBar.style.borderRight = 'none';
+            } else {
+                angleBar.style.float = 'left';
+                angleBar.style.borderRight = '2px solid var(--accent-cyan)';
+                angleBar.style.borderLeft = 'none';
+            }
+        }
+
+        let flowMode = 'conv';
+        let V_rms_in = 220;
+        let freq_in = 50;
+        let alpha_deg = 90;
+        let R_load = 100;
+
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasWave = document.getElementById('scopeWave');
+        const ctxWave = canvasWave.getContext('2d');
+        const canvasGate = document.getElementById('scopeGate');
+        const ctxGate = canvasGate.getContext('2d');
+
+        document.getElementById('slider-vac').addEventListener('input', e => { V_rms_in = parseFloat(e.target.value); document.getElementById('val-vac').innerText = V_rms_in + ' V'; });
+        document.getElementById('slider-freq').addEventListener('input', e => { freq_in = parseFloat(e.target.value); document.getElementById('val-freq').innerText = freq_in + ' Hz'; });
+        document.getElementById('slider-alpha').addEventListener('input', e => { 
+            alpha_deg = parseFloat(e.target.value); 
+            document.getElementById('val-alpha').innerText = alpha_deg + '°';
+            document.getElementById('angle-bar').style.width = ((180 - alpha_deg) / 180 * 100) + '%';
+        });
+        document.getElementById('slider-res').addEventListener('input', e => { R_load = parseFloat(e.target.value); document.getElementById('val-res').innerText = R_load + ' Ω'; });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect(); canvas.width = rect.width; canvas.height = rect.height;
+            const rw = canvasWave.parentElement.getBoundingClientRect(); canvasWave.width = rw.width; canvasWave.height = rw.height;
+            const rg = canvasGate.parentElement.getBoundingClientRect(); canvasGate.width = rg.width; canvasGate.height = rg.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        const vGridHistory = [];
+        const vLoadHistory = [];
+        const gateHistory = [];
+        const maxHistory = 350;
+
+        const particles = [];
+        for (let i = 0; i < 40; i++) particles.push({ progress: Math.random() });
+
+        let time = 0;
+
+        // Triac dimmer power formulas
+        function calculateMetrics(alpha_rad) {
+            // V_rms_out = V_rms_in * sqrt(1 - alpha/pi + sin(2*alpha)/(2*pi))
+            const term = 1 - (alpha_rad / Math.PI) + (Math.sin(2 * alpha_rad) / (2 * Math.PI));
+            const V_rms_out = V_rms_in * Math.sqrt(Math.max(0, term));
+            const I_rms_out = V_rms_out / R_load;
+            const P_out = V_rms_out * I_rms_out;
+            const PF = Math.sqrt(Math.max(0, term)); // For purely resistive load, PF = sqrt(term)
+            
+            return { V_rms_out, I_rms_out, P_out, PF };
+        }
+
+        function animate() {
+            time += 0.005; // Base visual speed
+            
+            // Visual frequency mapping (make 50Hz look decent)
+            const w = 2 * Math.PI * freq_in * 0.05; 
+            const theta = (time * w) % (2 * Math.PI);
+            
+            const alpha_rad = alpha_deg * Math.PI / 180;
+            const half_cycle_theta = theta % Math.PI;
+            
+            const isPositiveHalf = theta < Math.PI;
+            const isConducting = half_cycle_theta >= alpha_rad;
+
+            const V_peak = V_rms_in * Math.SQRT2;
+            const v_inst_grid = V_peak * Math.sin(theta);
+            let v_inst_load = 0;
+            let gate_pulse = 0;
+
+            if (isConducting) {
+                v_inst_load = v_inst_grid;
+            }
+            
+            // Gate pulse happens right at alpha_rad
+            if (Math.abs(half_cycle_theta - alpha_rad) < 0.15 && alpha_deg < 175) {
+                gate_pulse = 1;
+            }
+
+            // Update UI State
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const t = i18n[currentLang];
+
+            if (!isConducting) {
+                dot.className = 'status-dot off';
+                txt.innerText = t.stateOff;
+            } else if (isPositiveHalf) {
+                dot.className = 'status-dot pos';
+                txt.innerText = t.statePos;
+            } else {
+                dot.className = 'status-dot neg';
+                txt.innerText = t.stateNeg;
+            }
+
+            const metrics = calculateMetrics(alpha_rad);
+            document.getElementById('m-vrms').innerText = metrics.V_rms_out.toFixed(1) + ' V';
+            document.getElementById('m-irms').innerText = metrics.I_rms_out.toFixed(2) + ' A';
+            document.getElementById('m-pwr').innerText = metrics.P_out.toFixed(0) + ' W';
+            document.getElementById('m-pf').innerText = metrics.PF.toFixed(2);
+
+            // History
+            vGridHistory.push(v_inst_grid / V_peak);
+            vLoadHistory.push(v_inst_load / V_peak);
+            gateHistory.push(gate_pulse);
+            
+            if (vGridHistory.length > maxHistory) vGridHistory.shift();
+            if (vLoadHistory.length > maxHistory) vLoadHistory.shift();
+            if (gateHistory.length > maxHistory) gateHistory.shift();
+
+            drawCircuit(isConducting, isPositiveHalf, metrics.P_out);
+            drawWaveScope();
+            drawGateScope();
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawCircuit(isConducting, isPositiveHalf, pOut) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = canvas.width;
+            const h = canvas.height;
+
+            const acX = w * 0.15;
+            const triacX = w * 0.50;
+            const loadX = w * 0.85;
+            
+            const topY = h * 0.3;
+            const bottomY = h * 0.7;
+            const midY = (topY + bottomY) / 2;
+
+            // ---- Base wires ----
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#334155';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // Top wire
+            ctx.beginPath();
+            ctx.moveTo(acX, topY);
+            ctx.lineTo(triacX, topY);
+            ctx.moveTo(triacX, topY); // Triac gap
+            ctx.lineTo(loadX, topY);
+            ctx.stroke();
+
+            // Bottom wire
+            ctx.beginPath();
+            ctx.moveTo(acX, bottomY);
+            ctx.lineTo(loadX, bottomY);
+            ctx.stroke();
+
+            // Vertical wires
+            ctx.beginPath(); ctx.moveTo(acX, topY); ctx.lineTo(acX, bottomY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(loadX, topY); ctx.lineTo(loadX, bottomY); ctx.stroke();
+
+            // ---- Highlight active wires ----
+            if (isConducting) {
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = isPositiveHalf ? 'rgba(0, 242, 254, 0.6)' : 'rgba(255, 183, 3, 0.6)';
+                ctx.beginPath();
+                ctx.moveTo(acX, topY); ctx.lineTo(loadX, topY); ctx.lineTo(loadX, bottomY);
+                ctx.lineTo(acX, bottomY); ctx.lineTo(acX, topY);
+                ctx.stroke();
+            }
+
+            // ---- Draw Components ----
+            drawACSource(acX, midY, isConducting, isPositiveHalf);
+            drawTRIAC(triacX, topY, isConducting, isPositiveHalf);
+            drawLoad(loadX, midY, pOut);
+
+            // ---- Draw Particles ----
+            if (isConducting) {
+                drawParticles(isPositiveHalf, acX, triacX, loadX, topY, bottomY);
+            }
+        }
+
+        function drawACSource(x, y, isConducting, isPositiveHalf) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = isConducting ? (isPositiveHalf ? '#00f2fe' : '#ffb703') : '#4facfe';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y, 26, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Sine wave inside
+            ctx.strokeStyle = isConducting ? (isPositiveHalf ? '#00f2fe' : '#ffb703') : '#64748b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x - 12, y);
+            ctx.bezierCurveTo(x - 6, y - 12, x, y + 12, x + 12, y);
+            ctx.stroke();
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].acName, x - 45, y + 4);
+            ctx.restore();
+        }
+
+        function drawTRIAC(x, y, isConducting, isPositiveHalf) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const color = isConducting ? (isPositiveHalf ? '#00f2fe' : '#ffb703') : '#64748b';
+            
+            if (isConducting) {
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 15;
+            }
+
+            ctx.fillStyle = isConducting ? color : '#1e293b';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+
+            // Gap line
+            ctx.beginPath(); ctx.moveTo(-30, 0); ctx.lineTo(-15, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(30, 0); ctx.stroke();
+
+            // TRIAC Symbol (Two antiparallel triangles)
+            // Left triangle (points right)
+            ctx.beginPath();
+            ctx.moveTo(-15, -12);
+            ctx.lineTo(0, -12);
+            ctx.lineTo(-7.5, 0);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+
+            // Right triangle (points left)
+            ctx.beginPath();
+            ctx.moveTo(15, 12);
+            ctx.lineTo(0, 12);
+            ctx.lineTo(7.5, 0);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
+
+            // Anode/Cathode bars
+            ctx.beginPath(); ctx.moveTo(0, -16); ctx.lineTo(0, 0); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-7.5, -4); ctx.lineTo(-7.5, 16); ctx.stroke();
+
+            // Gate wire
+            ctx.beginPath();
+            ctx.moveTo(7.5, 6);
+            ctx.lineTo(15, 20);
+            ctx.lineTo(25, 20);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.font = '11px Segoe UI';
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].triacName, 0, -25);
+            ctx.fillText('G', 28, 24);
+
+            ctx.restore();
+        }
+
+        function drawLoad(x, y, pOut) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const w = 24;
+            const h = 40;
+            const maxP = (V_rms_in * V_rms_in) / 10; // Max possible power approx
+            const ratio = Math.min(1, Math.max(0, pOut / (((V_rms_in * V_rms_in) / R_load) || 1)));
+
+            ctx.fillStyle = '#1e293b';
+            
+            // Heat/Glow effect
+            const r = Math.round(100 + ratio * 155);
+            const g = Math.round(116 - ratio * 40);
+            const b = Math.round(139 - ratio * 139);
+            const glowColor = `rgb(${r},${g},${b})`;
+
+            ctx.strokeStyle = ratio > 0.05 ? glowColor : '#64748b';
+            ctx.lineWidth = 2.5;
+
+            if (ratio > 0.05) {
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = ratio * 30;
+                ctx.fillStyle = `rgba(${r},${g},${b}, 0.2)`;
+            }
+
+            // Draw Bulb / Heater symbol
+            ctx.beginPath();
+            ctx.arc(0, -10, 16, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Filament
+            ctx.beginPath();
+            ctx.moveTo(-6, 2);
+            ctx.lineTo(-4, -10);
+            ctx.lineTo(0, -14);
+            ctx.lineTo(4, -10);
+            ctx.lineTo(6, 2);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.font = '12px Segoe UI';
+            ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].loadName, 0, 30);
+            ctx.fillText(R_load + ' Ω', 0, 46);
+
+            ctx.restore();
+        }
+
+        function drawParticles(isPositiveHalf, acX, triacX, loadX, topY, bottomY) {
+            let path = [];
+            let color = isPositiveHalf ? '#00f2fe' : '#ffb703';
+
+            // Determine flow direction based on mode and AC cycle
+            let clockwise = isPositiveHalf;
+            if (flowMode === 'elec') clockwise = !clockwise;
+
+            if (clockwise) {
+                path = [
+                    { x: acX, y: bottomY }, { x: acX, y: topY },
+                    { x: loadX, y: topY }, { x: loadX, y: bottomY },
+                    { x: acX, y: bottomY }
+                ];
+            } else {
+                path = [
+                    { x: acX, y: topY }, { x: acX, y: bottomY },
+                    { x: loadX, y: bottomY }, { x: loadX, y: topY },
+                    { x: acX, y: topY }
+                ];
+            }
+
+            particles.forEach(p => {
+                p.progress += 0.008;
+                if (p.progress >= 1) p.progress = 0;
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = color;
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 8;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+            let totalLen = 0;
+            const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i + 1].x - points[i].x;
+                const dy = points[i + 1].y - points[i].y;
+                lengths.push(Math.sqrt(dx * dx + dy * dy));
+                totalLen += lengths[i];
+            }
+            let targetLen = t * totalLen;
+            let currentLen = 0;
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segT = (targetLen - currentLen) / lengths[i];
+                    return {
+                        x: points[i].x + (points[i + 1].x - points[i].x) * segT,
+                        y: points[i].y + (points[i + 1].y - points[i].y) * segT
+                    };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        function drawWaveScope() {
+            const w = canvasWave.width;
+            const h = canvasWave.height;
+            ctxWave.clearRect(0, 0, w, h);
+
+            // Grid
+            ctxWave.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxWave.lineWidth = 1;
+            ctxWave.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxWave.moveTo(x, 0); ctxWave.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxWave.moveTo(0, y); ctxWave.lineTo(w, y); }
+            ctxWave.stroke();
+
+            // Zero line
+            ctxWave.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctxWave.setLineDash([4, 4]);
+            ctxWave.beginPath(); ctxWave.moveTo(0, h / 2); ctxWave.lineTo(w, h / 2); ctxWave.stroke();
+            ctxWave.setLineDash([]);
+
+            const step = w / maxHistory;
+
+            // Grid Voltage (Background Sine)
+            ctxWave.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctxWave.lineWidth = 1.5;
+            ctxWave.beginPath();
+            for (let i = 0; i < vGridHistory.length; i++) {
+                const x = i * step;
+                const y = h / 2 - vGridHistory[i] * (h * 0.4);
+                if (i === 0) ctxWave.moveTo(x, y);
+                else ctxWave.lineTo(x, y);
+            }
+            ctxWave.stroke();
+
+            // Chopped Load Voltage
+            ctxWave.strokeStyle = '#00f2fe';
+            ctxWave.lineWidth = 2.5;
+            ctxWave.beginPath();
+            let prevY = h / 2;
+            for (let i = 0; i < vLoadHistory.length; i++) {
+                const x = i * step;
+                const y = h / 2 - vLoadHistory[i] * (h * 0.4);
+                if (i === 0) ctxWave.moveTo(x, y);
+                else {
+                    if (prevY !== y && Math.abs(prevY - y) > 10) ctxWave.lineTo(x, prevY); // Vertical drop line
+                    ctxWave.lineTo(x, y);
+                }
+                prevY = y;
+            }
+            ctxWave.stroke();
+            
+            ctxWave.font = '10px Segoe UI';
+            ctxWave.fillStyle = '#00f2fe';
+            ctxWave.textAlign = 'left';
+            ctxWave.fillText('── V_load', 6, 14);
+            ctxWave.fillStyle = '#94a3b8';
+            ctxWave.fillText('── V_grid', 6, 28);
+        }
+
+        function drawGateScope() {
+            const w = canvasGate.width;
+            const h = canvasGate.height;
+            ctxGate.clearRect(0, 0, w, h);
+
+            // Grid
+            ctxGate.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxGate.lineWidth = 1;
+            ctxGate.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxGate.moveTo(x, 0); ctxGate.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxGate.moveTo(0, y); ctxGate.lineTo(w, y); }
+            ctxGate.stroke();
+
+            // Zero line
+            ctxGate.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctxGate.setLineDash([4, 4]);
+            ctxGate.beginPath(); ctxGate.moveTo(0, h * 0.8); ctxGate.lineTo(w, h * 0.8); ctxGate.stroke();
+            ctxGate.setLineDash([]);
+
+            const step = w / maxHistory;
+
+            ctxGate.strokeStyle = '#ffb703';
+            ctxGate.lineWidth = 2;
+            ctxGate.beginPath();
+            let prevY = h * 0.8;
+            for (let i = 0; i < gateHistory.length; i++) {
+                const x = i * step;
+                const y = gateHistory[i] > 0 ? h * 0.3 : h * 0.8;
+                if (i === 0) ctxGate.moveTo(x, y);
+                else {
+                    if (prevY !== y) ctxGate.lineTo(x, prevY);
+                    ctxGate.lineTo(x, y);
+                }
+                prevY = y;
+            }
+            ctxGate.stroke();
+        }
+
+        setLanguage(currentLang);
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>
