@@ -379,17 +379,22 @@
 
 <script>
 (function () {
-    // ۱. اگر فایل آفلاین است یا داخل iframe/فریم قرار دارد، هیچ‌کاری نکن
+    // ۱. اگر فایل روی سیستم شخصی (آفلاین) باز شده، کاری نکن
     if (location.protocol === 'file:') return;
-    if (window.self !== window.top || window.parent !== window || window.frameElement) return;
 
-    // ۲. استخراج دقیق نام مدار و زبان
+    // ۲. اگر داخل آی‌فریم سایت اصلی هستی، کاری نکن و عادی بمان
+    try {
+        if (window.self !== window.top || window.frameElement) return;
+    } catch (e) {
+        return; // داخل آی‌فریم قرار دارد
+    }
+
+    // ۳. استخراج نام مدار و زبان از URL
     var path = location.pathname.replace(/\/$/, '');
     var fileName = path.split('/').pop().replace(/\.html$/i, '');
-    var isEn = location.pathname.indexOf('/en/') !== -1;
-    var lang = isEn ? 'en' : 'fa';
+    var lang = location.pathname.indexOf('/en/') !== -1 ? 'en' : 'fa';
 
-    // ۳. ریدایرکت ایمن به صفحه اصلی
+    // ۴. انتقال به صفحه اصلی
     if (fileName && fileName !== 'simulators' && fileName !== 'fa' && fileName !== 'en') {
         window.location.replace('/?circuit=' + encodeURIComponent(fileName) + '&lang=' + lang);
     }
