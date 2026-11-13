@@ -2139,26 +2139,22 @@ function scrollToAbout() {
 
 
 // ==========================================
-// SEO Auto-Load Circuit System
+// SEO Deep Linking & Auto-Load System
 // ==========================================
 window.addEventListener('load', function() {
-    try {
-        var urlParams = new URLSearchParams(window.location.search);
-        var circuitParam = urlParams.get('circuit');
-        var langParam = urlParams.get('lang');
+    var urlParams = new URLSearchParams(window.location.search);
+    var circuitParam = urlParams.get('circuit');
+    var langParam = urlParams.get('lang');
 
-        // ۱. تنظیم زبان
-        if ((langParam === 'en' || langParam === 'fa') && typeof switchLanguage === 'function') {
-            switchLanguage(langParam);
-        }
+    // ۱. تنظیم زبان
+    if ((langParam === 'fa' || langParam === 'en') && typeof switchLanguage === 'function') {
+        switchLanguage(langParam);
+    }
 
-        // ۲. فراخوانی و باز کردن مدار
-        if (circuitParam && typeof loadSimulator === 'function') {
-            setTimeout(function() {
-                loadSimulator(circuitParam);
-            }, 100);
-        }
-    } catch (err) {
-        console.log("SEO Loader error:", err);
+    // ۲. بارگذاری اتوماتیک مدار
+    if (circuitParam && typeof loadSimulator === 'function') {
+        setTimeout(function() {
+            loadSimulator(circuitParam);
+        }, 200);
     }
 });
