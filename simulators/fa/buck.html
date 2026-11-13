@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">شبیه‌ساز مبدل DC به DC کاهنده (Buck Converter)</title>
+    <style>
+        :root {
+            --bg-color: #0a0f1d;
+            --panel-bg: rgba(18, 26, 47, 0.75);
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-gold: #ffb703;
+            --accent-green: #2ed573;
+            --text-color: #e2e8f0;
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-cyan);
+            margin-bottom: 6px;
+            text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+        }
+
+        header p {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        @media (max-width: 950px) {
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-panel {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .controls-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            color: #cbd5e1;
+        }
+
+        .control-group label span.val {
+            color: var(--accent-cyan);
+            font-weight: bold;
+            direction: ltr;
+        }
+
+        input[type="range"] {
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-cyan);
+            transition: transform 0.1s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .toggle-group {
+            display: flex;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-cyan);
+            color: #0f172a;
+            font-weight: bold;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .simulation-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 440px;
+            background: rgba(10, 15, 29, 0.6);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .scopes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 650px) {
+            .scopes-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .scope-card {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 10px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .scope-card h3 {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scope-card h3::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .scope-pwm h3::before { background: var(--accent-cyan); }
+        .scope-out h3::before { background: var(--accent-gold); }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card .title {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .metric-card .val {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            direction: ltr;
+        }
+
+        .state-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 8px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.on {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .status-dot.off {
+            background: var(--accent-gold);
+            box-shadow: 0 0 10px var(--accent-gold);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 id="txt-title">شبیه‌ساز مبدل DC به DC کاهنده (Buck Converter)</h1>
+        <p id="txt-subtitle">تحلیل عملکرد سوئیچینگ MOSFET، ذخیره انرژی در سلف و نقش دیود هرزگرد</p>
+    </header>
+
+    <div class="main-container">
+        <!-- پنل تنظیمات -->
+        <aside class="glass-panel controls-sidebar">
+          <!-- سوئیچ انتخاب زبان (مخفی شده بدون ایجاد ارور در انیمیشن) -->
+<div class="control-group" style="display: none;">
+    <label id="lbl-lang">زبان / Language:</label>
+    <div class="toggle-group">
+        <button class="toggle-btn lang-btn active" id="btn-lang-fa" onclick="setLanguage('fa')">فارسی (FA)</button>
+        <button class="toggle-btn lang-btn" id="btn-lang-en" onclick="setLanguage('en')">English (EN)</button>
+    </div>
+</div>
+
+            <div class="control-group">
+                <label id="lbl-flow">نوع جریان:</label>
+                <div class="toggle-group">
+                    <button class="toggle-btn active" id="btn-conv" onclick="setFlowMode('conv')">قراردادی (+ به -)</button>
+                    <button class="toggle-btn" id="btn-elec" onclick="setFlowMode('elec')">الکترونی (- به +)</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-vin">ولتاژ ورودی (V_in):</span> <span class="val" id="val-vin">24 V</span></label>
+                <input type="range" id="slider-vin" min="5" max="48" value="24" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-duty">چرخه کاری (Duty Cycle D):</span> <span class="val" id="val-duty">50 %</span></label>
+                <input type="range" id="slider-duty" min="10" max="90" value="50" step="1">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-freq">فرکانس سوئیچینگ (f_sw):</span> <span class="val" id="val-freq">25 kHz</span></label>
+                <input type="range" id="slider-freq" min="10" max="100" value="25" step="5">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-ind">اندوکتانس سلف (L):</span> <span class="val" id="val-ind">470 µH</span></label>
+                <input type="range" id="slider-ind" min="100" max="1000" value="470" step="50">
+            </div>
+
+            <div class="control-group">
+                <label><span id="lbl-res">مقاومت بار (R_load):</span> <span class="val" id="val-res">10 Ω</span></label>
+                <input type="range" id="slider-res" min="2" max="50" value="10" step="1">
+            </div>
+
+            <div class="state-indicator">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="status-text">حالت: MOSFET ON (شارژ سلف)</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="title" id="lbl-vout">ولتاژ خروجی (V_out)</div>
+                    <div class="val" id="m-vout">12.0 V</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-iout">جریان خروجی (I_out)</div>
+                    <div class="val" id="m-iout">1.20 A</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-pwr">توان خروجی (P_out)</div>
+                    <div class="val" id="m-pwr">14.4 W</div>
+                </div>
+                <div class="metric-card">
+                    <div class="title" id="lbl-eff">بازدهی تئوری</div>
+                    <div class="val" style="color:var(--accent-green)">~ 94 %</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ناحیه شبیه‌سازی و اسیلوسکوپ‌ها -->
+        <main class="simulation-area">
+            <div class="glass-panel canvas-container">
+                <canvas id="circuitCanvas"></canvas>
+            </div>
+
+            <div class="scopes-grid">
+                <div class="glass-panel scope-card scope-pwm">
+                    <h3 id="lbl-scope-pwm">سیگنال فرمان گیت MOSFET (PWM Control)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopePWM"></canvas>
+                    </div>
+                </div>
+                <div class="glass-panel scope-card scope-out">
+                    <h3 id="lbl-scope-out">ولتاژ خروجی و ریپل روی بار (V_out)</h3>
+                    <div style="height: 110px; position: relative;">
+                        <canvas id="scopeOUT"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+<script>
+(function () {
+    // ۱. اگر فایل آفلاین است یا داخل iframe/فریم قرار دارد، هیچ‌کاری نکن
+    if (location.protocol === 'file:') return;
+    if (window.self !== window.top || window.parent !== window || window.frameElement) return;
+
+    // ۲. استخراج دقیق نام مدار و زبان
+    var path = location.pathname.replace(/\/$/, '');
+    var fileName = path.split('/').pop().replace(/\.html$/i, '');
+    var isEn = location.pathname.indexOf('/en/') !== -1;
+    var lang = isEn ? 'en' : 'fa';
+
+    // ۳. ریدایرکت ایمن به صفحه اصلی
+    if (fileName && fileName !== 'simulators' && fileName !== 'fa' && fileName !== 'en') {
+        window.location.replace('/?circuit=' + encodeURIComponent(fileName) + '&lang=' + lang);
+    }
+})();
+</script>
+
+
+
+    <script>
+        // دیکشنری دو زبانه (فارسی / انگلیسی)
+        const i18n = {
+            fa: {
+                title: "شبیه‌ساز مبدل DC به DC کاهنده (Buck Converter)",
+                subtitle: "تحلیل عملکرد سوئیچینگ MOSFET، ذخیره انرژی در سلف و نقش دیود هرزگرد",
+                langLabel: "زبان / Language:",
+                flowLabel: "نوع جریان:",
+                convFlow: "قراردادی (+ به -)",
+                elecFlow: "الکترونی (- به +)",
+                vinLabel: "ولتاژ ورودی (V_in):",
+                dutyLabel: "چرخه کاری (Duty Cycle D):",
+                freqLabel: "فرکانس سوئیچینگ (f_sw):",
+                indLabel: "اندوکتانس سلف (L):",
+                resLabel: "مقاومت بار (R_load):",
+                statusOn: "حالت: MOSFET ON (شارژ سلف)",
+                statusOff: "حالت: MOSFET OFF (دشارژ سلف از دیود)",
+                vOutLabel: "ولتاژ خروجی (V_out)",
+                iOutLabel: "جریان خروجی (I_out)",
+                pwrLabel: "توان خروجی (P_out)",
+                effLabel: "بازدهی تئوری",
+                scopePwm: "سیگنال فرمان گیت MOSFET (PWM Control)",
+                scopeOut: "ولتاژ خروجی و ریپل روی بار (V_out)",
+                diodeName: "دیود هرزگرد",
+                inductorName: "سلف L",
+                capName: "خازن C",
+                loadName: "بار R"
+            },
+            en: {
+                title: "DC-DC Buck Converter Simulator",
+                subtitle: "Analysis of MOSFET switching, inductor energy storage & freewheeling diode",
+                langLabel: "Language / زبان:",
+                flowLabel: "Current Flow:",
+                convFlow: "Conventional (+ to -)",
+                elecFlow: "Electron (- to +)",
+                vinLabel: "Input Voltage (V_in):",
+                dutyLabel: "Duty Cycle (D):",
+                freqLabel: "Switching Freq (f_sw):",
+                indLabel: "Inductance (L):",
+                resLabel: "Load Resistance (R_load):",
+                statusOn: "State: MOSFET ON (Inductor Charging)",
+                statusOff: "State: MOSFET OFF (Diode Freewheeling)",
+                vOutLabel: "Output Voltage (V_out)",
+                iOutLabel: "Output Current (I_out)",
+                pwrLabel: "Output Power (P_out)",
+                effLabel: "Theoretical Efficiency",
+                scopePwm: "MOSFET Gate Drive Signal (PWM Control)",
+                scopeOut: "Output Voltage & Ripple (V_out)",
+                diodeName: "Freewheeling Diode",
+                inductorName: "Inductor L",
+                capName: "Capacitor C",
+                loadName: "Load R"
+            }
+        };
+
+        let currentLang = 'fa';
+
+        // بررسی URL Parameter برای تعیین زبان اولیه (?lang=en)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('lang') === 'en') {
+            currentLang = 'en';
+        }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'fa' ? 'rtl' : 'ltr';
+
+            // دکمه‌های فعال زبان
+            document.getElementById('btn-lang-fa').classList.toggle('active', lang === 'fa');
+            document.getElementById('btn-lang-en').classList.toggle('active', lang === 'en');
+
+            // به روزرسانی متون UI
+            const t = i18n[lang];
+            document.getElementById('page-title').innerText = t.title;
+            document.getElementById('txt-title').innerText = t.title;
+            document.getElementById('txt-subtitle').innerText = t.subtitle;
+            document.getElementById('lbl-lang').innerText = t.langLabel;
+            document.getElementById('lbl-flow').innerText = t.flowLabel;
+            document.getElementById('btn-conv').innerText = t.convFlow;
+            document.getElementById('btn-elec').innerText = t.elecFlow;
+            document.getElementById('lbl-vin').innerText = t.vinLabel;
+            document.getElementById('lbl-duty').innerText = t.dutyLabel;
+            document.getElementById('lbl-freq').innerText = t.freqLabel;
+            document.getElementById('lbl-ind').innerText = t.indLabel;
+            document.getElementById('lbl-res').innerText = t.resLabel;
+            document.getElementById('lbl-vout').innerText = t.vOutLabel;
+            document.getElementById('lbl-iout').innerText = t.iOutLabel;
+            document.getElementById('lbl-pwr').innerText = t.pwrLabel;
+            document.getElementById('lbl-eff').innerText = t.effLabel;
+            document.getElementById('lbl-scope-pwm').innerText = t.scopePwm;
+            document.getElementById('lbl-scope-out').innerText = t.scopeOut;
+        }
+
+        // متغیرهای حالت
+        let flowMode = 'conv';
+        let Vin = 24;
+        let dutyCycle = 0.50; // 50%
+        let freqSw = 25; // kHz
+        let L_val = 470; // uH
+        let R_load = 10; // Ohm
+        const C_val = 220; // uF خازن خروجی
+
+        // بوم‌ها
+        const canvas = document.getElementById('circuitCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasPWM = document.getElementById('scopePWM');
+        const ctxPWM = canvasPWM.getContext('2d');
+        const canvasOUT = document.getElementById('scopeOUT');
+        const ctxOUT = canvasOUT.getContext('2d');
+
+        // اسلایدرها
+        document.getElementById('slider-vin').addEventListener('input', (e) => {
+            Vin = parseFloat(e.target.value);
+            document.getElementById('val-vin').innerText = Vin + ' V';
+        });
+        document.getElementById('slider-duty').addEventListener('input', (e) => {
+            dutyCycle = parseFloat(e.target.value) / 100;
+            document.getElementById('val-duty').innerText = e.target.value + ' %';
+        });
+        document.getElementById('slider-freq').addEventListener('input', (e) => {
+            freqSw = parseFloat(e.target.value);
+            document.getElementById('val-freq').innerText = freqSw + ' kHz';
+        });
+        document.getElementById('slider-ind').addEventListener('input', (e) => {
+            L_val = parseFloat(e.target.value);
+            document.getElementById('val-ind').innerText = L_val + ' µH';
+        });
+        document.getElementById('slider-res').addEventListener('input', (e) => {
+            R_load = parseFloat(e.target.value);
+            document.getElementById('val-res').innerText = R_load + ' Ω';
+        });
+
+        function setFlowMode(mode) {
+            flowMode = mode;
+            document.getElementById('btn-conv').classList.toggle('active', mode === 'conv');
+            document.getElementById('btn-elec').classList.toggle('active', mode === 'elec');
+        }
+
+        function resizeCanvases() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            const rectPWM = canvasPWM.parentElement.getBoundingClientRect();
+            canvasPWM.width = rectPWM.width;
+            canvasPWM.height = rectPWM.height;
+
+            const rectOUT = canvasOUT.parentElement.getBoundingClientRect();
+            canvasOUT.width = rectOUT.width;
+            canvasOUT.height = rectOUT.height;
+        }
+        window.addEventListener('resize', resizeCanvases);
+        setTimeout(resizeCanvases, 50);
+
+        // ذخیره تاریخچه سیگنال‌ها
+        const pwmHistory = [];
+        const voutHistory = [];
+        const maxHistory = 300;
+
+        // ذرات متحرک
+        const particles = [];
+        for (let i = 0; i < 40; i++) {
+            particles.push({
+                progress: Math.random(),
+                branch: i % 3 === 0 ? 'cap' : 'load' // توزیع جریان بین خازن و بار
+            });
+        }
+
+        let time = 0;
+        let V_out_sim = 0;
+
+        function animate() {
+            time += 0.015;
+
+            // محاسبه زمان‌بندی PWM
+            const period = 1 / (freqSw * 0.1); // مقیاس بصری فرکانس
+            const phase = (time % period) / period;
+            const isMosfetOn = phase < dutyCycle;
+
+            // محاسبات فیزیکی ولتاژ و ریپل
+            const V_out_ideal = Vin * dutyCycle;
+            const rippleAmp = ((Vin - V_out_ideal) * dutyCycle) / ((L_val * 1e-6) * (freqSw * 1e3) * 100);
+            
+            // شبیه‌سازی دینامیکی ولتاژ خروجی
+            if (isMosfetOn) {
+                V_out_sim += (V_out_ideal + rippleAmp - V_out_sim) * 0.1;
+            } else {
+                V_out_sim += (V_out_ideal - rippleAmp - V_out_sim) * 0.1;
+            }
+
+            const I_out = V_out_sim / R_load;
+            const P_out = V_out_sim * I_out;
+
+            // بروزرسانی UI
+            const dot = document.getElementById('status-dot');
+            const txt = document.getElementById('status-text');
+            const t = i18n[currentLang];
+
+            if (isMosfetOn) {
+                dot.className = 'status-dot on';
+                txt.innerText = t.statusOn;
+            } else {
+                dot.className = 'status-dot off';
+                txt.innerText = t.statusOff;
+            }
+
+            document.getElementById('m-vout').innerText = V_out_sim.toFixed(2) + ' V';
+            document.getElementById('m-iout').innerText = I_out.toFixed(2) + ' A';
+            document.getElementById('m-pwr').innerText = P_out.toFixed(1) + ' W';
+
+            // ذخیره تاریخچه اسیلوسکوپ
+            pwmHistory.push(isMosfetOn ? 1 : 0);
+            voutHistory.push(V_out_sim);
+            if (pwmHistory.length > maxHistory) pwmHistory.shift();
+            if (voutHistory.length > maxHistory) voutHistory.shift();
+
+            // رندر
+            drawCircuit(isMosfetOn, V_out_sim);
+            drawPWMScope();
+            drawOUTScope(V_out_ideal);
+
+            requestAnimationFrame(animate);
+        }
+
+        function drawCircuit(isMosfetOn, vOut) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // مختصات دقیق گره‌ها (سیم‌کشی گونیایی ۹۰ درجه)
+            const vinX = w * 0.12;
+            const mosfetX = w * 0.32;
+            const switchNodeX = w * 0.48;
+            const inductorEndX = w * 0.68;
+            const capX = w * 0.78;
+            const loadX = w * 0.90;
+
+            const topY = h * 0.25;
+            const bottomY = h * 0.75;
+            const midY = (topY + bottomY) / 2;
+
+            // 1. رسم سیم‌کشی پایه (خاکستری تیره)
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#334155';
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            // ریل بالا
+            ctx.beginPath();
+            ctx.moveTo(vinX, topY);
+            ctx.lineTo(loadX, topY);
+            ctx.stroke();
+
+            // ریل پایین (زمین GND)
+            ctx.beginPath();
+            ctx.moveTo(vinX, bottomY);
+            ctx.lineTo(loadX, bottomY);
+            ctx.stroke();
+
+            // شاخه منبع ورودی DC
+            ctx.beginPath();
+            ctx.moveTo(vinX, topY);
+            ctx.lineTo(vinX, bottomY);
+            ctx.stroke();
+
+            // شاخه دیود هرزگرد (عمودی)
+            ctx.beginPath();
+            ctx.moveTo(switchNodeX, topY);
+            ctx.lineTo(switchNodeX, bottomY);
+            ctx.stroke();
+
+            // شاخه خازن (عمودی)
+            ctx.beginPath();
+            ctx.moveTo(capX, topY);
+            ctx.lineTo(capX, bottomY);
+            ctx.stroke();
+
+            // شاخه بار (عمودی)
+            ctx.beginPath();
+            ctx.moveTo(loadX, topY);
+            ctx.lineTo(loadX, bottomY);
+            ctx.stroke();
+
+            // 2. هایلایت سیم‌های فعال (مسیر جریان)
+            ctx.lineWidth = 4;
+            if (isMosfetOn) {
+                // در حالت ON: جریان از Vin -> MOSFET -> Inductor -> Load
+                ctx.strokeStyle = 'rgba(0, 242, 254, 0.6)';
+                ctx.beginPath();
+                ctx.moveTo(vinX, bottomY);
+                ctx.lineTo(vinX, topY);
+                ctx.lineTo(loadX, topY);
+                ctx.stroke();
+            } else {
+                // در حالت OFF: جریان حلقه بسته Diode -> Inductor -> Load -> GND -> Diode
+                ctx.strokeStyle = 'rgba(255, 183, 3, 0.6)';
+                ctx.beginPath();
+                ctx.moveTo(switchNodeX, bottomY);
+                ctx.lineTo(switchNodeX, topY);
+                ctx.lineTo(loadX, topY);
+                ctx.lineTo(loadX, bottomY);
+                ctx.lineTo(switchNodeX, bottomY);
+                ctx.stroke();
+            }
+
+            // 3. رسم المان‌های مدار
+            drawDCSource(vinX, midY, Vin);
+            drawMOSFET(mosfetX, topY, isMosfetOn);
+            drawFreewheelingDiode(switchNodeX, midY, !isMosfetOn);
+            drawInductor(switchNodeX, inductorEndX, topY, isMosfetOn);
+            drawCapacitor(capX, midY);
+            drawLoadResistor(loadX, midY, vOut);
+
+            // 4. رسم پویای ذرات جریان روی زوایای ۹۰ درجه
+            drawParticles(isMosfetOn, vinX, mosfetX, switchNodeX, inductorEndX, capX, loadX, topY, bottomY);
+        }
+
+        // منبع DC
+        function drawDCSource(x, y, vVal) {
+            ctx.save();
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#4facfe';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y, 26, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font = 'bold 13px Segoe UI';
+            ctx.fillStyle = '#ff4757'; ctx.fillText('+', x - 4, y - 10);
+            ctx.fillStyle = '#2ed573'; ctx.fillText('-', x - 3, y + 18);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px Segoe UI';
+            ctx.textAlign = 'center';
+            ctx.fillText('Vin (' + vVal + 'V)', x - 45, y + 4);
+            ctx.restore();
+        }
+
+        // ترانزیستور N-Channel MOSFET
+        function drawMOSFET(x, y, isOn) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            ctx.fillStyle = isOn ? 'rgba(0, 242, 254, 0.15)' : '#1e293b';
+            ctx.strokeStyle = isOn ? '#00f2fe' : '#64748b';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.rect(-20, -18, 40, 36);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.font = 'bold 10px Segoe UI';
+            ctx.fillStyle = isOn ? '#00f2fe' : '#94a3b8';
+            ctx.fillText('D', -15, -6);
+            ctx.fillText('S', 10, -6);
+            ctx.fillText('G', -4, 12);
+
+            ctx.strokeStyle = isOn ? '#00f2fe' : '#475569';
+            ctx.beginPath();
+            ctx.moveTo(0, 18);
+            ctx.lineTo(0, 45);
+            ctx.stroke();
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-25, 45, 50, 22);
+            ctx.strokeStyle = isOn ? '#00f2fe' : '#475569';
+            ctx.strokeRect(-25, 45, 50, 22);
+
+            ctx.font = '10px Segoe UI';
+            ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'center';
+            ctx.fillText('PWM Gen', 0, 60);
+
+            ctx.restore();
+        }
+
+        // دیود هرزگرد (Schottky Diode)
+        function drawFreewheelingDiode(x, y, isActive) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const size = 16;
+            ctx.fillStyle = isActive ? '#ffb703' : '#1e293b';
+            ctx.strokeStyle = isActive ? '#ffb703' : '#64748b';
+            ctx.lineWidth = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(0, -size);
+            ctx.lineTo(-size, size);
+            ctx.lineTo(size, size);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(-size, -size);
+            ctx.lineTo(size, -size);
+            ctx.stroke();
+
+            ctx.font = '11px Segoe UI';
+            ctx.fillStyle = isActive ? '#ffb703' : '#64748b';
+            ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].diodeName, x > 400 ? 60 : -60, 4);
+
+            ctx.restore();
+        }
+
+        // سلف (Inductor)
+        function drawInductor(x1, x2, y, isCharging) {
+            ctx.save();
+            const width = x2 - x1;
+            const coils = 5;
+            const coilWidth = width / coils;
+
+            if (isCharging) {
+                ctx.shadowColor = '#00f2fe';
+                ctx.shadowBlur = 15;
+            } else {
+                ctx.shadowColor = '#ffb703';
+                ctx.shadowBlur = 10;
+            }
+
+            ctx.strokeStyle = isCharging ? '#00f2fe' : '#ffb703';
+            ctx.lineWidth = 35;
+            ctx.lineCap = 'round';
+            ctx.globalAlpha = 0.15;
+            ctx.beginPath();
+            ctx.moveTo(x1 + 10, y);
+            ctx.lineTo(x2 - 10, y);
+            ctx.stroke();
+
+            ctx.globalAlpha = 1.0;
+            ctx.shadowBlur = 0;
+            ctx.lineWidth = 3;
+
+            ctx.beginPath();
+            for (let i = 0; i < coils; i++) {
+                const cx = x1 + i * coilWidth + coilWidth / 2;
+                ctx.arc(cx, y, coilWidth / 2, Math.PI, 0, false);
+            }
+            ctx.stroke();
+
+            ctx.font = '12px Segoe UI';
+            ctx.fillStyle = '#cbd5e1';
+            ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].inductorName + ' (' + L_val + 'µH)', x1 + width / 2, y - 22);
+
+            ctx.restore();
+        }
+
+        // خازن
+        function drawCapacitor(x, y) {
+            ctx.save();
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 4;
+
+            ctx.beginPath();
+            ctx.moveTo(x - 16, y - 10); ctx.lineTo(x + 16, y - 10);
+            ctx.moveTo(x - 16, y + 10); ctx.lineTo(x + 16, y + 10);
+            ctx.stroke();
+
+            ctx.font = '11px Segoe UI';
+            ctx.fillStyle = '#94a3b8';
+            ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].capName, x, y + 28);
+            ctx.restore();
+        }
+
+        // مقاومت بار (Load)
+        function drawLoadResistor(x, y, vOut) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const h = 50;
+            const w = 18;
+
+            ctx.fillStyle = '#1e293b';
+            ctx.strokeStyle = vOut > 1 ? '#ffb703' : '#64748b';
+            ctx.lineWidth = 2.5;
+
+            ctx.fillRect(-w / 2, -h / 2, w, h);
+            ctx.strokeRect(-w / 2, -h / 2, w, h);
+
+            if (vOut > 1) {
+                ctx.shadowColor = '#ffb703';
+                ctx.shadowBlur = Math.min(25, vOut * 1.2);
+                ctx.strokeStyle = 'rgba(255, 183, 3, 0.8)';
+                ctx.strokeRect(-w / 2, -h / 2, w, h);
+            }
+
+            ctx.shadowBlur = 0;
+            ctx.font = '12px Segoe UI';
+            ctx.fillStyle = '#e2e8f0';
+            ctx.textAlign = 'center';
+            ctx.fillText(i18n[currentLang].loadName, 0, -h / 2 - 10);
+            ctx.fillText(R_load + ' Ω', 0, h / 2 + 18);
+
+            ctx.restore();
+        }
+
+        // پویانمایی ذرات متحرک روی سیم‌ها (گام‌های دقیق ۹۰ درجه)
+        function drawParticles(isMosfetOn, vinX, mosfetX, switchNodeX, inductorEndX, capX, loadX, topY, bottomY) {
+            const speed = 0.008;
+
+            particles.forEach(p => {
+                p.progress += speed;
+                if (p.progress >= 1) p.progress = 0;
+
+                let path = [];
+                let pColor = '#00f2fe';
+
+                const targetX = p.branch === 'cap' ? capX : loadX;
+
+                if (flowMode === 'conv') {
+                    if (isMosfetOn) {
+                        pColor = '#00f2fe';
+                        path = [
+                            { x: vinX, y: bottomY },
+                            { x: vinX, y: topY },
+                            { x: mosfetX, y: topY },
+                            { x: switchNodeX, y: topY },
+                            { x: inductorEndX, y: topY },
+                            { x: targetX, y: topY },
+                            { x: targetX, y: bottomY },
+                            { x: vinX, y: bottomY }
+                        ];
+                    } else {
+                        pColor = '#ffb703';
+                        path = [
+                            { x: switchNodeX, y: bottomY },
+                            { x: switchNodeX, y: topY },
+                            { x: inductorEndX, y: topY },
+                            { x: targetX, y: topY },
+                            { x: targetX, y: bottomY },
+                            { x: switchNodeX, y: bottomY }
+                        ];
+                    }
+                } else {
+                    if (isMosfetOn) {
+                        pColor = '#00f2fe';
+                        path = [
+                            { x: vinX, y: topY },
+                            { x: vinX, y: bottomY },
+                            { x: targetX, y: bottomY },
+                            { x: targetX, y: topY },
+                            { x: inductorEndX, y: topY },
+                            { x: switchNodeX, y: topY },
+                            { x: mosfetX, y: topY },
+                            { x: vinX, y: topY }
+                        ];
+                    } else {
+                        pColor = '#ffb703';
+                        path = [
+                            { x: switchNodeX, y: topY },
+                            { x: switchNodeX, y: bottomY },
+                            { x: targetX, y: bottomY },
+                            { x: targetX, y: topY },
+                            { x: inductorEndX, y: topY },
+                            { x: switchNodeX, y: topY }
+                        ];
+                    }
+                }
+
+                const pt = getPointAlongPath(path, p.progress);
+                if (pt) {
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                    ctx.fillStyle = pColor;
+                    ctx.shadowColor = pColor;
+                    ctx.shadowBlur = 8;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            });
+        }
+
+        function getPointAlongPath(points, t) {
+            if (points.length < 2) return null;
+
+            let totalLen = 0;
+            const lengths = [];
+            for (let i = 0; i < points.length - 1; i++) {
+                const dx = points[i + 1].x - points[i].x;
+                const dy = points[i + 1].y - points[i].y;
+                const len = Math.sqrt(dx * dx + dy * dy);
+                lengths.push(len);
+                totalLen += len;
+            }
+
+            let targetLen = t * totalLen;
+            let currentLen = 0;
+
+            for (let i = 0; i < lengths.length; i++) {
+                if (currentLen + lengths[i] >= targetLen) {
+                    const segmentT = (targetLen - currentLen) / lengths[i];
+                    const p1 = points[i];
+                    const p2 = points[i + 1];
+                    return {
+                        x: p1.x + (p2.x - p1.x) * segmentT,
+                        y: p1.y + (p2.y - p1.y) * segmentT
+                    };
+                }
+                currentLen += lengths[i];
+            }
+            return points[points.length - 1];
+        }
+
+        function drawPWMScope() {
+            const w = canvasPWM.width;
+            const h = canvasPWM.height;
+            ctxPWM.clearRect(0, 0, w, h);
+
+            ctxPWM.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxPWM.lineWidth = 1;
+            ctxPWM.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxPWM.moveTo(x, 0); ctxPWM.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxPWM.moveTo(0, y); ctxPWM.lineTo(w, y); }
+            ctxPWM.stroke();
+
+            ctxPWM.strokeStyle = '#00f2fe';
+            ctxPWM.lineWidth = 2;
+            ctxPWM.beginPath();
+
+            const step = w / maxHistory;
+            for (let i = 0; i < pwmHistory.length; i++) {
+                const x = i * step;
+                const y = pwmHistory[i] === 1 ? h * 0.25 : h * 0.75;
+                if (i === 0) ctxPWM.moveTo(x, y);
+                else {
+                    const prevY = pwmHistory[i - 1] === 1 ? h * 0.25 : h * 0.75;
+                    if (prevY !== y) ctxPWM.lineTo(x, prevY);
+                    ctxPWM.lineTo(x, y);
+                }
+            }
+            ctxPWM.stroke();
+        }
+
+        function drawOUTScope(vIdeal) {
+            const w = canvasOUT.width;
+            const h = canvasOUT.height;
+            ctxOUT.clearRect(0, 0, w, h);
+
+            ctxOUT.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctxOUT.lineWidth = 1;
+            ctxOUT.beginPath();
+            for (let x = 0; x < w; x += 20) { ctxOUT.moveTo(x, 0); ctxOUT.lineTo(x, h); }
+            for (let y = 0; y < h; y += 20) { ctxOUT.moveTo(0, y); ctxOUT.lineTo(w, y); }
+            ctxOUT.stroke();
+
+            const yIdeal = h * 0.85 - (vIdeal / Vin) * (h * 0.7);
+            ctxOUT.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctxOUT.setLineDash([4, 4]);
+            ctxOUT.beginPath();
+            ctxOUT.moveTo(0, yIdeal);
+            ctxOUT.lineTo(w, yIdeal);
+            ctxOUT.stroke();
+            ctxOUT.setLineDash([]);
+
+            ctxOUT.strokeStyle = '#ffb703';
+            ctxOUT.lineWidth = 2.5;
+            ctxOUT.beginPath();
+
+            const step = w / maxHistory;
+            for (let i = 0; i < voutHistory.length; i++) {
+                const x = i * step;
+                const y = h * 0.85 - (voutHistory[i] / Vin) * (h * 0.7);
+                if (i === 0) ctxOUT.moveTo(x, y);
+                else ctxOUT.lineTo(x, y);
+            }
+            ctxOUT.stroke();
+        }
+
+        // اعمال زبان اولیه
+        setLanguage(currentLang);
+
+        // شروع پویانمایی
+        requestAnimationFrame(animate);
+    </script>
+</body>
+</html>
