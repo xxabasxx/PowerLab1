@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آزمایشگاه مجازی الکترونیک قدرت</title>
+    
+    <!-- فونت‌ها -->
+    <link href="https://v1.fontapi.ir/css/Vazirmatn" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="./style.css">
+
+
+<script src="./data-fa.js"></script>
+<script src="./data-en.js"></script>
+<script src="./app.js"></script>
+
+
+<!-- عکس پیش‌نمایش برای تلگرام، لینکدین و... -->
+<meta property="og:image" content="https://powerlab.xxabasxxgame.workers.dev/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:title" content="آزمایشگاه جامع و تعاملی الکترونیک قدرت">
+<meta property="og:description" content="همراه با ۴۳ شبیه‌ساز زنده، محاسبات آنلاین و آموزش مفهومی">
+
+
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside id="sidebar">
+        <div class="sidebar-header">
+            <h2>
+               
+
+
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <rect x="6" y="6" width="116" height="116" rx="30" fill="#141824" stroke="#e2b170" stroke-width="5" stroke-opacity="0.85"/>
+  <path d="M 28 64 H 46 L 58 40 L 70 88 L 82 64 H 100" fill="none" stroke="#e2b170" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+
+ABAS SOFT
+
+
+
+                
+            </h2>
+            <button class="close-sidebar-btn" onclick="toggleSidebar()">✕</button>
+        </div>
+        
+        <div id="sidebar-nav">
+            <!-- منوها توسط جاوااسکریپت در اینجا ساخته می‌شوند -->
+        </div>
+        
+        <button id="btn-about" class="nav-btn" onclick="showAboutSection()">
+            <span>ℹ️ <span id="txt-about">درباره ما و حمایت</span></span>
+        </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main-content">
+        <header>
+           <div class="header-right">
+    <button id="hamburger-btn" class="exp-btn" onclick="toggleSidebar()">☰</button>
+    <h1 class="main-title" id="main-title" data-i18n="title">آزمایشگاه مجازی الکترونیک قدرت</h1>
+</div>
+
+
+
+
+
+            <div class="header-left">
+    <button class="icon-btn top-btn" id="home-btn" onclick="showHome()" title="صفحه اصلی / Home">
+    🏠 <span data-i18n="home_btn">خانه</span>
+</button>
+    <button id="btn-fa" class="active-lang" onclick="switchLanguage('fa')">فارسی</button>
+    <button id="btn-en" onclick="switchLanguage('en')">EN</button>
+    <button onclick="toggleFullScreen()">
+        <span id="txt-fs" data-i18n="fsEnter">⛶ تمام صفحه</span>
+    </button>
+</div>
+        </header>
+
+        <!-- Simulator iframe Container -->
+        <div id="fs-container">
+    <!-- 👈 دکمه خروج با ویژگی ترجمه دو زبانه -->
+    
+
+            <iframe id="sim-frame" src=""></iframe>
+        </div>
+
+        <!-- Coming Soon Panel -->
+        <div id="coming-soon-section" class="glass-panel">
+            <div style="font-size: 60px;">🚧</div>
+            <h2 id="cs-title">شبیه‌ساز به زودی اضافه می‌شود</h2>
+            <p id="cs-desc" style="color: var(--text-muted); max-width: 500px;">
+                شبیه‌ساز تعاملی این مدار در حال توسعه است. در حال حاضر می‌توانید از محتوای آموزشی زیر استفاده کنید.
+            </p>
+        </div>
+
+<!-- ========================================== -->
+<!-- صفحه اصلی / خانه (Home Page) - نسخه لاکچری -->
+<!-- ========================================== -->
+<canvas id="electron-canvas"></canvas>
+
+<div id="home-section" class="home-container" style="display: none;">
+
+    <!-- Hero -->
+    <div class="hero-section">
+        <div class="hero-glow"></div>
+        <canvas id="wave-electron-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:2;"></canvas>
+
+        <div class="hero-logo-container">
+            <div class="logo-ring"></div>
+            <div class="logo-ring logo-ring-2"></div>
+            <svg class="hero-logo-svg" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+                <rect x="6" y="6" width="116" height="116" rx="30" fill="#141824" stroke="#e2b170" stroke-width="5" stroke-opacity="0.85"/>
+                <path d="M 28 64 H 46 L 58 40 L 70 88 L 82 64 H 100" fill="none" stroke="#e2b170" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <h1 class="hero-title-luxury" data-i18n="heroTitle">آزمایشگاه جامع و تعاملی الکترونیک قدرت</h1>
+        <p class="hero-subtitle-luxury" data-i18n="heroSubtitle">شبیه‌سازی انیمیشنی، محاسبات زنده و آموزش مفهومی بیش از ۴۰ مدار مبدل قدرت</p>
+        
+        <!-- نشان ویژه -->
+        <div class="premium-badge-container">
+            <div class="premium-badge">
+                <span class="badge-pulse"></span>
+                <span class="badge-text" data-i18n="heroBadge">همراه با <span class="badge-highlight">۴۳ شبیه‌ساز زنده</span> و کاملاً کاربردی</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- اسیلوسکوپ -->
+    <div class="oscilloscope-container">
+        <div class="osc-header">
+            <div class="osc-controls">
+                <div class="osc-knob"></div>
+                <div class="osc-knob"></div>
+                <div class="osc-knob"></div>
+            </div>
+            <div class="osc-title">
+                OSCILLOSCOPE — CH1 <span class="osc-dot"></span>
+            </div>
+        </div>
+        <canvas id="oscilloscope-canvas" width="850" height="220"></canvas>
+        <div class="osc-grid-info">
+            <span>Time: 5ms/div</span>
+            <span>Freq: 50Hz</span>
+            <span>Vpp: 622V</span>
+            <span>CH1: 100V/div</span>
+        </div>
+    </div>
+
+    <!-- آمار -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <span class="stat-number" id="stat-circuits">0</span>
+            <span class="stat-label" data-i18n="statCircuits">مدار شبیه‌سازی</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <span class="stat-number" id="stat-categories">0</span>
+            <span class="stat-label" data-i18n="statCategories">دسته‌بندی تخصصی</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <span class="stat-number" id="stat-formulas">0</span>
+            <span class="stat-label" data-i18n="statFormulas">فرمول محاسباتی</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <span class="stat-number" id="stat-live">0</span>
+            <span class="stat-label" data-i18n="statLive">شبیه‌ساز زنده</span>
+        </div>
+    </div>
+
+    <!-- دکمه‌ها -->
+    <div class="hero-actions">
+        <button class="btn-neon btn-neon-primary" data-i18n="btnStart" 
+		onclick="loadSimulator('buck')">🚀 شروع شبیه‌سازی</button>
+       
+		<button id="btn-about" class="btn-neon btn-neon-secondary" data-i18n="btnAbout" onclick="scrollToAbout()">ℹ️ درباره PowerLab</button>
+    </div>
+
+    <!-- عنوان بخش -->
+    <div class="section-header">
+        <h2 class="section-title-lux" data-i18n="secTitleCat">دسته‌بندی‌های اصلی مدارها</h2>
+        <div class="section-line"></div>
+    </div>
+
+    <!-- کارت‌ها -->
+    <!-- کارت‌ها -->
+<div class="cards-grid">
+    <div class="luxury-card" onclick="loadSimulator('buck')">
+        <div class="card-icon-wrap icon-dcdc">⚡</div>
+        <div class="card-title" data-i18n="cat1Title">مبدل‌های DC-DC</div>
+        <div class="card-desc" data-i18n="cat1Desc">Buck, Boost, Buck-Boost, Flyback...</div>
+        <div class="card-count"><span class="count-dot"></span> 11 Circuits</div>
+    </div>
+
+    <div class="luxury-card" onclick="loadSimulator('halfwave')">
+        <div class="card-icon-wrap icon-rect">🔄</div>
+        <div class="card-title" data-i18n="cat2Title">یکسوکننده‌ها</div>
+        <div class="card-desc" data-i18n="cat2Desc">Half-Wave, Full-Wave, 3-Phase...</div>
+        <div class="card-count"><span class="count-dot"></span> 8 Circuits</div>
+    </div>
+
+    <div class="luxury-card" onclick="loadSimulator('inv_half')">
+        <div class="card-icon-wrap icon-inv">🌊</div>
+        <div class="card-title" data-i18n="cat3Title">اینورترها</div>
+        <div class="card-desc" data-i18n="cat3Desc">Single-Phase, 3-Phase, PWM...</div>
+        <div class="card-count"><span class="count-dot"></span> 6 Circuits</div>
+    </div>
+
+    <div class="luxury-card" onclick="loadSimulator('dimmer')">
+        <div class="card-icon-wrap icon-acac">🎛️</div>
+        <div class="card-title" data-i18n="cat4Title">مبدل‌های AC-AC</div>
+        <div class="card-desc" data-i18n="cat4Desc">AC Controllers, Cycloconverters...</div>
+        <div class="card-count"><span class="count-dot"></span> 3 Circuits</div>
+    </div>
+
+    <div class="luxury-card" onclick="loadSimulator('zener')">
+        <div class="card-icon-wrap icon-reg">🔋</div>
+        <div class="card-title" data-i18n="cat5Title">رگولاتورها</div>
+        <div class="card-desc" data-i18n="cat5Desc">Linear, LDO, SMPS...</div>
+        <div class="card-count"><span class="count-dot"></span> 7 Circuits</div>
+    </div>
+
+    <div class="luxury-card" onclick="loadSimulator('charger_lead')">
+        <div class="card-icon-wrap icon-app">💡</div>
+        <div class="card-title" data-i18n="cat6Title">کاربردهای صنعتی</div>
+        <div class="card-desc" data-i18n="cat6Desc">EV Chargers, Solar MPPT...</div>
+        <div class="card-count"><span class="count-dot"></span> 8 Circuits</div>
+    </div>
+</div>
+
+    <!-- فوتر -->
+    <div class="home-footer">
+        <p class="footer-text">⚡ Designed by <a href="mailto:xxabasxxsoft@gmail.com">ABAS SOFT</a></p>
+        <div class="tech-badges">
+            <span class="tech-badge">HTML5 Canvas</span>
+            <span class="tech-badge">Vanilla JS</span>
+            <span class="tech-badge">CSS3 Animation</span>
+            <span class="tech-badge">PWM Simulation</span>
+        </div>
+    </div>
+</div>
+
+<section id="educational-section" class="glass-panel">
+    <div class="tabs-container">
+        <button class="tab-btn active" onclick="switchEduTab(0, this)" id="tab-0" data-i18n="t0">📌 مفهوم و کارکرد</button>
+        <button class="tab-btn" onclick="switchEduTab(1, this)" id="tab-1" data-i18n="t1">📐 فرمول‌ها</button>
+        <button class="tab-btn" onclick="switchEduTab(2, this)" id="tab-2" data-i18n="t2">⚡ نقش قطعات</button>
+        <button class="tab-btn" onclick="switchEduTab(3, this)" id="tab-3" data-i18n="t3">🏭 کاربردهای صنعتی</button>
+        <button class="tab-btn" onclick="switchEduTab(4, this)" id="tab-4" data-i18n="t4" style="color:var(--success-color);">🧮 محاسبات</button>
+    </div>
+    <div id="edu-content-area"></div>
+</section>
+
+
+
+
+
+
+<!-- About Section -->
+<section id="about-section" class="glass-panel" style="display: none; padding: 35px 25px; margin-top: 30px; border-radius: 16px; border: 1px solid var(--glass-border); background: var(--glass-bg); backdrop-filter: blur(12px);">
+    
+    <h2 id="abt-title" data-i18n="aboutTitle" style="color:var(--neon-accent); margin-bottom:15px; text-align: center; font-size: 1.6rem; text-shadow: 0 0 10px rgba(0, 242, 254, 0.3);">
+        درباره ما و حمایت از پروژه
+    </h2>
+    
+    <p id="abt-desc" data-i18n="aboutDesc" style="color:var(--text-muted); margin-bottom:30px; line-height:1.8; text-align: center; font-size: 0.95rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+        این پروژه با هدف ارتقاء سطح آموزش الکترونیک قدرت توسعه یافته است. در صورت تمایل می‌توانید از طریق آدرس‌های زیر از ما حمایت کنید.
+    </p>
+
+    <!-- کانتینر آدرس‌ها -->
+    <div style="display: flex; flex-direction: column; gap: 18px; max-width: 600px; margin: 0 auto;">
+        
+        <!-- Email Box -->
+        <div class="copy-box" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; transition: all 0.3s ease;">
+            <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; overflow: hidden;">
+                <span data-i18n="lblEmail" style="color: #94a3b8; font-size: 0.85rem; font-weight: 600;">ایمیل ارتباطی:</span>
+                <span style="color: #f8fafc; font-family: 'Courier New', Courier, monospace; font-size: 1.05rem; user-select: all; word-break: break-all; letter-spacing: 0.5px;">xxabasxxsoft@gmail.com</span>
+            </div>
+            <button id="copy-email" class="btn-copy-soft" data-i18n="clickToCopy" style="padding: 8px 18px; font-size: 0.85rem; min-width: 110px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.12); color: #a7f3d0; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);" onclick="copyText('xxabasxxsoft@gmail.com', 'copy-email')">
+                کپی 📋
+            </button>
+        </div>
+
+        <!-- USDT Box -->
+        <div class="copy-box" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 20px rgba(16, 185, 129, 0.08); transition: all 0.3s ease;">
+            <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; overflow: hidden;">
+                <span data-i18n="lblUsdt" style="color: #10b981; font-size: 0.85rem; font-weight: 600;">تتر (USDT - TRC20):</span>
+                <span style="color: #f8fafc; font-family: 'Courier New', Courier, monospace; font-size: 1.05rem; user-select: all; word-break: break-all; letter-spacing: 0.5px;">آدرس_تتر_را_اینجا_بنویس</span>
+            </div>
+            <button id="copy-usdt" class="btn-copy-soft" data-i18n="clickToCopy" style="padding: 8px 18px; font-size: 0.85rem; min-width: 110px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.12); color: #a7f3d0; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);" onclick="copyText('آدرس_تتر_را_اینجا_بنویس', 'copy-usdt')">
+                کپی 📋
+            </button>
+        </div>
+
+        <!-- BTC Box -->
+        <div class="copy-box" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 12px; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 20px rgba(245, 158, 11, 0.08); transition: all 0.3s ease;">
+            <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; overflow: hidden;">
+                <span data-i18n="lblBtc" style="color: #f59e0b; font-size: 0.85rem; font-weight: 600;">بیت‌کوین (BTC):</span>
+                <span style="color: #f8fafc; font-family: 'Courier New', Courier, monospace; font-size: 1.05rem; user-select: all; word-break: break-all; letter-spacing: 0.5px;">آدرس_بیتکوین_را_اینجا_بنویس</span>
+            </div>
+            <button id="copy-btc" class="btn-copy-soft" data-i18n="clickToCopy" style="padding: 8px 18px; font-size: 0.85rem; min-width: 110px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.12); color: #a7f3d0; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);" onclick="copyText('آدرس_بیتکوین_را_اینجا_بنویس', 'copy-btc')">
+                کپی 📋
+            </button>
+        </div>
+
+    </div>
+</section>
+
+    </main>
+
+
+  
+
+
+
+
+</script>
+</body>
+</html>
