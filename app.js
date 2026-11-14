@@ -2139,22 +2139,151 @@ function scrollToAbout() {
 
 
 // ==========================================
-// SEO Deep Linking & Auto-Load System
+// SEO & Deep Linking System
 // ==========================================
-window.addEventListener('load', function() {
-    var urlParams = new URLSearchParams(window.location.search);
-    var circuitParam = urlParams.get('circuit');
-    var langParam = urlParams.get('lang');
+window.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const circuitParam = urlParams.get('circuit');
+    const langParam = urlParams.get('lang');
 
-    // ۱. تنظیم زبان
-    if ((langParam === 'fa' || langParam === 'en') && typeof switchLanguage === 'function') {
-        switchLanguage(langParam);
+    // 1. تنظیم زبان (اگر در لینک موجود بود)
+    if(langParam === 'en' || langParam === 'fa') {
+        if(typeof switchLanguage === 'function') {
+            switchLanguage(langParam);
+        }
     }
 
-    // ۲. بارگذاری اتوماتیک مدار
-    if (circuitParam && typeof loadSimulator === 'function') {
-        setTimeout(function() {
-            loadSimulator(circuitParam);
-        }, 200);
+    // 2. باز کردن خودکار مدار (اگر از گوگل آمده بود)
+    if(circuitParam) {
+        if(typeof loadSimulator === 'function') {
+            // یک تاخیر کوتاه می‌دهیم تا منوها کامل ساخته شوند
+            setTimeout(() => {
+                loadSimulator(circuitParam);
+            }, 300); 
+        }
     }
 });
+
+
+// ==========================================
+// سیستم قفل هوشمند و ثبت‌نام کاربران (Paywall)
+// ==========================================
+var lockTimer = null;
+
+function checkCircuitLock(circuitName) {
+    // مدار باک (buck) و کاربران ثبت‌نام شده نیازی به قفل ندارند
+    var isRegistered = localStorage.getItem('powerlab_user_registered');
+    
+    if (circuitName === 'buck' || isRegistered === 'true') {
+        if (lockTimer) clearTimeout(lockTimer);
+        document.getElementById('register-modal').style.display = 'none';
+        return;
+    }
+
+    // برای بقیه مدارها، بعد از ۱۰ ثانیه قفل نمایش داده می‌شود
+    if (lockTimer) clearTimeout(lockTimer);
+    lockTimer = setTimeout(function() {
+        document.getElementById('register-modal').style.display = 'flex';
+    }, 10000); // ۱۰ ثانیه مهلت تست
+}
+
+// تابع ارسال ایمیل ثبت‌نام
+function submitUserRegistration(e) {
+    e.preventDefault();
+    var emailInput = document.getElementById('reg-email').value;
+    var btn = document.getElementById('reg-btn');
+
+    btn.innerText = 'در حال ثبت... ⏳';
+    btn.disabled = true;
+
+    // ارسال رایگان ایمیل به سرویس FormSubmit
+    fetch('https://formsubmit.co/ajax/xxabasxxsoft@gmail.com', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            _subject: "ثبت‌نام جدید در سایت آزمایشگاه قدرت!",
+            user_email: emailInput,
+            date: new Date().toLocaleString('fa-IR')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // ذخیره وضعیت ثبت‌نام در مرورگر کاربر
+        localStorage.setItem('powerlab_user_registered', 'true');
+        localStorage.setItem('powerlab_user_email', emailInput);
+
+        // مخفی کردن پنجره قفل
+        document.getElementById('register-modal').style.display = 'none';
+        alert('🎉 ثبت‌نام با موفقیت انجام شد! تمام ۴۳ مدار برای شما فعال گردید.');
+    })
+    .catch(error => {
+        // حتی اگر اینترنت قطعی داشت، برای تجربه کاربری بهتر بازش می‌کنیم
+        localStorage.setItem('powerlab_user_registered', 'true');
+        document.getElementById('register-modal').style.display = 'none';
+    });
+}
+
+// هک کردن تابع اصلی لود شبیه‌ساز برای بررسی قفل
+var originalLoadSimulator = typeof loadSimulator === 'function' ? loadSimulator : null;
+if (originalLoadSimulator) {
+    window.loadSimulator = function(circuitName) {
+        originalLoadSimulator(circuitName);
+        checkCircuitLock(circuitName);
+    };
+}
+
+
+// ==========================================
+// سیستم ارسال نظرات و پیشنهادات به ایمیل
+// ==========================================
+function openFeedbackModal() {
+    document.getElementById('feedback-modal').style.display = 'flex';
+}
+
+function closeFeedbackModal() {
+    document.getElementById('feedback-modal').style.display = 'none';
+}
+
+function submitUserFeedback(e) {
+    e.preventDefault();
+    
+    var nameInput = document.getElementById('fb-name').value || 'کاربر ناشناس';
+    var emailInput = document.getElementById('fb-email').value;
+    var messageInput = document.getElementById('fb-message').value;
+    var btn = document.getElementById('fb-btn');
+
+    btn.innerText = 'در حال ارسال... ⏳';
+    btn.disabled = true;
+
+    fetch('https://formsubmit.co/ajax/xxabasxxsoft@gmail.com', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            _subject: "💬 نظر/پیشنهاد جدید از طرف کاربر سایت!",
+            sender_name: nameInput,
+            sender_email: emailInput,
+            message: messageInput,
+            sent_at: new Date().toLocaleString('fa-IR')
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert('✅ پیام شما با موفقیت ارسال شد. با تشکر از نظر شما!');
+        document.getElementById('feedback-form').reset();
+        closeFeedbackModal();
+        btn.innerText = '🚀 ارسال پیام';
+        btn.disabled = false;
+    })
+    .catch(error => {
+        alert('✅ پیام شما ثبت گردید. متشکریم!');
+        closeFeedbackModal();
+        btn.innerText = '🚀 ارسال پیام';
+        btn.disabled = false;
+    });
+}
